@@ -1,4 +1,5 @@
 import { CtaSection } from '@/components/sections/home/cta-section';
+import { FeedbackSection } from '@/components/sections/home/feedback-section';
 import { FeaturesSection } from '@/components/sections/home/features-section';
 import { HeroSection } from '@/components/sections/home/hero-section';
 import { HowItWorksSection } from '@/components/sections/home/how-it-works-section';
@@ -11,6 +12,7 @@ export default function Home() {
       <TrustLogosSection />
       <FeaturesSection />
       <HowItWorksSection />
+      <FeedbackSection />
       <CtaSection />
     </div>
   );

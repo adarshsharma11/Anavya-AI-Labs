@@ -1,32 +1,22 @@
 'use client';
 
-import { Bar, BarChart, CartesianGrid, XAxis, YAxis } from 'recharts';
-
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart';
-import type { ScanResult } from '@/lib/mock-api';
+import type { ScanResult, ScanSummary } from '@/lib/scan-types';
+import { Progress } from '@/components/ui/progress';
 
 interface ScannerResultsSummaryProps {
   results: ScanResult[];
+  summary?: ScanSummary;
 }
 
 export default function ScannerResultsSummary({
   results,
+  summary,
 }: ScannerResultsSummaryProps) {
-  const summary = results.reduce(
+  const nonPremium = results.filter((r) => !r.isPremium);
+
+  const counts = nonPremium.reduce(
     (acc, result) => {
-      acc.bySeverity[result.severity] =
-        (acc.bySeverity[result.severity] || 0) + 1;
+      acc.bySeverity[result.severity] = (acc.bySeverity[result.severity] || 0) + 1;
       acc.byType[result.type] = (acc.byType[result.type] || 0) + 1;
       return acc;
     },
@@ -36,99 +26,110 @@ export default function ScannerResultsSummary({
     }
   );
 
-  const severityData = [
-    { severity: 'Low', count: summary.bySeverity['Low'] || 0 },
-    { severity: 'Medium', count: summary.bySeverity['Medium'] || 0 },
-    { severity: 'High', count: summary.bySeverity['High'] || 0 },
-  ];
+  const weights = {
+    High: 25,
+    Medium: 12,
+    Low: 5,
+  } as const;
 
-  const typeData = [
-    { type: 'Performance', count: summary.byType['Performance'] || 0 },
-    { type: 'SEO', count: summary.byType['SEO'] || 0 },
-    { type: 'Accessibility', count: summary.byType['Accessibility'] || 0 },
-  ];
-
-  const chartConfig = {
-    count: {
-      label: 'Issues',
-      color: 'hsl(var(--primary))',
+  const computedScores = nonPremium.reduce(
+    (acc, result) => {
+      acc[result.type] = Math.max(0, Math.min(100, acc[result.type] - weights[result.severity]));
+      return acc;
     },
-  };
+    {
+      Performance: 100,
+      SEO: 100,
+      Accessibility: 100,
+    }
+  );
+
+  const computedOverall = Math.round(
+    (computedScores.Performance + computedScores.SEO + computedScores.Accessibility) / 3
+  );
+
+  const scores = summary?.scores ?? computedScores;
+  const overallScore = summary?.overallScore ?? computedOverall;
 
   return (
-    <div className="grid gap-8 md:grid-cols-2">
-      <Card>
-        <CardHeader>
-          <CardTitle>Issues by Severity</CardTitle>
-          <CardDescription>
-            Distribution of issues based on their potential impact.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-48 w-full">
-            <BarChart data={severityData} accessibilityLayer>
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="severity"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <YAxis
-                tickLine={false}
-                axisLine={false}
-                tickMargin={10}
-                allowDecimals={false}
-              />
-              <ChartTooltip
-                content={<ChartTooltipContent />}
-                cursor={false}
-                defaultIndex={1}
-              />
-              <Bar
-                dataKey="count"
-                fill="var(--color-count)"
-                radius={4}
-                barSize={40}
-              />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader>
-          <CardTitle>Issues by Category</CardTitle>
-          <CardDescription>
-            Breakdown of issues across different areas of your site.
-          </CardDescription>
-        </CardHeader>
-        <CardContent>
-          <ChartContainer config={chartConfig} className="h-48 w-full">
-            <BarChart data={typeData} accessibilityLayer layout="vertical">
-              <CartesianGrid horizontal={false} />
-              <YAxis
-                dataKey="type"
-                type="category"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-              />
-              <XAxis type="number" hide />
-              <ChartTooltip
-                content={<ChartTooltipContent />}
-                cursor={false}
-                defaultIndex={1}
-              />
-              <Bar
-                dataKey="count"
-                fill="var(--color-count)"
-                radius={4}
-                barSize={20}
-              />
-            </BarChart>
-          </ChartContainer>
-        </CardContent>
-      </Card>
-    </div>
+    <section className="rounded-3xl border border-border/60 bg-gradient-to-br from-foreground/5 via-background to-background p-6 shadow-lg md:p-8">
+      <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr] lg:items-center">
+        <div className="space-y-4">
+          <div className="text-sm font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Scan Summary
+          </div>
+          <h2 className="text-3xl font-bold tracking-tight">
+            Overall health score
+          </h2>
+          <div className="flex flex-wrap items-end gap-6">
+            <div className="text-6xl font-semibold tabular-nums">
+              {overallScore}
+            </div>
+            <div className="text-sm text-muted-foreground">
+              Based on performance, SEO, and accessibility.
+            </div>
+          </div>
+          <div className="grid gap-3 sm:grid-cols-3">
+            <div className="rounded-2xl border bg-background/80 p-4 text-center">
+              <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                High
+              </div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums">
+                {counts.bySeverity['High'] ?? 0}
+              </div>
+            </div>
+            <div className="rounded-2xl border bg-background/80 p-4 text-center">
+              <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Medium
+              </div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums">
+                {counts.bySeverity['Medium'] ?? 0}
+              </div>
+            </div>
+            <div className="rounded-2xl border bg-background/80 p-4 text-center">
+              <div className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
+                Low
+              </div>
+              <div className="mt-2 text-2xl font-semibold tabular-nums">
+                {counts.bySeverity['Low'] ?? 0}
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div className="space-y-5">
+          {[
+            { label: 'Performance', value: scores.Performance },
+            { label: 'SEO', value: scores.SEO },
+            { label: 'Accessibility', value: scores.Accessibility },
+          ].map((item) => (
+            <div key={item.label} className="space-y-2">
+              <div className="flex items-center justify-between text-sm">
+                <span className="font-medium">{item.label}</span>
+                <span className="tabular-nums text-muted-foreground">
+                  {item.value}/100
+                </span>
+              </div>
+              <Progress value={item.value} />
+            </div>
+          ))}
+
+          <dl className="grid gap-3 text-sm sm:grid-cols-2">
+            <div className="flex items-center justify-between gap-4 rounded-xl border bg-background/80 p-3">
+              <dt className="text-muted-foreground">Response time</dt>
+              <dd className="font-medium tabular-nums">
+                {summary ? `${summary.metrics.responseTimeMs}ms` : '—'}
+              </dd>
+            </div>
+            <div className="flex items-center justify-between gap-4 rounded-xl border bg-background/80 p-3">
+              <dt className="text-muted-foreground">HTML size</dt>
+              <dd className="font-medium tabular-nums">
+                {summary ? `${Math.round(summary.metrics.contentBytes / 1024)}KB` : '—'}
+              </dd>
+            </div>
+          </dl>
+        </div>
+      </div>
+    </section>
   );
 }

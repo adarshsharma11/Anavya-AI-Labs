@@ -15,7 +15,7 @@ export function TrustLogosSection() {
           transition={{ duration: 0.5, delay: 0.2 }}
         >
           <p className="text-center text-sm font-semibold text-muted-foreground">
-            Trusted by the world's most innovative companies
+            Trusted by the world&apos;s most innovative companies
           </p>
           <div className="relative mt-10 w-full overflow-hidden">
             <div className="absolute inset-y-0 left-0 z-10 w-16 bg-gradient-to-r from-background to-transparent" />

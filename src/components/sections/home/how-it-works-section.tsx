@@ -2,6 +2,7 @@
 
 import { motion } from "framer-motion";
 import { ScanLine, FileBarChart, Wrench } from "lucide-react";
+import { Card } from "@/components/ui/card";
 
 const steps = [
   {
@@ -44,7 +45,7 @@ export function HowItWorksSection() {
   };
 
   return (
-    <section className="py-20 md:py-32">
+    <section className="py-16 md:py-24">
       <div className="container">
         <div className="mx-auto max-w-2xl text-center">
           <h2 className="font-headline text-3xl font-bold tracking-tight sm:text-4xl">
@@ -55,34 +56,25 @@ export function HowItWorksSection() {
           </p>
         </div>
         <motion.div
-          className="relative mt-16"
+          className="mt-16 grid gap-6 md:grid-cols-3"
           variants={containerVariants}
           initial="hidden"
           whileInView="visible"
-          viewport={{ once: true, amount: 0.5 }}
+          viewport={{ once: true, amount: 0.4 }}
         >
-          <div className="absolute left-1/2 top-4 -ml-px hidden h-full w-0.5 bg-border md:block" />
-          <div className="space-y-12">
-            {steps.map((step) => (
-              <motion.div
-                key={step.title}
-                className="relative flex flex-col items-center text-center md:flex-row md:items-start md:text-left"
-                variants={itemVariants}
-              >
-                <div className="absolute -left-6 top-1 hidden h-12 w-12 items-center justify-center rounded-full bg-background md:flex">
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-primary-foreground">
-                    <step.icon className="h-5 w-5" />
-                  </div>
+          {steps.map((step) => (
+            <motion.div key={step.title} variants={itemVariants}>
+              <Card className="h-full border-border/60 bg-background/80 p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
+                  <step.icon className="h-6 w-6" />
                 </div>
-                <div className="md:ml-12">
-                  <h3 className="text-lg font-semibold">{step.title}</h3>
-                  <p className="mt-2 text-muted-foreground">
-                    {step.description}
-                  </p>
-                </div>
-              </motion.div>
-            ))}
-          </div>
+                <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {step.description}
+                </p>
+              </Card>
+            </motion.div>
+          ))}
         </motion.div>
       </div>
     </section>

@@ -2,7 +2,7 @@ import type { SVGProps } from "react";
 
 export function Logo(props: SVGProps<HTMLDivElement>) {
   return (
-    <div className="flex items-center justify-center" {...props}>
+    <div className="flex items-center gap-2" {...props}>
       <svg
         className="h-6 w-6 text-primary"
         viewBox="0 0 24 24"
@@ -45,7 +45,9 @@ export function Logo(props: SVGProps<HTMLDivElement>) {
           strokeLinejoin="round"
         />
       </svg>
-      <span className="ml-2 font-headline text-lg font-bold">anavyaailabs.com</span>
+      <span className="font-headline text-lg font-bold leading-none">
+        Anavya AI Labs
+      </span>
     </div>
   );
 }

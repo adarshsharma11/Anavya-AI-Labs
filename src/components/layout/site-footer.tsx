@@ -13,7 +13,7 @@ export function SiteFooter() {
       <div className="container py-8">
         <div className="flex flex-col gap-8 lg:flex-row lg:justify-between">
           <div>
-            <Link href="/">
+            <Link href="/" className="inline-flex items-center">
               <Logo />
             </Link>
             <p className="mt-2 max-w-sm text-sm text-muted-foreground">

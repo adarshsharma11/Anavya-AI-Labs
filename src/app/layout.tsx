@@ -1,15 +1,46 @@
 import type { Metadata } from 'next';
+import { Space_Grotesk } from 'next/font/google';
 import './globals.css';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
+import { siteConfig, pageMetadata } from '@/config/site';
+
+const spaceGrotesk = Space_Grotesk({
+  subsets: ['latin'],
+  variable: '--font-space-grotesk',
+  display: 'swap',
+});
 
 export const metadata: Metadata = {
-  title: 'anavyaailabs.com | AI-Powered Website Analysis',
-  description:
-    'AI that finds what’s costing your website customers. Get a free, instant analysis of your website’s performance, SEO, and user experience.',
+  metadataBase: new URL(siteConfig.url),
+  title: {
+    default: pageMetadata.home.title,
+    template: `%s | ${siteConfig.name}`,
+  },
+  description: pageMetadata.home.description,
+  applicationName: siteConfig.name,
+  alternates: {
+    canonical: '/',
+  },
+  robots: {
+    index: true,
+    follow: true,
+  },
+  openGraph: {
+    type: 'website',
+    url: '/',
+    siteName: siteConfig.name,
+    title: pageMetadata.home.title,
+    description: pageMetadata.home.description,
+  },
+  twitter: {
+    card: 'summary',
+    title: pageMetadata.home.title,
+    description: pageMetadata.home.description,
+  },
 };
 
 export default function RootLayout({
@@ -19,19 +50,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <head>
-        <link rel="preconnect" href="https://fonts.googleapis.com" />
-        <link
-          rel="preconnect"
-          href="https://fonts.gstatic.com"
-          crossOrigin="anonymous"
-        />
-        <link
-          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
-          rel="stylesheet"
-        />
-      </head>
-      <body className={cn('min-h-screen bg-background font-body antialiased')}>
+      <body
+        className={cn(
+          'min-h-screen bg-background font-body antialiased',
+          spaceGrotesk.variable
+        )}
+      >
         <ThemeProvider
           attribute="class"
           defaultTheme="system"

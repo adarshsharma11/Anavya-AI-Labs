@@ -23,6 +23,24 @@
       "description": "Mobile Banking App",
       "imageUrl": "https://images.unsplash.com/photo-1616077168712-fc6c788db4af?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw0fHxtb2JpbGUlMjBiYW5raW5nfGVufDB8fHx8MTc2NzcyOTU4MXww&ixlib=rb-4.1.0&q=80&w=1080",
       "imageHint": "mobile banking"
+    },
+    {
+      "id": "portfolio-4",
+      "description": "AI Support Chatbot",
+      "imageUrl": "https://images.unsplash.com/photo-1518770660439-4636190af475?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw2fHxjaGF0Ym90fGVufDB8fHx8MTc2NzcyOTk1MXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "chatbot interface"
+    },
+    {
+      "id": "portfolio-5",
+      "description": "Conversational Commerce",
+      "imageUrl": "https://images.unsplash.com/photo-1520607162513-77705c0f0d4a?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxlY29tbWVyY2UlMjBjaGF0fGVufDB8fHx8MTc2NzcyOTk2OXww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "commerce chat"
+    },
+    {
+      "id": "portfolio-6",
+      "description": "Knowledge Base Assistant",
+      "imageUrl": "https://images.unsplash.com/photo-1487058792275-0ad4aaf24ca7?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw4fHxjb2RlJTIwZWRpdG9yfGVufDB8fHx8MTc2NzcyOTk4Nnww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "knowledge assistant"
     }
   ]
 }

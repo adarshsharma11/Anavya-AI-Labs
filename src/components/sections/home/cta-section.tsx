@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 
 export function CtaSection() {
   return (
-    <section className="py-20 md:py-32">
+    <section className="py-16 md:py-24">
       <div className="container">
         <div className="relative overflow-hidden rounded-2xl bg-secondary/50 px-6 py-20 text-center shadow-lg sm:px-16">
           <div aria-hidden="true" className="absolute inset-0 -z-10">
@@ -20,7 +20,7 @@ export function CtaSection() {
             transition={{ duration: 0.5 }}
           >
             <h2 className="font-headline text-3xl font-bold tracking-tight sm:text-4xl">
-              Ready to see what's holding your website back?
+              Ready to see what&apos;s holding your website back?
             </h2>
             <p className="mx-auto mt-6 max-w-xl text-lg text-muted-foreground">
               Get your free, no-obligation website analysis now and start
