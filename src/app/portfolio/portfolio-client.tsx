@@ -147,7 +147,7 @@ export default function PortfolioClient() {
               </CardContent>
               <div className="p-6 pt-0">
                 <Button variant="outline" asChild>
-                  <Link href="#">
+                  <Link href="/case-study">
                     View Case Study <ArrowRight className="ml-2" />
                   </Link>
                 </Button>

@@ -106,7 +106,7 @@ export function FeedbackSection() {
                     variants={itemVariants}
                     className="w-[320px] flex-none md:w-[360px]"
                   >
-                    <Card className="h-full border-border/60 bg-background/80 p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
+                    <Card className="flex h-full flex-col border-border/60 bg-background/80 p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
                       <div className="flex items-center justify-between gap-4">
                         <div className="flex items-center gap-1 text-amber-500">
                           {Array.from({ length: 5 }).map((_, starIndex) => (
@@ -116,11 +116,11 @@ export function FeedbackSection() {
                             />
                           ))}
                         </div>
-                        <span className="text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-500">
+                        <span className="inline-flex h-6 min-w-[80px] items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600">
                           {index % 2 === 0 ? "Upwork" : "Fiverr"}
                         </span>
                       </div>
-                      <p className="mt-6 text-base text-muted-foreground">
+                      <p className="mt-6 flex-1 text-base text-muted-foreground">
                         “{item.quote}”
                       </p>
                       <div className="mt-6">

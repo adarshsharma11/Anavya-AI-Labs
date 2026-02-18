@@ -19,6 +19,10 @@ export const siteConfig: SiteConfig = {
   description: "AI that finds what’s costing your website customers.",
   mainNav: [
     {
+      title: "Home",
+      href: "/",
+    },
+    {
       title: "Services",
       href: "/services",
     },

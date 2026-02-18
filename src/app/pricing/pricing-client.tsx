@@ -30,20 +30,21 @@ const plans = [
     cta: "Start Free",
   },
   {
-    name: "Scan Packs",
-    price: "29",
-    cadence: "5 scans",
+    name: "Full Report",
+    price: "2.99",
+    cadence: "per report",
     description:
-      "Pay once, use anytime. Perfect for agencies or teams scanning multiple pages.",
+      "Unlock the complete AI audit report and download it instantly.",
     features: [
-      "5 scans, no expiry",
-      "Priority scan queue",
-      "Exportable reports",
-      "Fix recommendations",
+      "Full issue breakdown",
+      "AI recommendations",
+      "Downloadable report",
+      "Premium insights",
     ],
-    cta: "Buy Scan Pack",
+    cta: "Unlock Report",
     highlighted: true,
-    badge: "Most flexible",
+    badge: "Save $2.01",
+    compareAt: "5.00",
   },
   {
     name: "Pro Monthly",
@@ -61,14 +62,8 @@ const plans = [
   },
 ];
 
-const enterprise = [
-  "Custom integrations",
-  "API access",
-  "Dedicated account manager",
-  "Priority support",
-];
-
 export default function PricingClient() {
+  const checkoutLink = process.env.NEXT_PUBLIC_STRIPE_REPORT_LINK;
   const cardVariants = {
     hidden: { y: 24, opacity: 0 },
     visible: {
@@ -121,8 +116,15 @@ export default function PricingClient() {
               </CardHeader>
               <CardContent className="flex-1">
                 <div className="mb-6">
-                  <span className="text-4xl font-bold">${plan.price}</span>
-                  <span className="text-muted-foreground">/{plan.cadence}</span>
+                  <div className="flex flex-wrap items-baseline gap-3">
+                    <span className="text-4xl font-bold">${plan.price}</span>
+                    <span className="text-muted-foreground">/{plan.cadence}</span>
+                    {"compareAt" in plan && plan.compareAt && (
+                      <span className="text-sm text-muted-foreground line-through">
+                        ${plan.compareAt}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <ul className="space-y-3 text-sm">
                   {plan.features.map((feature) => (
@@ -137,8 +139,15 @@ export default function PricingClient() {
                 <Button
                   className="w-full"
                   variant={plan.highlighted ? "default" : "outline"}
+                  asChild={plan.name === "Full Report" && !!checkoutLink}
                 >
-                  {plan.cta}
+                  {plan.name === "Full Report" && checkoutLink ? (
+                    <a href={checkoutLink} rel="noreferrer">
+                      {plan.cta}
+                    </a>
+                  ) : (
+                    plan.cta
+                  )}
                 </Button>
               </CardFooter>
             </Card>
@@ -146,27 +155,7 @@ export default function PricingClient() {
         ))}
       </motion.div>
 
-      <div className="mt-14 rounded-2xl border border-border/60 bg-secondary/40 p-8">
-        <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
-          <div>
-            <h2 className="text-2xl font-semibold">Enterprise</h2>
-            <p className="mt-2 text-muted-foreground">
-              Custom plans for multi-property teams and private deployments.
-            </p>
-            <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
-              {enterprise.map((item) => (
-                <li key={item} className="flex items-center gap-2">
-                  <Check className="h-4 w-4 text-primary" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </div>
-          <Button size="lg" variant="outline">
-            Contact Sales
-          </Button>
-        </div>
-      </div>
+ 
     </motion.div>
   );
 }

@@ -41,6 +41,22 @@ export function SiteFooter() {
               <ul className="mt-4 space-y-2">
                 <li>
                   <Link
+                    href="/case-study"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Case Study
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/blog"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Blog
+                  </Link>
+                </li>
+                <li>
+                  <Link
                     href="/about"
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
@@ -50,22 +66,30 @@ export function SiteFooter() {
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold">Legal</h3>
+              <h3 className="font-semibold">Resources</h3>
               <ul className="mt-4 space-y-2">
                 <li>
                   <Link
-                    href="#"
+                    href="/scanner"
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
-                    Privacy Policy
+                    Free Website Scan
                   </Link>
                 </li>
                 <li>
                   <Link
-                    href="#"
+                    href="/services"
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
-                    Terms of Service
+                    Services
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/pricing"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Pricing
                   </Link>
                 </li>
               </ul>
