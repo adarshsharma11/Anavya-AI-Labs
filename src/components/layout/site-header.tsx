@@ -55,7 +55,7 @@ export function SiteHeader() {
           <div className="hidden md:flex">
             <ThemeToggle />
             <Button asChild className="ml-4">
-              <Link href="/scanner">Scan Website</Link>
+              <Link href="/scanner">AI Website Scanner</Link>
             </Button>
           </div>
           <div className="md:hidden">
@@ -97,7 +97,7 @@ export function SiteHeader() {
                     </div>
                     <Button asChild className="mt-4 w-full">
                       <Link href="/scanner" onClick={() => setIsOpen(false)}>
-                        Scan Website
+                        AI Website Scanner
                       </Link>
                     </Button>
                   </div>

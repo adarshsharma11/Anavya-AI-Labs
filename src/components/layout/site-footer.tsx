@@ -73,7 +73,7 @@ export function SiteFooter() {
                     href="/scanner"
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
-                    Free Website Scan
+                    AI Website Scanner
                   </Link>
                 </li>
                 <li>
@@ -81,7 +81,7 @@ export function SiteFooter() {
                     href="/services"
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
-                    Services
+                    AI Services
                   </Link>
                 </li>
                 <li>
