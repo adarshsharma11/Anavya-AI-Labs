@@ -760,20 +760,7 @@ function AiSuggestions({
           ))}
         </ul>
       )}
-      {locked && hiddenSuggestions.length > 0 && onUnlock ? (
-        <div className="mt-4">
-          <LockedSection locked={true} onUnlock={onUnlock}>
-            <ul className="space-y-3 text-sm text-muted-foreground">
-              {hiddenSuggestions.map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          </LockedSection>
-        </div>
-      ) : null}
+     
       {locked && computedLockedCount > 0 ? (
         <div className="mt-4 rounded-2xl border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
           <div className="flex flex-wrap items-center justify-between gap-3">

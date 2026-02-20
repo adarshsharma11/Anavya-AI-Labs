@@ -103,7 +103,7 @@ export default function AiToolsClient() {
       >
         {tools.map((tool) => (
           <motion.div key={tool.title} variants={cardVariants}>
-            <Card className="h-full border-border/60 bg-background/80 shadow-lg backdrop-blur">
+            <Card className="flex h-full flex-col border-border/60 bg-background/80 shadow-lg backdrop-blur">
               <CardHeader>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex items-center gap-3">
@@ -122,7 +122,7 @@ export default function AiToolsClient() {
                   {tool.description}
                 </CardDescription>
               </CardHeader>
-              <CardContent>
+              <CardContent className="mt-auto">
                 <Button asChild className="w-full">
                   <Link href={tool.href}>Open tool</Link>
                 </Button>
@@ -134,4 +134,3 @@ export default function AiToolsClient() {
     </motion.div>
   );
 }
-
