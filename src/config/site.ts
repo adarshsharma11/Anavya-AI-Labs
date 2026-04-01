@@ -31,10 +31,6 @@ export const siteConfig: SiteConfig = {
       href: "/services",
     },
     {
-      title: "Pricing",
-      href: "/pricing",
-    },
-    {
       title: "Blog",
       href: "/blog",
     },

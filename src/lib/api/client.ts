@@ -30,16 +30,26 @@ export async function apiFetch<T>(
     headers,
   });
 
-  if (!response.ok) {
-    let message = "Request failed.";
+  const rawBody = await response.text();
+  const parseJson = () => {
+    if (!rawBody) return null;
     try {
-      const data = (await response.json()) as { error?: string; message?: string };
-      message = data.error ?? data.message ?? message;
+      return JSON.parse(rawBody) as unknown;
     } catch {
-      message = await response.text();
+      return null;
     }
+  };
+
+  if (!response.ok) {
+    const parsed = parseJson() as { error?: string; message?: string } | null;
+    const message =
+      parsed?.error ?? parsed?.message ?? rawBody ?? "Request failed.";
     throw new Error(message);
   }
 
-  return (await response.json()) as T;
+  const parsed = parseJson();
+  if (parsed !== null) {
+    return parsed as T;
+  }
+  return rawBody as T;
 }
