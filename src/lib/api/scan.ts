@@ -49,7 +49,7 @@ const scanPreviewSchema = z.object({
   ),
   quickWins: z.array(z.string()),
   lockedIssues: z.number(),
-  locked: z.boolean(),
+  isUnlocked: z.boolean().optional(),
 });
 
 const scanResultSchema = z.object({
@@ -67,7 +67,7 @@ const scanResultSchema = z.object({
       })
       .nullable()
       .optional(),
-    locked: z.boolean(),
+    isUnlocked: z.boolean().optional(),
   }),
 });
 
