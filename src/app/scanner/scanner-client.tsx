@@ -2,7 +2,7 @@
 
 import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowRight,
   BarChart3,
@@ -26,6 +26,8 @@ import {
   type ScanPreview,
   type ScanResultResponse,
 } from "@/lib/api/scan";
+import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
+import { formatAmount } from "@/lib/payments/razorpay";
 
 const scanSteps = [
   "Analyzing SEO structure...",
@@ -43,6 +45,13 @@ const competitorSteps = [
 
 const REPORT_UNLOCK_STORAGE_KEY = "report_unlocked";
 const SCAN_HISTORY_STORAGE_KEY = "scan_history";
+const REPORT_UNLOCK_AMOUNT = 2.99;
+const REPORT_UNLOCK_CURRENCY =
+  process.env.NEXT_PUBLIC_PAYMENT_CURRENCY?.trim() || "INR";
+const REPORT_UNLOCK_PRICE_LABEL = formatAmount(
+  REPORT_UNLOCK_AMOUNT,
+  REPORT_UNLOCK_CURRENCY
+);
 
 type ScanState = "idle" | "scanning" | "results";
 
@@ -68,6 +77,8 @@ export default function ScannerClient() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [activeTab, setActiveTab] = useState("website");
   const [history, setHistory] = useState<HistoryItem[]>([]);
+  const { isPaying, startPayment } = useRazorpayPayment();
+  const queryClient = useQueryClient();
 
   useEffect(() => {
     setIsUnlocked(readReportUnlockState());
@@ -76,11 +87,32 @@ export default function ScannerClient() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab");
+      const idParam = params.get("id");
+      const parsedId = idParam ? Number(idParam) : NaN;
+
       if (tab === "competitor") {
         setActiveTab("competitor");
+        return;
+      }
+
+      if (Number.isFinite(parsedId) && parsedId > 0) {
+        setScanId(parsedId);
       }
     }
   }, []);
+
+  const handleTabChange = (value: string) => {
+    setActiveTab(value);
+    if (typeof window === "undefined") return;
+
+    const url = new URL(window.location.href);
+    if (value === "competitor") {
+      url.searchParams.set("tab", "competitor");
+    } else {
+      url.searchParams.delete("tab");
+    }
+    window.history.replaceState({}, "", url.toString());
+  };
 
   const normalizedUrl = useMemo(() => {
     const trimmed = urlValue.trim();
@@ -155,12 +187,24 @@ export default function ScannerClient() {
   };
 
   const handleUnlock = () => {
-    const checkoutLink = process.env.NEXT_PUBLIC_STRIPE_REPORT_LINK;
-    if (checkoutLink) {
-      window.location.href = checkoutLink;
+    const currentScanId = scanQuery.data?.data?.id ?? scanId;
+    if (!currentScanId) {
+      setErrorMessage("Run a scan before unlocking the full report.");
       return;
     }
-    setErrorMessage("Stripe checkout link is not configured.");
+
+    setErrorMessage(null);
+    startPayment({
+      scanId: currentScanId,
+      amount: REPORT_UNLOCK_AMOUNT,
+      onSuccess: (updatedScan) => {
+        queryClient.setQueryData(["scan-result", currentScanId], updatedScan);
+        setReportUnlock();
+        setIsUnlocked(true);
+        setErrorMessage(null);
+      },
+      onError: (message) => setErrorMessage(message),
+    });
   };
 
   const handleDownload = () => {
@@ -250,7 +294,7 @@ export default function ScannerClient() {
         <Hero />
 
         <div className="mx-auto mt-12 max-w-5xl">
-          <Tabs value={activeTab} onValueChange={setActiveTab}>
+          <Tabs value={activeTab} onValueChange={handleTabChange}>
             <TabsList className="grid h-14 w-full grid-cols-2 items-stretch gap-2 rounded-2xl border border-border/60 bg-muted/40 p-1.5 shadow-lg backdrop-blur">
               <TabsTrigger
                 value="website"
@@ -324,6 +368,7 @@ export default function ScannerClient() {
                           unlocked={!locked}
                           onDownload={handleDownload}
                           onUnlock={handleUnlock}
+                          unlocking={isPaying}
                         />
                         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                           <ScoreOverview
@@ -336,6 +381,7 @@ export default function ScannerClient() {
                             locked={locked}
                             lockedCount={Math.max(0, previewSuggestions.length - 2)}
                             onUnlock={handleUnlock}
+                            unlocking={isPaying}
                             description="Actionable improvements generated from the scan."
                           />
                         </div>
@@ -346,6 +392,7 @@ export default function ScannerClient() {
                             locked={locked}
                             lockedCount={lockedIssuesCount}
                             onUnlock={handleUnlock}
+                            unlocking={isPaying}
                           />
                           <MetricsCard
                             metrics={reportData.preview.metrics}
@@ -353,7 +400,11 @@ export default function ScannerClient() {
                             indexing={reportData.preview.indexing}
                           />
                         </div>
-                        <LockedSection locked={locked} onUnlock={handleUnlock}>
+                        <LockedSection
+                          locked={locked}
+                          onUnlock={handleUnlock}
+                          unlocking={isPaying}
+                        >
                           <ScanHistory history={history} />
                         </LockedSection>
                       </motion.div>
@@ -499,6 +550,7 @@ function ResultsHeader({
   unlocked,
   onDownload,
   onUnlock,
+  unlocking = false,
 }: {
   url: string;
   overall: number;
@@ -508,6 +560,7 @@ function ResultsHeader({
   unlocked: boolean;
   onDownload: () => void;
   onUnlock: () => void;
+  unlocking?: boolean;
 }) {
   const verdictTone = verdict.toLowerCase().includes("excellent")
     ? "bg-emerald-500/10 text-emerald-600"
@@ -545,7 +598,11 @@ function ResultsHeader({
               Download PDF
             </Button>
           ) : (
-            <Button onClick={onUnlock}>Unlock full report</Button>
+            <Button onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
+              {unlocking
+                ? "Processing..."
+                : `Unlock full report (${REPORT_UNLOCK_PRICE_LABEL})`}
+            </Button>
           )}
           <Button variant="outline" onClick={onReset}>
             Scan another
@@ -639,12 +696,14 @@ function IssuesList({
   locked,
   lockedCount,
   onUnlock,
+  unlocking = false,
 }: {
   issues: Issue[];
   totalIssues: number;
   locked: boolean;
   lockedCount: number;
   onUnlock: () => void;
+  unlocking?: boolean;
 }) {
   return (
     <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
@@ -686,8 +745,10 @@ function IssuesList({
                 Unlock the full report to see {lockedCount} more issue
                 {lockedCount > 1 ? "s" : ""}.
               </p>
-              <Button size="sm" onClick={onUnlock}>
-                Unlock full report
+              <Button size="sm" onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
+                {unlocking
+                  ? "Processing..."
+                  : `Unlock full report (${REPORT_UNLOCK_PRICE_LABEL})`}
               </Button>
             </div>
           </div>
@@ -720,6 +781,7 @@ function AiSuggestions({
   lockedCount = 0,
   onUnlock,
   description,
+  unlocking = false,
 }: {
   title: string;
   suggestions: string[];
@@ -727,6 +789,7 @@ function AiSuggestions({
   lockedCount?: number;
   onUnlock?: () => void;
   description?: string;
+  unlocking?: boolean;
 }) {
   const visibleSuggestions = locked ? suggestions.slice(0, 2) : suggestions;
   const hiddenSuggestions = locked ? suggestions.slice(2) : [];
@@ -769,8 +832,10 @@ function AiSuggestions({
               {computedLockedCount > 1 ? "s" : ""}.
             </span>
             {onUnlock ? (
-              <Button size="sm" onClick={onUnlock}>
-                Unlock full report
+              <Button size="sm" onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
+                {unlocking
+                  ? "Processing..."
+                  : `Unlock full report (${REPORT_UNLOCK_PRICE_LABEL})`}
               </Button>
             ) : null}
           </div>
@@ -922,10 +987,12 @@ function LockedSection({
   locked,
   onUnlock,
   children,
+  unlocking = false,
 }: {
   locked: boolean;
   onUnlock: () => void;
   children: React.ReactNode;
+  unlocking?: boolean;
 }) {
   if (!locked) {
     return <>{children}</>;
@@ -942,14 +1009,16 @@ function LockedSection({
             Locked
           </div>
           <h3 className="mt-2 text-lg font-semibold">
-            Unlock full report for $2.99
+            Unlock full report for {REPORT_UNLOCK_PRICE_LABEL}
           </h3>
           <p className="mt-2 text-sm text-muted-foreground">
             Save $2.01 off the $5 list price. Get the complete issue list, AI
             recommendations, and PDF download.
           </p>
-          <Button className="mt-4 w-full" onClick={onUnlock}>
-            Unlock full report
+          <Button className="mt-4 w-full" onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
+            {unlocking
+              ? "Processing..."
+              : `Unlock full report (${REPORT_UNLOCK_PRICE_LABEL})`}
           </Button>
         </div>
       </div>
@@ -964,6 +1033,8 @@ function CompetitorScanner() {
   const [activeStep, setActiveStep] = useState(0);
   const [scanId, setScanId] = useState<number | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
+  const { isPaying, startPayment } = useRazorpayPayment();
+  const queryClient = useQueryClient();
 
   const normalizedPrimary = useMemo(() => normalizeUrl(primaryUrl), [primaryUrl]);
   const normalizedCompetitor = useMemo(
@@ -973,6 +1044,18 @@ function CompetitorScanner() {
 
   useEffect(() => {
     setIsUnlocked(readReportUnlockState());
+
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const tab = params.get("tab");
+      if (tab !== "competitor") return;
+
+      const idParam = params.get("id");
+      const parsedId = idParam ? Number(idParam) : NaN;
+      if (Number.isFinite(parsedId) && parsedId > 0) {
+        setScanId(parsedId);
+      }
+    }
   }, []);
 
   const createScan = useMutation({
@@ -1024,6 +1107,14 @@ function CompetitorScanner() {
       setErrorMessage("Enter both websites to compare.");
       return;
     }
+
+    const primaryKey = getComparableSiteKey(normalizedPrimary);
+    const competitorKey = getComparableSiteKey(normalizedCompetitor);
+    if (primaryKey && competitorKey && primaryKey === competitorKey) {
+      setErrorMessage("Please enter a different competitor website.");
+      return;
+    }
+
     setErrorMessage(null);
     setScanId(null);
     setIsUnlocked(false);
@@ -1032,12 +1123,27 @@ function CompetitorScanner() {
   };
 
   const handleUnlock = () => {
-    const checkoutLink = process.env.NEXT_PUBLIC_STRIPE_REPORT_LINK;
-    if (checkoutLink) {
-      window.location.href = checkoutLink;
+    const currentScanId = scanQuery.data?.data?.id ?? scanId;
+    if (!currentScanId) {
+      setErrorMessage("Run a scan before unlocking the full report.");
       return;
     }
-    setErrorMessage("Stripe checkout link is not configured.");
+
+    setErrorMessage(null);
+    startPayment({
+      scanId: currentScanId,
+      amount: REPORT_UNLOCK_AMOUNT,
+      onSuccess: (updatedScan) => {
+        queryClient.setQueryData(
+          ["competitor-scan-result", currentScanId],
+          updatedScan
+        );
+        setReportUnlock();
+        setIsUnlocked(true);
+        setErrorMessage(null);
+      },
+      onError: (message) => setErrorMessage(message),
+    });
   };
 
   const primaryLabel = normalizedPrimary
@@ -1162,16 +1268,35 @@ function CompetitorScanner() {
             <CompetitorScoreCard
               title="Your site"
               highlight={winner === "primary"}
-              overall={reportData.preview.overall}
-              categories={reportData.preview.categories}
-              metrics={reportData.preview.metrics}
+              preview={reportData.preview}
+              locked={locked}
+              onUnlock={handleUnlock}
+              unlocking={isPaying}
             />
             <CompetitorScoreCard
               title="Competitor"
               highlight={winner === "competitor"}
-              overall={competitorPreview.overall}
-              categories={competitorPreview.categories}
-              metrics={competitorPreview.metrics}
+              preview={competitorPreview}
+              locked={locked}
+              onUnlock={handleUnlock}
+              unlocking={isPaying}
+            />
+          </div>
+
+          <div className="grid gap-6 lg:grid-cols-2">
+            <QuickWinsCard
+              title="Your quick wins"
+              wins={reportData.preview.quickWins}
+              locked={locked}
+              onUnlock={handleUnlock}
+              unlocking={isPaying}
+            />
+            <QuickWinsCard
+              title="Competitor quick wins"
+              wins={competitorPreview.quickWins}
+              locked={locked}
+              onUnlock={handleUnlock}
+              unlocking={isPaying}
             />
           </div>
 
@@ -1209,6 +1334,7 @@ function CompetitorScanner() {
               actionItems={competitorAnalysis?.actionItems ?? []}
               locked={locked}
               onUnlock={handleUnlock}
+              unlocking={isPaying}
             />
           </div>
         </motion.div>
@@ -1220,22 +1346,28 @@ function CompetitorScanner() {
 function CompetitorScoreCard({
   title,
   highlight,
-  overall,
-  categories,
-  metrics,
+  preview,
+  locked,
+  onUnlock,
+  unlocking = false,
 }: {
   title: string;
   highlight: boolean;
-  overall: number;
-  categories: ScanPreview["categories"];
-  metrics: {
-    loadTime: string;
-    pageSize: string;
-    images: number;
-    scripts: number;
-    links: number;
-  };
+  preview: ScanPreview;
+  locked: boolean;
+  onUnlock: () => void;
+  unlocking?: boolean;
 }) {
+  const hiddenIssueCount = Math.max(
+    0,
+    (preview.lockedIssues ?? 0) - preview.topIssues.length
+  );
+  const verdictTone = preview.verdict.toLowerCase().includes("good")
+    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
+    : preview.verdict.toLowerCase().includes("needs")
+      ? "border-amber-500/40 bg-amber-500/10 text-amber-600"
+      : "border-sky-500/40 bg-sky-500/10 text-sky-600";
+
   return (
     <Card
       className={`border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur ${
@@ -1250,22 +1382,193 @@ function CompetitorScoreCard({
           </span>
         ) : null}
       </div>
+      <div className="mt-3 flex flex-wrap items-center gap-2">
+        <span
+          className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${verdictTone}`}
+        >
+          {preview.verdict}
+        </span>
+        <Badge variant="secondary">{preview.totalIssuesFound} total issues</Badge>
+      </div>
       <div className="mt-5 grid gap-6 md:grid-cols-[160px_1fr] md:items-center">
-        <CircularScore value={overall} />
+        <CircularScore value={preview.overall} />
         <div className="space-y-4 text-sm text-muted-foreground">
-          <ScoreBar label="Performance" value={categories.performance} tone="emerald" />
-          <ScoreBar label="SEO" value={categories.seo} tone="sky" />
-          <ScoreBar label="Accessibility" value={categories.accessibility} tone="amber" />
-          <ScoreBar label="Security" value={categories.security} tone="violet" />
+          <ScoreBar
+            label="Performance"
+            value={preview.categories.performance}
+            tone="emerald"
+          />
+          <ScoreBar label="SEO" value={preview.categories.seo} tone="sky" />
+          <ScoreBar
+            label="Accessibility"
+            value={preview.categories.accessibility}
+            tone="amber"
+          />
+          <ScoreBar label="Security" value={preview.categories.security} tone="violet" />
         </div>
       </div>
       <div className="mt-6 grid gap-3 text-sm text-muted-foreground">
-        <MetricRow label="Load time" value={metrics.loadTime} />
-        <MetricRow label="Page size" value={metrics.pageSize} />
-        <MetricRow label="Images" value={metrics.images} />
-        <MetricRow label="Scripts" value={metrics.scripts} />
-        <MetricRow label="Links" value={metrics.links} />
+        <MetricRow label="Load time" value={preview.metrics.loadTime} />
+        <MetricRow label="Page size" value={preview.metrics.pageSize} />
+        <MetricRow label="Images" value={preview.metrics.images} />
+        <MetricRow label="Scripts" value={preview.metrics.scripts} />
+        <MetricRow label="Links" value={preview.metrics.links} />
+        {preview.improvements ? (
+          <>
+            <MetricRow
+              label="Potential score"
+              value={preview.improvements.potentialScore}
+            />
+            <MetricRow
+              label="Growth potential"
+              value={preview.improvements.trafficPotential}
+            />
+            <MetricRow label="Fix count" value={preview.improvements.fixCount} />
+          </>
+        ) : null}
       </div>
+
+      <div className="mt-6 border-t border-border/60 pt-5">
+        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          Indexing & Social
+        </div>
+        <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
+          <StatusRow
+            label="Robots.txt"
+            value={preview.indexing.robots}
+            positiveLabel="Detected"
+            negativeLabel="Missing"
+          />
+          <StatusRow
+            label="Sitemap"
+            value={preview.indexing.sitemap}
+            positiveLabel="Detected"
+            negativeLabel="Missing"
+          />
+          <StatusRow
+            label="OpenGraph tags"
+            value={preview.social.ogTags}
+            positiveLabel="Configured"
+            negativeLabel="Missing"
+          />
+          <StatusRow
+            label="OG image"
+            value={Boolean(preview.social.ogImage)}
+            positiveLabel="Configured"
+            negativeLabel="Missing"
+          />
+          <StatusRow
+            label="Twitter cards"
+            value={preview.social.twitterTags}
+            positiveLabel="Configured"
+            negativeLabel="Missing"
+          />
+        </div>
+      </div>
+
+      <div className="mt-6 border-t border-border/60 pt-5">
+        <div className="flex items-center justify-between">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Top issues
+          </div>
+          <Badge variant="secondary">{preview.topIssues.length} shown</Badge>
+        </div>
+        <div className="mt-4 space-y-3">
+          {preview.topIssues.length === 0 ? (
+            <div className="rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm text-muted-foreground">
+              No issues in preview.
+            </div>
+          ) : (
+            preview.topIssues.map((issue, index) => (
+              <div
+                key={`${issue.title}-${index}`}
+                className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-background/60 px-3 py-2"
+              >
+                <span className="text-sm text-foreground">{issue.title}</span>
+                <SeverityBadge severity={issue.severity} />
+              </div>
+            ))
+          )}
+        </div>
+        {locked && hiddenIssueCount > 0 ? (
+          <div className="mt-4 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <span>
+                Unlock {hiddenIssueCount} more issue
+                {hiddenIssueCount > 1 ? "s" : ""}.
+              </span>
+              <Button
+                size="sm"
+                onClick={onUnlock}
+                disabled={unlocking}
+                aria-busy={unlocking}
+              >
+                {unlocking
+                  ? "Processing..."
+                  : `Unlock (${REPORT_UNLOCK_PRICE_LABEL})`}
+              </Button>
+            </div>
+          </div>
+        ) : null}
+      </div>
+    </Card>
+  );
+}
+
+function QuickWinsCard({
+  title,
+  wins,
+  locked,
+  onUnlock,
+  unlocking = false,
+}: {
+  title: string;
+  wins: string[];
+  locked: boolean;
+  onUnlock: () => void;
+  unlocking?: boolean;
+}) {
+  const visible = locked ? wins.slice(0, 2) : wins;
+  const hiddenCount = Math.max(0, wins.length - visible.length);
+
+  return (
+    <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
+      <div className="flex items-center justify-between">
+        <h4 className="text-lg font-semibold">{title}</h4>
+        <Badge variant="secondary">{visible.length} shown</Badge>
+      </div>
+      <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
+        {visible.length === 0 ? (
+          <li className="rounded-xl border border-border/60 bg-background/60 px-3 py-2">
+            No quick wins available.
+          </li>
+        ) : (
+          visible.map((item) => (
+            <li key={item} className="flex items-start gap-2">
+              <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
+              {item}
+            </li>
+          ))
+        )}
+      </ul>
+      {locked && hiddenCount > 0 ? (
+        <div className="mt-4 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <span>
+              Unlock {hiddenCount} more recommendation
+              {hiddenCount > 1 ? "s" : ""}.
+            </span>
+            <Button
+              size="sm"
+              onClick={onUnlock}
+              disabled={unlocking}
+              aria-busy={unlocking}
+            >
+              {unlocking ? "Processing..." : `Unlock (${REPORT_UNLOCK_PRICE_LABEL})`}
+            </Button>
+          </div>
+        </div>
+      ) : null}
     </Card>
   );
 }
@@ -1353,12 +1656,14 @@ function CompetitorAnalysisCard({
   actionItems,
   locked,
   onUnlock,
+  unlocking = false,
 }: {
   scoreGap: number;
   summary: string;
   actionItems: string[];
   locked: boolean;
   onUnlock: () => void;
+  unlocking?: boolean;
 }) {
   const visible = actionItems.slice(0, 2);
   const hidden = actionItems.slice(2);
@@ -1389,17 +1694,26 @@ function CompetitorAnalysisCard({
 
         {hidden.length > 0 ? (
           locked ? (
-            <div className="mt-5">
-              <LockedSection locked={true} onUnlock={onUnlock}>
-                <ul className="space-y-3 text-sm text-muted-foreground">
-                  {hidden.map((item) => (
-                    <li key={item} className="flex items-start gap-2">
-                      <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
-                      {item}
-                    </li>
-                  ))}
-                </ul>
-              </LockedSection>
+            <div className="mt-5 overflow-hidden rounded-2xl border border-primary/30 bg-primary/5">
+              <div className="pointer-events-none select-none px-4 pb-3 pt-4 opacity-45 blur-[1px]">
+              </div>
+              <div className="border-t border-primary/20 bg-background/90 px-4 py-4">
+                <p className="text-sm text-muted-foreground">
+                  Unlock {hidden.length} more action
+                  {hidden.length > 1 ? "s" : ""} in the full competitor report.
+                </p>
+                <Button
+                  size="sm"
+                  className="mt-3 w-full sm:w-auto"
+                  onClick={onUnlock}
+                  disabled={unlocking}
+                  aria-busy={unlocking}
+                >
+                  {unlocking
+                    ? "Processing..."
+                    : `Unlock full report (${REPORT_UNLOCK_PRICE_LABEL})`}
+                </Button>
+              </div>
             </div>
           ) : (
             <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
@@ -1456,6 +1770,18 @@ function formatDomain(url: string) {
   }
 }
 
+function getComparableSiteKey(url: string) {
+  try {
+    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
+  } catch {
+    return url
+      .replace(/^https?:\/\//, "")
+      .replace(/^www\./, "")
+      .split("/")[0]
+      .toLowerCase();
+  }
+}
+
 function readReportUnlockState() {
   if (typeof window === "undefined") return false;
   const params = new URLSearchParams(window.location.search);
@@ -1469,6 +1795,11 @@ function readReportUnlockState() {
 function clearReportUnlock() {
   if (typeof window === "undefined") return;
   window.localStorage.removeItem(REPORT_UNLOCK_STORAGE_KEY);
+}
+
+function setReportUnlock() {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(REPORT_UNLOCK_STORAGE_KEY, "true");
 }
 
 function readScanHistory(): HistoryItem[] {

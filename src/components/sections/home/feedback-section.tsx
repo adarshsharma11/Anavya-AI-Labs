@@ -7,51 +7,59 @@ import { Card } from "@/components/ui/card";
 const testimonials = [
   {
     quote:
-      "We shaved 1.8s off LCP and lifted checkout conversion by 22% within four weeks.",
-    name: "Talia Brooks",
+      "I strongly recommend, I will certainly work with Adarsh again in a near future",
+    name: "pierregillesmas",
     role: "Head of Growth, RetailLab",
+    platform: "fiverr",
   },
   {
     quote:
-      "Their AI scan caught issues our QA missed. The action plan was clear and fast to ship.",
-    name: "Jonas Keller",
+      "Amazing fast work! Will definitely work together again",
+    name: "karlsusman",
     role: "Product Lead, Driftly",
+    platform: "fiverr",
   },
   {
     quote:
       "The accessibility fixes paid for themselves in under a month. Support tickets dropped instantly.",
     name: "Renee Alvarez",
     role: "VP Product, AbleFi",
+    platform: "upwork",
   },
   {
     quote:
-      "We used the scan pack across five landing pages and found the exact flow causing drop-off.",
-    name: "Mika Orlov",
-    role: "Marketing Director, NovaPay",
+      "Despite the changes to our requirements, he completed this task with remarkable patience.",
+    name: "kk_ijapan",
+    role: "Marketing Director, Japan",
+    platform: "fiverr",
   },
   {
     quote:
       "The insights were practical. Our dev team shipped fixes in days, not weeks.",
     name: "Priya Desai",
     role: "Engineering Manager, Flowgrid",
+    platform: "upwork",
   },
   {
     quote:
       "Finally a report that ties performance fixes directly to revenue impact.",
     name: "Cameron West",
     role: "Founder, Brightlane",
+    platform: "upwork",
   },
   {
     quote:
       "We launched our chatbot and reduced ticket volume by 35% in the first month.",
     name: "Elena Cruz",
     role: "Customer Ops, MesaCloud",
+    platform: "upwork",
   },
   {
     quote:
       "Their UX guidance improved trial-to-paid conversion without adding complexity.",
     name: "Omar Haddad",
     role: "Growth Lead, Helio",
+    platform: "upwork",
   },
 ];
 
@@ -117,7 +125,7 @@ export function FeedbackSection() {
                           ))}
                         </div>
                         <span className="inline-flex h-6 min-w-[80px] items-center justify-center rounded-full border border-emerald-400/30 bg-emerald-400/10 text-[10px] font-semibold uppercase tracking-[0.2em] text-emerald-600">
-                          {index % 2 === 0 ? "Upwork" : "Fiverr"}
+                          {item.platform}
                         </span>
                       </div>
                       <p className="mt-6 flex-1 text-base text-muted-foreground">
