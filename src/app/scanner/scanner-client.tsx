@@ -26,6 +26,7 @@ import {
   type ScanPreview,
   type ScanResultResponse,
 } from "@/lib/api/scan";
+import { downloadPdfApi } from "@/lib/api/dashboard";
 import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
 import { formatAmount } from "@/lib/payments/razorpay";
 
@@ -58,8 +59,13 @@ type ScanState = "idle" | "scanning" | "results";
 type Issue = {
   id: string;
   title: string;
-  severity: "High" | "Medium" | "Low";
+  severity: string;
   suggestion?: string;
+  codeSnippet?: {
+    html?: string;
+    css?: string;
+    js?: string;
+  };
 };
 
 type HistoryItem = {
@@ -207,29 +213,25 @@ export default function ScannerClient() {
     });
   };
 
-  const handleDownload = () => {
-    if (!isUnlocked) return;
-    const reportData = scanQuery.data?.data;
-    if (!reportData) return;
-    const previewIssues = reportData.preview.topIssues.map((issue, index) => ({
-      id: `issue-${index + 1}`,
-      title: issue.title,
-      severity: issue.severity,
-    }));
-    const pdf = buildPdfReport({
-      url: reportData.url,
-      verdict: reportData.preview.verdict,
-      totalIssuesFound: reportData.preview.totalIssuesFound,
-      overall: reportData.preview.overall,
-      categories: reportData.preview.categories,
-      issues: previewIssues,
-      suggestions: reportData.preview.quickWins,
-    });
-    const link = document.createElement("a");
-    link.href = URL.createObjectURL(pdf);
-    link.download = "ai-website-audit-report.pdf";
-    link.click();
-    URL.revokeObjectURL(link.href);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const handleDownload = async () => {
+    const currentScanId = scanQuery.data?.data?.id ?? scanId;
+    if (!currentScanId) return;
+    
+    setIsDownloading(true);
+    try {
+      const blob = await downloadPdfApi(currentScanId);
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `audit-report-${currentScanId}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(url);
+    } catch (err: any) {
+      setErrorMessage("Failed to download PDF report.");
+    } finally {
+      setIsDownloading(false);
+    }
   };
 
   const handleReset = () => {
@@ -242,14 +244,34 @@ export default function ScannerClient() {
   const locked = reportData
     ? (reportData.locked || reportData.preview.locked) && !isUnlocked
     : true;
-  const previewIssues = previewData
-    ? previewData.topIssues.map((issue, index) => ({
-        id: `issue-${index + 1}`,
+  const previewIssues = useMemo<Issue[]>(() => {
+    if (!reportData) return [];
+    
+    // If report is unlocked and we have the full AI report, use it
+    if (!locked && reportData.fullReport?.issues) {
+      return reportData.fullReport.issues.map((issue, index) => ({
+        id: `full-issue-${index}`,
         title: issue.title,
-        severity: issue.severity,
-      }))
-    : [];
-  const previewSuggestions = previewData?.quickWins ?? [];
+        severity: (issue.severity as any) || "Medium",
+        suggestion: issue.suggestion,
+        codeSnippet: issue.codeSnippet,
+      }));
+    }
+
+    // Otherwise use preview issues
+    return reportData.preview.topIssues.map((issue, index) => ({
+      id: `preview-issue-${index}`,
+      title: issue.title,
+      severity: issue.severity as any,
+    }));
+  }, [reportData, locked]);
+
+  const previewSuggestions = useMemo(() => {
+    if (!locked && reportData?.fullReport?.suggestions) {
+      return reportData.fullReport.suggestions;
+    }
+    return previewData?.quickWins ?? [];
+  }, [reportData, previewData, locked]);
   const lockedIssuesCount = previewData?.lockedIssues ?? 0;
 
   const reportId = reportData?.id ?? null;
@@ -369,6 +391,7 @@ export default function ScannerClient() {
                           onDownload={handleDownload}
                           onUnlock={handleUnlock}
                           unlocking={isPaying}
+                          downloading={isDownloading}
                         />
                         <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
                           <ScoreOverview
@@ -551,6 +574,7 @@ function ResultsHeader({
   onDownload,
   onUnlock,
   unlocking = false,
+  downloading = false,
 }: {
   url: string;
   overall: number;
@@ -561,6 +585,7 @@ function ResultsHeader({
   onDownload: () => void;
   onUnlock: () => void;
   unlocking?: boolean;
+  downloading?: boolean;
 }) {
   const verdictTone = verdict.toLowerCase().includes("excellent")
     ? "bg-emerald-500/10 text-emerald-600"
@@ -594,8 +619,8 @@ function ResultsHeader({
             Overall score {overall}
           </Badge>
           {unlocked ? (
-            <Button variant="outline" onClick={onDownload}>
-              Download PDF
+            <Button variant="outline" onClick={onDownload} disabled={downloading}>
+              {downloading ? "Generating..." : "Download PDF"}
             </Button>
           ) : (
             <Button onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
@@ -708,7 +733,7 @@ function IssuesList({
   return (
     <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Issues found</h3>
+        <h3 className="text-lg font-semibold">Issues & AI Fixes</h3>
         <Badge variant="secondary">
           {issues.length} of {totalIssues}
         </Badge>
@@ -720,30 +745,14 @@ function IssuesList({
           </div>
         ) : (
           issues.map((issue) => (
-            <div
-              key={issue.id}
-              className="rounded-2xl border border-border/60 bg-background/60 p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-sm font-semibold">{issue.title}</p>
-                  {issue.suggestion ? (
-                    <p className="mt-2 text-sm text-muted-foreground">
-                      {issue.suggestion}
-                    </p>
-                  ) : null}
-                </div>
-                <SeverityBadge severity={issue.severity} />
-              </div>
-            </div>
+            <IssueCard key={issue.id} issue={issue} locked={locked} />
           ))
         )}
         {locked && lockedCount > 0 ? (
           <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm text-foreground">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <p>
-                Unlock the full report to see {lockedCount} more issue
-                {lockedCount > 1 ? "s" : ""}.
+                Unlock the full report to see {lockedCount} more issues and AI-powered code fixes.
               </p>
               <Button size="sm" onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
                 {unlocking
@@ -758,16 +767,85 @@ function IssuesList({
   );
 }
 
-function SeverityBadge({ severity }: { severity: Issue["severity"] }) {
-  const map = {
-    High: "border-red-500/40 bg-red-500/10 text-red-600",
-    Medium: "border-amber-500/40 bg-amber-500/10 text-amber-600",
-    Low: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600",
-  }[severity];
+function IssueCard({ issue, locked }: { issue: Issue; locked: boolean }) {
+  const hasCode = issue.codeSnippet && (issue.codeSnippet.html || issue.codeSnippet.css || issue.codeSnippet.js);
+  
+  return (
+    <div className="rounded-2xl border border-border/60 bg-background/60 p-4 transition-all hover:border-border/100">
+      <div className="flex items-start justify-between gap-3">
+        <div className="flex-1">
+          <div className="flex items-center gap-2">
+            <p className="text-sm font-semibold">{issue.title}</p>
+            {!locked && hasCode && (
+              <Badge variant="outline" className="bg-emerald-500/5 text-emerald-600 border-emerald-500/20 text-[10px] py-0">
+                AI Fix Available
+              </Badge>
+            )}
+          </div>
+          {issue.suggestion ? (
+            <p className="mt-2 text-sm text-muted-foreground">
+              {issue.suggestion}
+            </p>
+          ) : null}
+          
+          {!locked && issue.codeSnippet && (
+            <div className="mt-4 space-y-3">
+               {issue.codeSnippet.html && (
+                 <CodeBlock label="HTML Fix" code={issue.codeSnippet.html} lang="html" />
+               )}
+               {issue.codeSnippet.css && (
+                 <CodeBlock label="CSS Fix" code={issue.codeSnippet.css} lang="css" />
+               )}
+               {issue.codeSnippet.js && (
+                 <CodeBlock label="Javascript Fix" code={issue.codeSnippet.js} lang="js" />
+               )}
+            </div>
+          )}
+        </div>
+        <SeverityBadge severity={issue.severity} />
+      </div>
+    </div>
+  );
+}
+
+function CodeBlock({ label, code, lang }: { label: string; code: string; lang: string }) {
+  const [copied, setCopied] = useState(false);
+  
+  const copy = () => {
+    navigator.clipboard.writeText(code);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  return (
+    <div className="space-y-1.5">
+      <div className="flex items-center justify-between px-1">
+        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
+        <button onClick={copy} className="text-[10px] font-medium transition hover:text-primary">
+          {copied ? "Copied!" : "Copy"}
+        </button>
+      </div>
+      <pre className="overflow-x-auto rounded-lg border border-border/50 bg-muted/30 p-3 text-xs font-mono text-foreground/90">
+        <code>{code}</code>
+      </pre>
+    </div>
+  );
+}
+
+function SeverityBadge({ severity }: { severity: string }) {
+  const s = (severity || "").toLowerCase();
+  
+  const map: Record<string, string> = {
+    high: "border-red-500/40 bg-red-500/10 text-red-600",
+    medium: "border-amber-500/40 bg-amber-500/10 text-amber-600",
+    low: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600",
+  };
+
+  const className = map[s] || "border-sky-500/40 bg-sky-500/10 text-sky-600";
 
   return (
     <span
-      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${map}`}
+      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${className}`}
     >
       {severity}
     </span>
@@ -850,9 +928,9 @@ function MetricsCard({
   social,
   indexing,
 }: {
-  metrics: ScanPreview["metrics"];
-  social: ScanPreview["social"];
-  indexing: ScanPreview["indexing"];
+  metrics?: ScanPreview["metrics"];
+  social?: ScanPreview["social"];
+  indexing?: ScanPreview["indexing"];
 }) {
   return (
     <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
@@ -861,43 +939,53 @@ function MetricsCard({
         Scan metrics
       </div>
       <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
-        <MetricRow label="Load time" value={metrics.loadTime} />
-        <MetricRow label="Page size" value={metrics.pageSize} />
-        <MetricRow label="Images" value={`${metrics.images}`} />
-        <MetricRow label="Scripts" value={`${metrics.scripts}`} />
-        <MetricRow label="Links" value={`${metrics.links}`} />
+        <MetricRow label="Load time" value={metrics?.loadTime || "N/A"} />
+        <MetricRow label="Page size" value={metrics?.pageSize || "N/A"} />
+        <MetricRow label="Images" value={metrics ? `${metrics.images}` : "0"} />
+        <MetricRow label="Scripts" value={metrics ? `${metrics.scripts}` : "0"} />
+        <MetricRow label="Links" value={metrics ? `${metrics.links}` : "0"} />
       </div>
-      <div className="mt-6 border-t border-border/60 pt-5">
-        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Indexing & Social
+      {(social || indexing) && (
+        <div className="mt-6 border-t border-border/60 pt-5">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Indexing & Social
+          </div>
+          <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
+            {indexing && (
+              <>
+                <StatusRow
+                  label="Robots.txt"
+                  value={indexing.robots}
+                  positiveLabel="Detected"
+                  negativeLabel="Missing"
+                />
+                <StatusRow
+                  label="Sitemap"
+                  value={indexing.sitemap}
+                  positiveLabel="Detected"
+                  negativeLabel="Missing"
+                />
+              </>
+            )}
+            {social && (
+              <>
+                <StatusRow
+                  label="OpenGraph tags"
+                  value={social.ogTags}
+                  positiveLabel="Configured"
+                  negativeLabel="Missing"
+                />
+                <StatusRow
+                  label="Twitter cards"
+                  value={social.twitterTags}
+                  positiveLabel="Configured"
+                  negativeLabel="Missing"
+                />
+              </>
+            )}
+          </div>
         </div>
-        <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
-          <StatusRow
-            label="Robots.txt"
-            value={indexing.robots}
-            positiveLabel="Detected"
-            negativeLabel="Missing"
-          />
-          <StatusRow
-            label="Sitemap"
-            value={indexing.sitemap}
-            positiveLabel="Detected"
-            negativeLabel="Missing"
-          />
-          <StatusRow
-            label="OpenGraph tags"
-            value={social.ogTags}
-            positiveLabel="Configured"
-            negativeLabel="Missing"
-          />
-          <StatusRow
-            label="Twitter cards"
-            value={social.twitterTags}
-            positiveLabel="Configured"
-            negativeLabel="Missing"
-          />
-        </div>
-      </div>
+      )}
     </Card>
   );
 }
@@ -1408,11 +1496,11 @@ function CompetitorScoreCard({
         </div>
       </div>
       <div className="mt-6 grid gap-3 text-sm text-muted-foreground">
-        <MetricRow label="Load time" value={preview.metrics.loadTime} />
-        <MetricRow label="Page size" value={preview.metrics.pageSize} />
-        <MetricRow label="Images" value={preview.metrics.images} />
-        <MetricRow label="Scripts" value={preview.metrics.scripts} />
-        <MetricRow label="Links" value={preview.metrics.links} />
+        <MetricRow label="Load time" value={preview.metrics?.loadTime || "N/A"} />
+        <MetricRow label="Page size" value={preview.metrics?.pageSize || "N/A"} />
+        <MetricRow label="Images" value={preview.metrics ? `${preview.metrics.images}` : "0"} />
+        <MetricRow label="Scripts" value={preview.metrics ? `${preview.metrics.scripts}` : "0"} />
+        <MetricRow label="Links" value={preview.metrics ? `${preview.metrics.links}` : "0"} />
         {preview.improvements ? (
           <>
             <MetricRow
@@ -1433,36 +1521,44 @@ function CompetitorScoreCard({
           Indexing & Social
         </div>
         <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
-          <StatusRow
-            label="Robots.txt"
-            value={preview.indexing.robots}
-            positiveLabel="Detected"
-            negativeLabel="Missing"
-          />
-          <StatusRow
-            label="Sitemap"
-            value={preview.indexing.sitemap}
-            positiveLabel="Detected"
-            negativeLabel="Missing"
-          />
-          <StatusRow
-            label="OpenGraph tags"
-            value={preview.social.ogTags}
-            positiveLabel="Configured"
-            negativeLabel="Missing"
-          />
-          <StatusRow
-            label="OG image"
-            value={Boolean(preview.social.ogImage)}
-            positiveLabel="Configured"
-            negativeLabel="Missing"
-          />
-          <StatusRow
-            label="Twitter cards"
-            value={preview.social.twitterTags}
-            positiveLabel="Configured"
-            negativeLabel="Missing"
-          />
+          {preview.indexing && (
+            <>
+              <StatusRow
+                label="Robots.txt"
+                value={preview.indexing.robots}
+                positiveLabel="Detected"
+                negativeLabel="Missing"
+              />
+              <StatusRow
+                label="Sitemap"
+                value={preview.indexing.sitemap}
+                positiveLabel="Detected"
+                negativeLabel="Missing"
+              />
+            </>
+          )}
+          {preview.social && (
+            <>
+              <StatusRow
+                label="OpenGraph tags"
+                value={preview.social.ogTags}
+                positiveLabel="Configured"
+                negativeLabel="Missing"
+              />
+              <StatusRow
+                label="OG image"
+                value={Boolean(preview.social.ogImage)}
+                positiveLabel="Configured"
+                negativeLabel="Missing"
+              />
+              <StatusRow
+                label="Twitter cards"
+                value={preview.social.twitterTags}
+                positiveLabel="Configured"
+                negativeLabel="Missing"
+              />
+            </>
+          )}
         </div>
       </div>
 

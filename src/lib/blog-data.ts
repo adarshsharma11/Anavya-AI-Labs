@@ -17,6 +17,7 @@ export type BlogPost = {
   author: BlogAuthor;
   tags: string[];
   content: string[];
+  isFeatured: boolean;
 };
 
 export const blogPosts: BlogPost[] = [
@@ -43,6 +44,7 @@ export const blogPosts: BlogPost[] = [
       "The best-performing flows rely on decisive hierarchy, not extra components.",
       "Treat every pixel as a cost. If it cannot answer a user question, it gets removed.",
     ],
+    isFeatured: true,
   },
   {
     slug: "latency-advantage",
@@ -67,6 +69,7 @@ export const blogPosts: BlogPost[] = [
       "AI-assisted audits surface layout shifts before they hit production.",
       "The fastest teams instrument everything, then delete what is not essential.",
     ],
+    isFeatured: false,
   },
   {
     slug: "ai-ops-playbook",
@@ -91,6 +94,7 @@ export const blogPosts: BlogPost[] = [
       "Pair quantitative signals with weekly qualitative reviews.",
       "Small, consistent improvements beat big, unstable launches.",
     ],
+    isFeatured: false,
   },
   {
     slug: "accessibility-as-product",
@@ -115,6 +119,7 @@ export const blogPosts: BlogPost[] = [
       "We align inclusive UX with measurable product outcomes.",
       "Designing for everyone expands your addressable market.",
     ],
+    isFeatured: false,
   },
 ];
 

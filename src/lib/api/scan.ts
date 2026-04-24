@@ -11,52 +11,73 @@ const stringish = z.union([z.string(), z.number()]).transform((value) => `${valu
 const scanPreviewSchema = z.object({
   overall: z.number(),
   verdict: z.string(),
-  totalIssuesFound: z.number(),
+  totalIssuesFound: z.number().optional().default(0),
   categories: z.object({
     performance: z.number(),
     seo: z.number(),
     accessibility: z.number(),
     security: z.number(),
-  }),
+  }).passthrough(),
   metrics: z.object({
     loadTime: stringish,
     pageSize: stringish,
     images: z.number(),
     scripts: z.number(),
     links: z.number(),
-  }),
+  }).passthrough().optional().nullable(),
   social: z.object({
     ogTags: z.boolean(),
     ogImage: z.boolean().optional().default(false),
     twitterTags: z.boolean(),
-  }),
+  }).passthrough().optional().nullable(),
   indexing: z.object({
     robots: z.boolean(),
     sitemap: z.boolean(),
-  }),
+  }).passthrough().optional().nullable(),
   improvements: z
     .object({
       potentialScore: z.number(),
       trafficPotential: z.string(),
       fixCount: z.number(),
     })
+    .passthrough()
     .optional(),
   topIssues: z.array(
     z.object({
       title: z.string(),
-      severity: z.enum(["High", "Medium", "Low"]),
-    })
-  ),
-  quickWins: z.array(z.string()),
-  lockedIssues: z.number(),
-  locked: z.boolean(),
-  isUnlocked: z.boolean().optional(),
-});
+      severity: z.string(),
+    }).passthrough()
+  ).optional().default([]),
+  quickWins: z.array(z.string()).optional().default([]),
+  lockedIssues: z.number().optional().default(0),
+  locked: z.boolean().optional().default(true),
+  isUnlocked: z.boolean().optional().default(false),
+}).passthrough();
+
+const codeSnippetSchema = z.object({
+  html: z.string().optional(),
+  css: z.string().optional(),
+  js: z.string().optional(),
+}).passthrough();
+
+const reportIssueSchema = z.object({
+  title: z.string(),
+  severity: z.string(),
+  suggestion: z.string().optional(),
+  codeSnippet: codeSnippetSchema.optional(),
+}).passthrough();
+
+const scanReportSchema = z.object({
+  issues: z.array(reportIssueSchema),
+  suggestions: z.array(z.string()),
+  summary: z.string().optional(),
+}).passthrough();
 
 const scanDataSchema = z.object({
   id: z.number(),
   url: z.string(),
   preview: scanPreviewSchema,
+  fullReport: scanReportSchema.nullable().optional(),
   competitorPreview: scanPreviewSchema.nullable().optional(),
   competitorAnalysis: z
     .object({
@@ -64,16 +85,17 @@ const scanDataSchema = z.object({
       summary: z.string(),
       actionItems: z.array(z.string()),
     })
+    .passthrough()
     .nullable()
     .optional(),
   locked: z.boolean().optional(),
   isUnlocked: z.boolean().optional(),
-});
+}).passthrough();
 
 const scanResultSchema = z.object({
   success: z.boolean(),
   data: scanDataSchema,
-});
+}).passthrough();
 
 export type ScanPreview = z.infer<typeof scanPreviewSchema>;
 export type ScanResultResponse = z.infer<typeof scanResultSchema>;
@@ -81,24 +103,32 @@ export type ScanResultResponse = z.infer<typeof scanResultSchema>;
 function parseScanResultResponse(raw: unknown): ScanResultResponse | null {
   const direct = scanResultSchema.safeParse(raw);
   if (direct.success && direct.data.success) {
-    return direct.data;
+    return direct.data as ScanResultResponse;
   }
 
-  if (!raw || typeof raw !== "object") return null;
+  if (!raw || typeof raw !== "object") {
+    console.error("❌ Invalid scan response: raw data is not an object", raw);
+    return null;
+  }
+
   const root = raw as Record<string, unknown>;
   const rootSuccess = typeof root.success === "boolean" ? root.success : true;
   const candidates = [root.data, root.scan, root.result, root];
 
   for (const candidate of candidates) {
+    if (!candidate) continue;
     const parsedCandidate = scanDataSchema.safeParse(candidate);
     if (parsedCandidate.success) {
       return {
         success: rootSuccess,
-        data: parsedCandidate.data,
+        data: parsedCandidate.data as any,
       };
+    } else {
+       console.warn("⚠️ Candidate parsing failed:", parsedCandidate.error.format());
     }
   }
 
+  console.error("❌ All parsing candidates failed for scan response:", raw);
   return null;
 }
 

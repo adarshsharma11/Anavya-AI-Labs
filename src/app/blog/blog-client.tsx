@@ -5,14 +5,43 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 
-import { blogPosts, featuredPost } from "@/lib/blog-data";
+import { blogPosts as staticBlogPosts, featuredPost as staticFeaturedPost } from "@/lib/blog-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { type BlogPost } from "@/lib/api/blogs";
 
 const categories = ["All", "Design", "Engineering", "AI", "Growth"] as const;
 
-export default function BlogClient() {
+export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogPost[] }) {
+  // Use backend blogs if available, otherwise fallback to static data for empty state/demo
+  const posts = initialBlogs.length > 0 
+    ? initialBlogs.map(p => ({
+        ...p,
+        author: {
+          name: p.authorName,
+          role: p.authorRole,
+          avatar: p.authorAvatar
+        }
+      }))
+    : staticBlogPosts;
+
+  const featured = initialBlogs.find(p => p.isFeatured) 
+    ? {
+        ...initialBlogs.find(p => p.isFeatured)!,
+        author: {
+          name: initialBlogs.find(p => p.isFeatured)!.authorName,
+          role: initialBlogs.find(p => p.isFeatured)!.authorRole,
+          avatar: initialBlogs.find(p => p.isFeatured)!.authorAvatar
+        }
+      }
+    : staticFeaturedPost;
+
+  // Filter posts for the lower grid (excluding featured)
+  const displayPosts = initialBlogs.length > 0 
+    ? posts.filter(p => !p.isFeatured)
+    : staticBlogPosts;
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
@@ -56,8 +85,8 @@ export default function BlogClient() {
           <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur">
             <div className="relative h-64 w-full md:h-80">
               <Image
-                src={featuredPost.image}
-                alt={featuredPost.title}
+                src={featured.image}
+                alt={featured.title}
                 fill
                 sizes="(max-width: 1024px) 100vw, 60vw"
                 className="object-cover"
@@ -66,23 +95,23 @@ export default function BlogClient() {
             <CardHeader className="space-y-4">
               <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
                 <Badge variant="secondary" className="rounded-full">
-                  {featuredPost.category}
+                  {featured.category}
                 </Badge>
-                <span>{featuredPost.date}</span>
-                <span>{featuredPost.readTime}</span>
+                <span>{featured.date}</span>
+                <span>{featured.readTime}</span>
               </div>
               <CardTitle className="text-2xl leading-tight md:text-3xl">
-                {featuredPost.title}
+                {featured.title}
               </CardTitle>
               <p className="text-base text-muted-foreground">
-                {featuredPost.excerpt}
+                {featured.excerpt}
               </p>
             </CardHeader>
             <CardContent className="flex flex-col gap-6">
               <div className="flex items-center gap-3">
                 <Image
-                  src={featuredPost.author.avatar}
-                  alt={featuredPost.author.name}
+                  src={featured.author.avatar}
+                  alt={featured.author.name}
                   width={44}
                   height={44}
                   sizes="44px"
@@ -90,15 +119,15 @@ export default function BlogClient() {
                 />
                 <div>
                   <p className="text-sm font-semibold">
-                    {featuredPost.author.name}
+                    {featured.author.name}
                   </p>
                   <p className="text-xs text-muted-foreground">
-                    {featuredPost.author.role}
+                    {featured.author.role}
                   </p>
                 </div>
               </div>
               <Button asChild className="w-fit">
-                <Link href={`/blog/${featuredPost.slug}`}>
+                <Link href={`/blog/${featured.slug}`}>
                   Read the feature <ArrowRight className="ml-2 h-4 w-4" />
                 </Link>
               </Button>
@@ -106,7 +135,7 @@ export default function BlogClient() {
           </Card>
 
           <div className="grid gap-6">
-            {blogPosts.slice(1, 4).map((post) => (
+            {displayPosts.slice(0, 3).map((post) => (
               <Card
                 key={post.slug}
                 className="group flex flex-col gap-4 border-border/60 bg-background/80 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
@@ -136,7 +165,7 @@ export default function BlogClient() {
         </div>
 
         <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {blogPosts.map((post) => (
+          {displayPosts.map((post) => (
             <Card
               key={post.slug}
               className="group overflow-hidden border-border/60 bg-background/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
