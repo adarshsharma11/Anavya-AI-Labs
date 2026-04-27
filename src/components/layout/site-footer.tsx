@@ -81,7 +81,7 @@ export function SiteFooter() {
                     href="/services"
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
-                    AI Services
+                    Services
                   </Link>
                 </li>
                 <li>

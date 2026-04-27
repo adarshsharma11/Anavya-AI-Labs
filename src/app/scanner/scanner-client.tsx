@@ -3,77 +3,42 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ArrowRight,
-  BarChart3,
-  CheckCircle2,
-  Crown,
-  LineChart,
-  ShieldCheck,
-  Sparkles,
-  XCircle,
-  Zap,
-} from "lucide-react";
 
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Input } from "@/components/ui/input";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   createScanRequest,
   fetchScanResult,
-  type ScanPreview,
   type ScanResultResponse,
 } from "@/lib/api/scan";
 import { downloadPdfApi } from "@/lib/api/dashboard";
 import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
-import { formatAmount } from "@/lib/payments/razorpay";
+import { generateScanReportPdf } from "@/lib/pdf/scan-report-pdf";
 
-const scanSteps = [
-  "Analyzing SEO structure...",
-  "Checking performance bottlenecks...",
-  "Reviewing accessibility signals...",
-  "Generating AI report...",
-];
-
-const competitorSteps = [
-  "Fetching competitor benchmarks...",
-  "Comparing performance deltas...",
-  "Modeling opportunity impact...",
-  "Building comparison report...",
-];
-
-const REPORT_UNLOCK_STORAGE_KEY = "report_unlocked";
-const SCAN_HISTORY_STORAGE_KEY = "scan_history";
-const REPORT_UNLOCK_AMOUNT = 2.99;
-const REPORT_UNLOCK_CURRENCY =
-  process.env.NEXT_PUBLIC_PAYMENT_CURRENCY?.trim() || "INR";
-const REPORT_UNLOCK_PRICE_LABEL = formatAmount(
+import {
   REPORT_UNLOCK_AMOUNT,
-  REPORT_UNLOCK_CURRENCY
-);
-
-type ScanState = "idle" | "scanning" | "results";
-
-type Issue = {
-  id: string;
-  title: string;
-  severity: string;
-  suggestion?: string;
-  codeSnippet?: {
-    html?: string;
-    css?: string;
-    js?: string;
-  };
-};
-
-type HistoryItem = {
-  id: string;
-  score: number;
-  date: string;
-  verdict: string;
-};
+  REPORT_UNLOCK_PRICE_LABEL,
+  scanSteps,
+} from "./scanner-constants";
+import { AiSuggestions } from "./scanner-shared-components";
+import { CompetitorScanner } from "./scanner-competitor-components";
+import type { Issue, ScanState } from "./scanner-types";
+import {
+  clearReportUnlock,
+  hasReportContent,
+  normalizeUrl,
+  readReportUnlockState,
+  setReportUnlock,
+} from "./scanner-utils";
+import {
+  Hero,
+  IssuesList,
+  MetricsCard,
+  FullReportSection,
+  ResultsHeader,
+  ScanInput,
+  ScanLoader,
+  ScoreOverview,
+} from "./scanner-website-components";
 
 export default function ScannerClient() {
   const [activeStep, setActiveStep] = useState(0);
@@ -82,30 +47,49 @@ export default function ScannerClient() {
   const [scanId, setScanId] = useState<number | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [activeTab, setActiveTab] = useState("website");
-  const [history, setHistory] = useState<HistoryItem[]>([]);
-  const { isPaying, startPayment } = useRazorpayPayment();
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [isUrlStateReady, setIsUrlStateReady] = useState(false);
+  const [hasInitialIdInUrl, setHasInitialIdInUrl] = useState(false);
+  const { isPaying, isFinalizingReport, startPayment } = useRazorpayPayment();
+  const unlockingLabel = isFinalizingReport
+    ? "Finalizing unlocked report..."
+    : "Processing payment...";
   const queryClient = useQueryClient();
 
   useEffect(() => {
     setIsUnlocked(readReportUnlockState());
-    setHistory(readScanHistory());
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab");
-      const idParam = params.get("id");
+      const idParam = params.get("id") ?? params.get("scanId");
       const parsedId = idParam ? Number(idParam) : NaN;
 
       if (tab === "competitor") {
         setActiveTab("competitor");
-        return;
       }
 
       if (Number.isFinite(parsedId) && parsedId > 0) {
+        setHasInitialIdInUrl(true);
         setScanId(parsedId);
       }
     }
+    setIsUrlStateReady(true);
   }, []);
+
+  useEffect(() => {
+    if (typeof window === "undefined" || !isUrlStateReady) return;
+    if (activeTab !== "website") return;
+
+    const url = new URL(window.location.href);
+    if (scanId && scanId > 0) {
+      url.searchParams.set("id", String(scanId));
+      url.searchParams.delete("tab");
+    } else {
+      url.searchParams.delete("id");
+    }
+    window.history.replaceState({}, "", url.toString());
+  }, [scanId, activeTab, isUrlStateReady]);
 
   const handleTabChange = (value: string) => {
     setActiveTab(value);
@@ -113,21 +97,19 @@ export default function ScannerClient() {
 
     const url = new URL(window.location.href);
     if (value === "competitor") {
+      setScanId(null);
+      setHasInitialIdInUrl(false);
       url.searchParams.set("tab", "competitor");
+      url.searchParams.delete("id");
+      url.searchParams.delete("scanId");
+      url.searchParams.delete("reportTab");
     } else {
       url.searchParams.delete("tab");
     }
     window.history.replaceState({}, "", url.toString());
   };
 
-  const normalizedUrl = useMemo(() => {
-    const trimmed = urlValue.trim();
-    if (!trimmed) return "";
-    if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-      return trimmed;
-    }
-    return `https://${trimmed}`;
-  }, [urlValue]);
+  const normalizedUrl = useMemo(() => normalizeUrl(urlValue), [urlValue]);
 
   const createScan = useMutation({
     mutationFn: (url: string) => createScanRequest(url),
@@ -181,10 +163,16 @@ export default function ScannerClient() {
   }, [scanState, activeTab]);
 
   const handleScan = () => {
+    if (hasInitialIdInUrl && !normalizedUrl) {
+      setErrorMessage("Loaded saved report from URL. Enter a URL to start a new scan.");
+      return;
+    }
+
     if (!normalizedUrl) {
       setErrorMessage("Please enter a website URL.");
       return;
     }
+
     setErrorMessage(null);
     setScanId(null);
     setIsUnlocked(false);
@@ -205,6 +193,9 @@ export default function ScannerClient() {
       amount: REPORT_UNLOCK_AMOUNT,
       onSuccess: (updatedScan) => {
         queryClient.setQueryData(["scan-result", currentScanId], updatedScan);
+        void queryClient.invalidateQueries({
+          queryKey: ["scan-result", currentScanId],
+        });
         setReportUnlock();
         setIsUnlocked(true);
         setErrorMessage(null);
@@ -213,21 +204,24 @@ export default function ScannerClient() {
     });
   };
 
-  const [isDownloading, setIsDownloading] = useState(false);
   const handleDownload = async () => {
     const currentScanId = scanQuery.data?.data?.id ?? scanId;
     if (!currentScanId) return;
-    
+
     setIsDownloading(true);
     try {
-      const blob = await downloadPdfApi(currentScanId);
-      const url = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = url;
-      link.download = `audit-report-${currentScanId}.pdf`;
-      link.click();
-      window.URL.revokeObjectURL(url);
-    } catch (err: any) {
+      if (reportData) {
+        await generateScanReportPdf(reportData);
+      } else {
+        const blob = await downloadPdfApi(currentScanId);
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = `audit-report-${currentScanId}.pdf`;
+        link.click();
+        window.URL.revokeObjectURL(url);
+      }
+    } catch {
       setErrorMessage("Failed to download PDF report.");
     } finally {
       setIsDownloading(false);
@@ -243,63 +237,54 @@ export default function ScannerClient() {
   const previewData = reportData?.preview ?? null;
   const fullReport =
     reportData?.fullReport ?? reportData?.aiReport ?? reportData?.report ?? null;
+  const hasFullReportContent = hasReportContent(fullReport);
+
   const locked = reportData
     ? (reportData.locked || reportData.preview.locked) && !isUnlocked
     : true;
+
+  useEffect(() => {
+    if (!scanId || !isUnlocked || hasFullReportContent) return;
+    let attempts = 0;
+    const maxAttempts = 20;
+    const interval = window.setInterval(() => {
+      attempts += 1;
+      void queryClient.invalidateQueries({ queryKey: ["scan-result", scanId] });
+      if (attempts >= maxAttempts) {
+        window.clearInterval(interval);
+      }
+    }, 1500);
+
+    return () => window.clearInterval(interval);
+  }, [scanId, isUnlocked, hasFullReportContent, queryClient]);
+
   const previewIssues = useMemo<Issue[]>(() => {
     if (!reportData) return [];
-    
-    // If report is unlocked and we have the full AI report, use it
+
     if (!locked && fullReport?.issues) {
       return fullReport.issues.map((issue, index) => ({
         id: `full-issue-${index}`,
         title: issue.title,
-        severity: (issue.severity as any) || "Medium",
+        severity: (issue.severity as string) || "Medium",
         suggestion: issue.suggestion,
         codeSnippet: issue.codeSnippet,
       }));
     }
 
-    // Otherwise use preview issues
     return reportData.preview.topIssues.map((issue, index) => ({
       id: `preview-issue-${index}`,
       title: issue.title,
-      severity: issue.severity as any,
+      severity: issue.severity,
     }));
   }, [reportData, fullReport, locked]);
 
-  const previewSuggestions = useMemo(() => {
-    if (!locked && fullReport?.suggestions) {
-      return fullReport.suggestions;
-    }
+  const aiSuggestions = useMemo(() => {
+    if (locked) return [];
+    if (fullReport?.suggestions?.length) return fullReport.suggestions;
     return previewData?.quickWins ?? [];
   }, [fullReport, previewData, locked]);
+
   const lockedIssuesCount = previewData?.lockedIssues ?? 0;
-
-  const reportId = reportData?.id ?? null;
-  const reportOverall = reportData?.preview.overall ?? null;
-  const reportVerdict = reportData?.preview.verdict ?? null;
-
-  const latestHistoryItem = useMemo<HistoryItem | null>(() => {
-    if (reportId === null || reportOverall === null || !reportVerdict) return null;
-    return {
-      id: `SCAN-${reportId}`,
-      score: reportOverall,
-      verdict: reportVerdict,
-      date: new Date().toISOString().slice(0, 10),
-    };
-  }, [reportId, reportOverall, reportVerdict]);
-
-  useEffect(() => {
-    if (scanState !== "results") return;
-    if (!latestHistoryItem) return;
-
-    setHistory((prev) => {
-      const next = upsertScanHistory(prev, latestHistoryItem);
-      writeScanHistory(next);
-      return next;
-    });
-  }, [latestHistoryItem, scanState]);
 
   return (
     <motion.div
@@ -347,6 +332,7 @@ export default function ScannerClient() {
                 <span className="relative z-10">Competitor scan</span>
               </TabsTrigger>
             </TabsList>
+
             <div className="mt-6">
               <AnimatePresence mode="wait">
                 {activeTab === "website" ? (
@@ -365,7 +351,7 @@ export default function ScannerClient() {
                       errorMessage={errorMessage}
                     />
 
-                    {scanState === "scanning" && (
+                    {scanState === "scanning" ? (
                       <motion.div
                         initial={{ opacity: 0, y: 16 }}
                         animate={{ opacity: 1, y: 0 }}
@@ -373,9 +359,9 @@ export default function ScannerClient() {
                       >
                         <ScanLoader activeStep={scanSteps[activeStep]} />
                       </motion.div>
-                    )}
+                    ) : null}
 
-                    {scanState === "results" && reportData && (
+                    {scanState === "results" && reportData ? (
                       <motion.div
                         id="scan-report"
                         initial={{ opacity: 0, y: 18 }}
@@ -392,32 +378,21 @@ export default function ScannerClient() {
                           unlocked={!locked}
                           onDownload={handleDownload}
                           onUnlock={handleUnlock}
+                          unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
                           unlocking={isPaying}
+                          unlockingLabel={unlockingLabel}
                           downloading={isDownloading}
                         />
-                        <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+                        {!locked ? (
+                          <FullReportSection
+                            report={fullReport}
+                            pending={!hasFullReportContent}
+                          />
+                        ) : null}
+                        <div className="grid gap-6 lg:grid-cols-2">
                           <ScoreOverview
                             overall={reportData.preview.overall}
                             categories={reportData.preview.categories}
-                          />
-                          <AiSuggestions
-                            title="AI quick wins"
-                            suggestions={previewSuggestions}
-                            locked={locked}
-                            lockedCount={Math.max(0, previewSuggestions.length - 2)}
-                            onUnlock={handleUnlock}
-                            unlocking={isPaying}
-                            description="Actionable improvements generated from the scan."
-                          />
-                        </div>
-                        <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-                          <IssuesList
-                            issues={previewIssues}
-                            totalIssues={reportData.preview.totalIssuesFound}
-                            locked={locked}
-                            lockedCount={lockedIssuesCount}
-                            onUnlock={handleUnlock}
-                            unlocking={isPaying}
                           />
                           <MetricsCard
                             metrics={reportData.preview.metrics}
@@ -425,15 +400,28 @@ export default function ScannerClient() {
                             indexing={reportData.preview.indexing}
                           />
                         </div>
-                        <LockedSection
+                        <IssuesList
+                          issues={previewIssues}
+                          totalIssues={reportData.preview.totalIssuesFound}
+                          locked={locked}
+                          lockedCount={lockedIssuesCount}
+                          onUnlock={handleUnlock}
+                          unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
+                          unlocking={isPaying}
+                          unlockingLabel={unlockingLabel}
+                        />
+                        <AiSuggestions
+                          title="AI suggestions"
+                          suggestions={aiSuggestions}
                           locked={locked}
                           onUnlock={handleUnlock}
+                          unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
                           unlocking={isPaying}
-                        >
-                          <ScanHistory history={history} />
-                        </LockedSection>
+                          unlockingLabel={unlockingLabel}
+                          description="Paid report includes actionable AI recommendations."
+                        />
                       </motion.div>
-                    )}
+                    ) : null}
                   </motion.div>
                 ) : (
                   <motion.div
@@ -453,1552 +441,4 @@ export default function ScannerClient() {
       </section>
     </motion.div>
   );
-}
-
-function Hero() {
-  return (
-    <div className="mx-auto max-w-4xl text-center">
-      <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground shadow-sm backdrop-blur">
-        <Sparkles className="h-4 w-4 text-emerald-500" />
-        AI Tool
-      </div>
-      <h1 className="mt-6 font-headline text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-        AI Website Scanner Tool
-      </h1>
-      <p className="mt-5 text-lg text-muted-foreground">
-        Scan your website and get an AI-powered report for performance, SEO,
-        accessibility, and security.
-      </p>
-    </div>
-  );
-}
-
-function ScanInput({
-  urlValue,
-  onUrlChange,
-  onScan,
-  scanning,
-  errorMessage,
-}: {
-  urlValue: string;
-  onUrlChange: (value: string) => void;
-  onScan: () => void;
-  scanning: boolean;
-  errorMessage: string | null;
-}) {
-  const examples = ["stripe.com", "vercel.com", "shopify.com"];
-
-  return (
-    <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur md:p-8">
-      <div>
-        <label className="text-sm font-semibold text-foreground">
-          Website URL
-        </label>
-        <div className="mt-2 flex flex-col gap-3 md:flex-row md:items-center">
-          <Input
-            value={urlValue}
-            onChange={(event) => onUrlChange(event.target.value)}
-            placeholder="example.com"
-            className="h-12 flex-1 text-base"
-          />
-          <Button
-            size="lg"
-            className="h-12 w-full min-w-[160px] justify-center whitespace-nowrap shadow-lg shadow-primary/20 md:w-44"
-            onClick={onScan}
-            disabled={scanning}
-            aria-busy={scanning}
-          >
-            {scanning ? "Scanning..." : "Scan Now"}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-        <div className="mt-2 min-h-[20px] text-sm">
-          {errorMessage ? (
-            <p className="text-destructive">{errorMessage}</p>
-          ) : null}
-        </div>
-      </div>
-      <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-        <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 px-3 py-1 text-emerald-600">
-          <ShieldCheck className="h-3.5 w-3.5" />
-          Secure & private
-        </span>
-        <span className="rounded-full border border-sky-400/30 px-3 py-1 text-sky-600">
-          AI powered
-        </span>
-        <span className="rounded-full border border-amber-400/30 px-3 py-1 text-amber-600">
-          Free scan
-        </span>
-      </div>
-      <div className="mt-5 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-        <span>Try:</span>
-        {examples.map((example) => (
-          <button
-            key={example}
-            type="button"
-            className="rounded-full border border-border/60 px-3 py-1 text-xs font-medium text-foreground transition hover:border-primary hover:text-primary"
-            onClick={() => onUrlChange(example)}
-          >
-            {example}
-          </button>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-function ScanLoader({ activeStep }: { activeStep: string }) {
-  return (
-    <div className="mt-12 flex justify-center">
-      <Card className="w-full max-w-4xl border-border/60 bg-background/80 p-10 text-center shadow-lg backdrop-blur">
-        <div className="mx-auto mb-6 h-16 w-16 rounded-full border border-primary/40 bg-primary/10 text-primary shadow-[0_0_30px_rgba(59,130,246,0.35)]">
-          <div className="h-full w-full animate-spin rounded-full border-2 border-transparent border-t-primary" />
-        </div>
-        <h3 className="text-xl font-semibold">Scanning your website…</h3>
-        <p className="mt-2 text-sm text-muted-foreground">{activeStep}</p>
-        <div className="mt-8 grid gap-4 md:grid-cols-3">
-          <SkeletonCard title="Analyzing performance" />
-          <SkeletonCard title="Checking SEO" />
-          <SkeletonCard title="Generating report" />
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function ResultsHeader({
-  url,
-  overall,
-  verdict,
-  totalIssues,
-  onReset,
-  unlocked,
-  onDownload,
-  onUnlock,
-  unlocking = false,
-  downloading = false,
-}: {
-  url: string;
-  overall: number;
-  verdict: string;
-  totalIssues: number;
-  onReset: () => void;
-  unlocked: boolean;
-  onDownload: () => void;
-  onUnlock: () => void;
-  unlocking?: boolean;
-  downloading?: boolean;
-}) {
-  const verdictTone = verdict.toLowerCase().includes("excellent")
-    ? "bg-emerald-500/10 text-emerald-600"
-    : verdict.toLowerCase().includes("good")
-      ? "bg-sky-500/10 text-sky-600"
-      : verdict.toLowerCase().includes("needs")
-        ? "bg-amber-500/10 text-amber-600"
-        : "bg-rose-500/10 text-rose-600";
-
-  return (
-    <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur md:p-8">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <div>
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Audit Report
-          </div>
-          <h2 className="mt-2 text-2xl font-semibold md:text-3xl">{url}</h2>
-          <div className="mt-3 flex flex-wrap items-center gap-2">
-            <span
-              className={`rounded-full px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${verdictTone}`}
-            >
-              {verdict}
-            </span>
-            <span className="text-xs text-muted-foreground">
-              {totalIssues} issues detected
-            </span>
-          </div>
-        </div>
-        <div className="flex items-center gap-3">
-          <Badge className="rounded-full px-4 py-2">
-            Overall score {overall}
-          </Badge>
-          {unlocked ? (
-            <Button variant="outline" onClick={onDownload} disabled={downloading}>
-              {downloading ? "Generating..." : "Download PDF"}
-            </Button>
-          ) : (
-            <Button onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
-              {unlocking
-                ? "Processing..."
-                : `Unlock full report (${REPORT_UNLOCK_PRICE_LABEL})`}
-            </Button>
-          )}
-          <Button variant="outline" onClick={onReset}>
-            Scan another
-          </Button>
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function ScoreOverview({
-  overall,
-  categories,
-}: {
-  overall: number;
-  categories: ScanPreview["categories"];
-}) {
-  return (
-    <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
-      <h3 className="text-lg font-semibold">Overall health</h3>
-      <div className="mt-5 grid gap-6 md:grid-cols-[180px_1fr] md:items-center">
-        <CircularScore value={overall} />
-        <div className="space-y-4 text-sm text-muted-foreground">
-          <ScoreBar label="Performance" value={categories.performance} tone="emerald" />
-          <ScoreBar label="SEO" value={categories.seo} tone="sky" />
-          <ScoreBar
-            label="Accessibility"
-            value={categories.accessibility}
-            tone="amber"
-          />
-          <ScoreBar label="Security" value={categories.security} tone="violet" />
-        </div>
-      </div>
-    </Card>
-  );
-}
-
-function ScoreBar({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: "emerald" | "sky" | "amber" | "violet";
-}) {
-  const toneMap = {
-    emerald: "from-emerald-500 to-emerald-300",
-    sky: "from-sky-500 to-sky-300",
-    amber: "from-amber-500 to-amber-300",
-    violet: "from-violet-500 to-violet-300",
-  }[tone];
-
-  return (
-    <div>
-      <div className="flex items-center justify-between">
-        <span>{label}</span>
-        <span className="text-xs text-muted-foreground">{value}/100</span>
-      </div>
-      <div className="mt-2 h-2 w-full rounded-full bg-muted">
-        <div
-          className={`h-2 rounded-full bg-gradient-to-r ${toneMap}`}
-          style={{ width: `${value}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function CircularScore({ value }: { value: number }) {
-  const angle = Math.round((value / 100) * 360);
-  return (
-    <div className="relative h-40 w-40">
-      <div
-        className="absolute inset-0 rounded-full"
-        style={{
-          background: `conic-gradient(#22c55e ${angle}deg, rgba(148,163,184,0.2) 0deg)`,
-        }}
-      />
-      <div className="absolute inset-3 rounded-full bg-background" />
-      <div className="absolute inset-0 flex items-center justify-center text-3xl font-semibold">
-        {value}
-      </div>
-    </div>
-  );
-}
-
-function IssuesList({
-  issues,
-  totalIssues,
-  locked,
-  lockedCount,
-  onUnlock,
-  unlocking = false,
-}: {
-  issues: Issue[];
-  totalIssues: number;
-  locked: boolean;
-  lockedCount: number;
-  onUnlock: () => void;
-  unlocking?: boolean;
-}) {
-  return (
-    <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">Issues & AI Fixes</h3>
-        <Badge variant="secondary">
-          {issues.length} of {totalIssues}
-        </Badge>
-      </div>
-      <div className="mt-5 space-y-4">
-        {issues.length === 0 ? (
-          <div className="rounded-2xl border border-border/60 bg-background/60 p-4 text-sm text-muted-foreground">
-            No critical issues detected in the free preview.
-          </div>
-        ) : (
-          issues.map((issue) => (
-            <IssueCard key={issue.id} issue={issue} locked={locked} />
-          ))
-        )}
-        {locked && lockedCount > 0 ? (
-          <div className="rounded-2xl border border-primary/30 bg-primary/10 p-4 text-sm text-foreground">
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <p>
-                Unlock the full report to see {lockedCount} more issues and AI-powered code fixes.
-              </p>
-              <Button size="sm" onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
-                {unlocking
-                  ? "Processing..."
-                  : `Unlock full report (${REPORT_UNLOCK_PRICE_LABEL})`}
-              </Button>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </Card>
-  );
-}
-
-function IssueCard({ issue, locked }: { issue: Issue; locked: boolean }) {
-  const hasCode = issue.codeSnippet && (issue.codeSnippet.html || issue.codeSnippet.css || issue.codeSnippet.js);
-  
-  return (
-    <div className="rounded-2xl border border-border/60 bg-background/60 p-4 transition-all hover:border-border/100">
-      <div className="flex items-start justify-between gap-3">
-        <div className="flex-1">
-          <div className="flex items-center gap-2">
-            <p className="text-sm font-semibold">{issue.title}</p>
-            {!locked && hasCode && (
-              <Badge variant="outline" className="bg-emerald-500/5 text-emerald-600 border-emerald-500/20 text-[10px] py-0">
-                AI Fix Available
-              </Badge>
-            )}
-          </div>
-          {issue.suggestion ? (
-            <p className="mt-2 text-sm text-muted-foreground">
-              {issue.suggestion}
-            </p>
-          ) : null}
-          
-          {!locked && issue.codeSnippet && (
-            <div className="mt-4 space-y-3">
-               {issue.codeSnippet.html && (
-                 <CodeBlock label="HTML Fix" code={issue.codeSnippet.html} lang="html" />
-               )}
-               {issue.codeSnippet.css && (
-                 <CodeBlock label="CSS Fix" code={issue.codeSnippet.css} lang="css" />
-               )}
-               {issue.codeSnippet.js && (
-                 <CodeBlock label="Javascript Fix" code={issue.codeSnippet.js} lang="js" />
-               )}
-            </div>
-          )}
-        </div>
-        <SeverityBadge severity={issue.severity} />
-      </div>
-    </div>
-  );
-}
-
-function CodeBlock({ label, code, lang }: { label: string; code: string; lang: string }) {
-  const [copied, setCopied] = useState(false);
-  
-  const copy = () => {
-    navigator.clipboard.writeText(code);
-    setCopied(true);
-    setTimeout(() => setCopied(false), 2000);
-  };
-
-  return (
-    <div className="space-y-1.5">
-      <div className="flex items-center justify-between px-1">
-        <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">{label}</span>
-        <button onClick={copy} className="text-[10px] font-medium transition hover:text-primary">
-          {copied ? "Copied!" : "Copy"}
-        </button>
-      </div>
-      <pre className="overflow-x-auto rounded-lg border border-border/50 bg-muted/30 p-3 text-xs font-mono text-foreground/90">
-        <code>{code}</code>
-      </pre>
-    </div>
-  );
-}
-
-function SeverityBadge({ severity }: { severity: string }) {
-  const s = (severity || "").toLowerCase();
-  
-  const map: Record<string, string> = {
-    high: "border-red-500/40 bg-red-500/10 text-red-600",
-    medium: "border-amber-500/40 bg-amber-500/10 text-amber-600",
-    low: "border-emerald-500/40 bg-emerald-500/10 text-emerald-600",
-  };
-
-  const className = map[s] || "border-sky-500/40 bg-sky-500/10 text-sky-600";
-
-  return (
-    <span
-      className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.2em] ${className}`}
-    >
-      {severity}
-    </span>
-  );
-}
-
-function AiSuggestions({
-  title,
-  suggestions,
-  locked,
-  lockedCount = 0,
-  onUnlock,
-  description,
-  unlocking = false,
-}: {
-  title: string;
-  suggestions: string[];
-  locked: boolean;
-  lockedCount?: number;
-  onUnlock?: () => void;
-  description?: string;
-  unlocking?: boolean;
-}) {
-  const visibleSuggestions = locked ? suggestions.slice(0, 2) : suggestions;
-  const hiddenSuggestions = locked ? suggestions.slice(2) : [];
-  const computedLockedCount = lockedCount > 0 ? lockedCount : hiddenSuggestions.length;
-
-  return (
-    <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
-      <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-emerald-600">
-        <Zap className="h-4 w-4" />
-        <span>{title}</span>
-        {locked ? (
-          <Badge variant="secondary" className="text-[10px] uppercase">
-            Preview
-          </Badge>
-        ) : null}
-      </div>
-      {description ? (
-        <p className="mt-2 text-xs text-muted-foreground">{description}</p>
-      ) : null}
-      {suggestions.length === 0 ? (
-        <p className="mt-4 text-sm text-muted-foreground">
-          Unlock the report to view AI-generated recommendations.
-        </p>
-      ) : (
-        <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-          {visibleSuggestions.map((item) => (
-            <li key={item} className="flex items-start gap-2">
-              <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
-              {item}
-            </li>
-          ))}
-        </ul>
-      )}
-     
-      {locked && computedLockedCount > 0 ? (
-        <div className="mt-4 rounded-2xl border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <span>
-              Unlock {computedLockedCount} more recommendation
-              {computedLockedCount > 1 ? "s" : ""}.
-            </span>
-            {onUnlock ? (
-              <Button size="sm" onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
-                {unlocking
-                  ? "Processing..."
-                  : `Unlock full report (${REPORT_UNLOCK_PRICE_LABEL})`}
-              </Button>
-            ) : null}
-          </div>
-        </div>
-      ) : null}
-    </Card>
-  );
-}
-
-function MetricsCard({
-  metrics,
-  social,
-  indexing,
-}: {
-  metrics?: ScanPreview["metrics"];
-  social?: ScanPreview["social"];
-  indexing?: ScanPreview["indexing"];
-}) {
-  return (
-    <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
-      <div className="flex items-center gap-2 text-sm font-semibold text-sky-600">
-        <BarChart3 className="h-4 w-4" />
-        Scan metrics
-      </div>
-      <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
-        <MetricRow label="Load time" value={metrics?.loadTime || "N/A"} />
-        <MetricRow label="Page size" value={metrics?.pageSize || "N/A"} />
-        <MetricRow label="Images" value={metrics ? `${metrics.images}` : "0"} />
-        <MetricRow label="Scripts" value={metrics ? `${metrics.scripts}` : "0"} />
-        <MetricRow label="Links" value={metrics ? `${metrics.links}` : "0"} />
-      </div>
-      {(social || indexing) && (
-        <div className="mt-6 border-t border-border/60 pt-5">
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Indexing & Social
-          </div>
-          <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
-            {indexing && (
-              <>
-                <StatusRow
-                  label="Robots.txt"
-                  value={indexing.robots}
-                  positiveLabel="Detected"
-                  negativeLabel="Missing"
-                />
-                <StatusRow
-                  label="Sitemap"
-                  value={indexing.sitemap}
-                  positiveLabel="Detected"
-                  negativeLabel="Missing"
-                />
-              </>
-            )}
-            {social && (
-              <>
-                <StatusRow
-                  label="OpenGraph tags"
-                  value={social.ogTags}
-                  positiveLabel="Configured"
-                  negativeLabel="Missing"
-                />
-                <StatusRow
-                  label="Twitter cards"
-                  value={social.twitterTags}
-                  positiveLabel="Configured"
-                  negativeLabel="Missing"
-                />
-              </>
-            )}
-          </div>
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function MetricRow({ label, value }: { label: string; value: string | number }) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 px-3 py-2">
-      <span>{label}</span>
-      <span className="font-semibold text-foreground">{value}</span>
-    </div>
-  );
-}
-
-function StatusRow({
-  label,
-  value,
-  positiveLabel,
-  negativeLabel,
-}: {
-  label: string;
-  value: boolean;
-  positiveLabel: string;
-  negativeLabel: string;
-}) {
-  return (
-    <div className="flex items-center justify-between rounded-xl border border-border/60 bg-background/60 px-3 py-2">
-      <span>{label}</span>
-      <span className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] text-foreground">
-        {value ? (
-          <CheckCircle2 className="h-4 w-4 text-emerald-500" />
-        ) : (
-          <XCircle className="h-4 w-4 text-rose-500" />
-        )}
-        {value ? positiveLabel : negativeLabel}
-      </span>
-    </div>
-  );
-}
-
-function ScanHistory({ history }: { history: HistoryItem[] }) {
-  return (
-    <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
-      <h3 className="text-lg font-semibold">Recent scans</h3>
-      {history.length === 0 ? (
-        <div className="mt-4 rounded-2xl border border-border/60 bg-background/60 p-4 text-sm text-muted-foreground">
-          No scan history yet.
-        </div>
-      ) : (
-        <div className="mt-4 overflow-hidden rounded-2xl border border-border/60">
-          <div className="grid grid-cols-4 gap-4 bg-background/60 px-4 py-3 text-xs uppercase tracking-[0.2em] text-muted-foreground">
-            <span>Scan ID</span>
-            <span>Verdict</span>
-            <span>Score</span>
-            <span>Date</span>
-          </div>
-          {history.map((item) => (
-            <div
-              key={item.id}
-              className="grid grid-cols-4 gap-4 border-t border-border/60 px-4 py-3 text-sm text-foreground"
-            >
-              <span>{item.id}</span>
-              <span>{item.verdict}</span>
-              <span>{item.score}</span>
-              <span>{item.date}</span>
-            </div>
-          ))}
-        </div>
-      )}
-    </Card>
-  );
-}
-
-function SkeletonCard({ title }: { title: string }) {
-  return (
-    <div className="rounded-2xl border border-border/60 bg-background/60 p-4 text-left">
-      <p className="text-xs uppercase tracking-[0.2em] text-muted-foreground">
-        {title}
-      </p>
-      <div className="mt-3 h-3 w-3/4 animate-pulse rounded-full bg-muted" />
-      <div className="mt-2 h-3 w-2/3 animate-pulse rounded-full bg-muted" />
-      <div className="mt-2 h-3 w-1/2 animate-pulse rounded-full bg-muted" />
-    </div>
-  );
-}
-
-function LockedSection({
-  locked,
-  onUnlock,
-  children,
-  unlocking = false,
-}: {
-  locked: boolean;
-  onUnlock: () => void;
-  children: React.ReactNode;
-  unlocking?: boolean;
-}) {
-  if (!locked) {
-    return <>{children}</>;
-  }
-
-  return (
-    <div className="relative">
-      <div className="pointer-events-none select-none blur-md opacity-40">
-        {children}
-      </div>
-      <div className="absolute inset-0 flex items-center justify-center rounded-3xl border border-primary/30 bg-background/95 p-6 text-center shadow-lg backdrop-blur">
-        <div className="max-w-xs">
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Locked
-          </div>
-          <h3 className="mt-2 text-lg font-semibold">
-            Unlock full report for {REPORT_UNLOCK_PRICE_LABEL}
-          </h3>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Save $2.01 off the $5 list price. Get the complete issue list, AI
-            recommendations, and PDF download.
-          </p>
-          <Button className="mt-4 w-full" onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
-            {unlocking
-              ? "Processing..."
-              : `Unlock full report (${REPORT_UNLOCK_PRICE_LABEL})`}
-          </Button>
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function CompetitorScanner() {
-  const [primaryUrl, setPrimaryUrl] = useState("");
-  const [competitorUrl, setCompetitorUrl] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [activeStep, setActiveStep] = useState(0);
-  const [scanId, setScanId] = useState<number | null>(null);
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const { isPaying, startPayment } = useRazorpayPayment();
-  const queryClient = useQueryClient();
-
-  const normalizedPrimary = useMemo(() => normalizeUrl(primaryUrl), [primaryUrl]);
-  const normalizedCompetitor = useMemo(
-    () => normalizeUrl(competitorUrl),
-    [competitorUrl]
-  );
-
-  useEffect(() => {
-    setIsUnlocked(readReportUnlockState());
-
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const tab = params.get("tab");
-      if (tab !== "competitor") return;
-
-      const idParam = params.get("id");
-      const parsedId = idParam ? Number(idParam) : NaN;
-      if (Number.isFinite(parsedId) && parsedId > 0) {
-        setScanId(parsedId);
-      }
-    }
-  }, []);
-
-  const createScan = useMutation({
-    mutationFn: (input: { url: string; competitorUrl: string }) =>
-      createScanRequest(input.url, input.competitorUrl),
-    onSuccess: (data) => {
-      setScanId(data.scanId);
-    },
-    onError: (err: Error) => {
-      setErrorMessage(err.message ?? "Unable to start competitor scan.");
-    },
-  });
-
-  const scanQuery = useQuery({
-    queryKey: ["competitor-scan-result", scanId],
-    queryFn: () => fetchScanResult(scanId as number),
-    enabled: typeof scanId === "number",
-    retry: 12,
-    retryDelay: 1200,
-  });
-
-  useEffect(() => {
-    if (!scanQuery.error) return;
-    setErrorMessage((scanQuery.error as Error).message ?? "Competitor scan failed.");
-  }, [scanQuery.error]);
-
-  useEffect(() => {
-    if (!scanQuery.data) return;
-    setErrorMessage(null);
-  }, [scanQuery.data]);
-
-  const scanState: ScanState = scanQuery.data
-    ? "results"
-    : createScan.isPending || scanQuery.isFetching
-      ? "scanning"
-      : "idle";
-
-  useEffect(() => {
-    if (scanState !== "scanning") return;
-    setActiveStep(0);
-    const interval = setInterval(() => {
-      setActiveStep((prev) => (prev + 1) % competitorSteps.length);
-    }, 700);
-    return () => clearInterval(interval);
-  }, [scanState]);
-
-  const handleCompare = () => {
-    if (!normalizedPrimary || !normalizedCompetitor) {
-      setErrorMessage("Enter both websites to compare.");
-      return;
-    }
-
-    const primaryKey = getComparableSiteKey(normalizedPrimary);
-    const competitorKey = getComparableSiteKey(normalizedCompetitor);
-    if (primaryKey && competitorKey && primaryKey === competitorKey) {
-      setErrorMessage("Please enter a different competitor website.");
-      return;
-    }
-
-    setErrorMessage(null);
-    setScanId(null);
-    setIsUnlocked(false);
-    clearReportUnlock();
-    createScan.mutate({ url: normalizedPrimary, competitorUrl: normalizedCompetitor });
-  };
-
-  const handleUnlock = () => {
-    const currentScanId = scanQuery.data?.data?.id ?? scanId;
-    if (!currentScanId) {
-      setErrorMessage("Run a scan before unlocking the full report.");
-      return;
-    }
-
-    setErrorMessage(null);
-    startPayment({
-      scanId: currentScanId,
-      amount: REPORT_UNLOCK_AMOUNT,
-      onSuccess: (updatedScan) => {
-        queryClient.setQueryData(
-          ["competitor-scan-result", currentScanId],
-          updatedScan
-        );
-        setReportUnlock();
-        setIsUnlocked(true);
-        setErrorMessage(null);
-      },
-      onError: (message) => setErrorMessage(message),
-    });
-  };
-
-  const primaryLabel = normalizedPrimary
-    ? formatDomain(normalizedPrimary)
-    : "your-site.com";
-  const competitorLabel = normalizedCompetitor
-    ? formatDomain(normalizedCompetitor)
-    : "competitor.com";
-
-  const reportData: ScanResultResponse["data"] | null = scanQuery.data?.data ?? null;
-  const competitorPreview = reportData?.competitorPreview ?? null;
-  const competitorAnalysis = reportData?.competitorAnalysis ?? null;
-
-  const locked = reportData
-    ? (reportData.locked ||
-        reportData.preview.locked ||
-        (competitorPreview?.locked ?? true)) &&
-      !isUnlocked
-    : true;
-
-  const winner =
-    reportData && competitorPreview
-      ? reportData.preview.overall >= competitorPreview.overall
-        ? "primary"
-        : "competitor"
-      : "competitor";
-
-  return (
-    <div className="space-y-10">
-      <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur md:p-8">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div>
-            <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-              Competitive scan
-            </div>
-            <h3 className="mt-2 text-2xl font-semibold">
-              Compare your site against a top competitor
-            </h3>
-            <p className="mt-2 text-sm text-muted-foreground">
-              Benchmark performance, SEO, and conversion gaps with an AI-powered
-              comparison report.
-            </p>
-          </div>
-          <Badge className="rounded-full px-4 py-2">Competitor scan</Badge>
-        </div>
-        <div className="mt-6 grid gap-4 md:grid-cols-[1fr_1fr_auto] md:items-center">
-          <Input
-            value={primaryUrl}
-            onChange={(event) => setPrimaryUrl(event.target.value)}
-            placeholder="yourwebsite.com"
-            className="h-12 text-base"
-          />
-          <Input
-            value={competitorUrl}
-            onChange={(event) => setCompetitorUrl(event.target.value)}
-            placeholder="competitor.com"
-            className="h-12 text-base"
-          />
-          <Button
-            size="lg"
-            className="h-12 w-full min-w-[160px] justify-center whitespace-nowrap shadow-lg shadow-primary/20 md:w-44"
-            onClick={handleCompare}
-            disabled={scanState === "scanning"}
-            aria-busy={scanState === "scanning"}
-          >
-            {scanState === "scanning" ? "Comparing..." : "Compare now"}
-            <ArrowRight className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
-        <div className="mt-2 min-h-[20px] text-sm">
-          {errorMessage ? (
-            <p className="text-destructive">{errorMessage}</p>
-          ) : null}
-        </div>
-        <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-          <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 px-3 py-1 text-emerald-600">
-            <ShieldCheck className="h-3.5 w-3.5" />
-            Secure comparison
-          </span>
-          <span className="rounded-full border border-sky-400/30 px-3 py-1 text-sky-600">
-            Live benchmarks
-          </span>
-          <span className="rounded-full border border-amber-400/30 px-3 py-1 text-amber-600">
-            Growth insights
-          </span>
-        </div>
-      </Card>
-
-      {scanState === "scanning" ? (
-        <CompetitorLoader activeStep={competitorSteps[activeStep]} />
-      ) : null}
-
-      {scanState === "results" && reportData && competitorPreview ? (
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="space-y-6"
-        >
-          <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Comparison report
-                </div>
-                <h4 className="mt-2 text-xl font-semibold">
-                  {primaryLabel} vs {competitorLabel}
-                </h4>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  AI benchmark report highlighting performance, SEO, and growth
-                  gaps.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
-                <Crown className="h-4 w-4" />
-                {winner === "primary" ? primaryLabel : competitorLabel} leads
-              </div>
-            </div>
-          </Card>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <CompetitorScoreCard
-              title="Your site"
-              highlight={winner === "primary"}
-              preview={reportData.preview}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlocking={isPaying}
-            />
-            <CompetitorScoreCard
-              title="Competitor"
-              highlight={winner === "competitor"}
-              preview={competitorPreview}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlocking={isPaying}
-            />
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <QuickWinsCard
-              title="Your quick wins"
-              wins={reportData.preview.quickWins}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlocking={isPaying}
-            />
-            <QuickWinsCard
-              title="Competitor quick wins"
-              wins={competitorPreview.quickWins}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlocking={isPaying}
-            />
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
-            <ComparisonCard
-              title="Category comparison"
-              primaryLabel={primaryLabel}
-              competitorLabel={competitorLabel}
-              rows={[
-                {
-                  label: "Performance",
-                  primary: reportData.preview.categories.performance,
-                  competitor: competitorPreview.categories.performance,
-                },
-                {
-                  label: "SEO",
-                  primary: reportData.preview.categories.seo,
-                  competitor: competitorPreview.categories.seo,
-                },
-                {
-                  label: "Accessibility",
-                  primary: reportData.preview.categories.accessibility,
-                  competitor: competitorPreview.categories.accessibility,
-                },
-                {
-                  label: "Security",
-                  primary: reportData.preview.categories.security,
-                  competitor: competitorPreview.categories.security,
-                },
-              ]}
-            />
-            <CompetitorAnalysisCard
-              scoreGap={competitorAnalysis?.scoreGap ?? 0}
-              summary={competitorAnalysis?.summary ?? ""}
-              actionItems={competitorAnalysis?.actionItems ?? []}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlocking={isPaying}
-            />
-          </div>
-        </motion.div>
-      ) : null}
-    </div>
-  );
-}
-
-function CompetitorScoreCard({
-  title,
-  highlight,
-  preview,
-  locked,
-  onUnlock,
-  unlocking = false,
-}: {
-  title: string;
-  highlight: boolean;
-  preview: ScanPreview;
-  locked: boolean;
-  onUnlock: () => void;
-  unlocking?: boolean;
-}) {
-  const hiddenIssueCount = Math.max(
-    0,
-    (preview.lockedIssues ?? 0) - preview.topIssues.length
-  );
-  const verdictTone = preview.verdict.toLowerCase().includes("good")
-    ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
-    : preview.verdict.toLowerCase().includes("needs")
-      ? "border-amber-500/40 bg-amber-500/10 text-amber-600"
-      : "border-sky-500/40 bg-sky-500/10 text-sky-600";
-
-  return (
-    <Card
-      className={`border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur ${
-        highlight ? "ring-2 ring-primary/40" : ""
-      }`}
-    >
-      <div className="flex items-center justify-between">
-        <h4 className="text-lg font-semibold">{title}</h4>
-        {highlight ? (
-          <span className="rounded-full border border-primary/30 bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
-            Leading
-          </span>
-        ) : null}
-      </div>
-      <div className="mt-3 flex flex-wrap items-center gap-2">
-        <span
-          className={`rounded-full border px-3 py-1 text-xs font-semibold uppercase tracking-[0.15em] ${verdictTone}`}
-        >
-          {preview.verdict}
-        </span>
-        <Badge variant="secondary">{preview.totalIssuesFound} total issues</Badge>
-      </div>
-      <div className="mt-5 grid gap-6 md:grid-cols-[160px_1fr] md:items-center">
-        <CircularScore value={preview.overall} />
-        <div className="space-y-4 text-sm text-muted-foreground">
-          <ScoreBar
-            label="Performance"
-            value={preview.categories.performance}
-            tone="emerald"
-          />
-          <ScoreBar label="SEO" value={preview.categories.seo} tone="sky" />
-          <ScoreBar
-            label="Accessibility"
-            value={preview.categories.accessibility}
-            tone="amber"
-          />
-          <ScoreBar label="Security" value={preview.categories.security} tone="violet" />
-        </div>
-      </div>
-      <div className="mt-6 grid gap-3 text-sm text-muted-foreground">
-        <MetricRow label="Load time" value={preview.metrics?.loadTime || "N/A"} />
-        <MetricRow label="Page size" value={preview.metrics?.pageSize || "N/A"} />
-        <MetricRow label="Images" value={preview.metrics ? `${preview.metrics.images}` : "0"} />
-        <MetricRow label="Scripts" value={preview.metrics ? `${preview.metrics.scripts}` : "0"} />
-        <MetricRow label="Links" value={preview.metrics ? `${preview.metrics.links}` : "0"} />
-        {preview.improvements ? (
-          <>
-            <MetricRow
-              label="Potential score"
-              value={preview.improvements.potentialScore}
-            />
-            <MetricRow
-              label="Growth potential"
-              value={preview.improvements.trafficPotential}
-            />
-            <MetricRow label="Fix count" value={preview.improvements.fixCount} />
-          </>
-        ) : null}
-      </div>
-
-      <div className="mt-6 border-t border-border/60 pt-5">
-        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-          Indexing & Social
-        </div>
-        <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
-          {preview.indexing && (
-            <>
-              <StatusRow
-                label="Robots.txt"
-                value={preview.indexing.robots}
-                positiveLabel="Detected"
-                negativeLabel="Missing"
-              />
-              <StatusRow
-                label="Sitemap"
-                value={preview.indexing.sitemap}
-                positiveLabel="Detected"
-                negativeLabel="Missing"
-              />
-            </>
-          )}
-          {preview.social && (
-            <>
-              <StatusRow
-                label="OpenGraph tags"
-                value={preview.social.ogTags}
-                positiveLabel="Configured"
-                negativeLabel="Missing"
-              />
-              <StatusRow
-                label="OG image"
-                value={Boolean(preview.social.ogImage)}
-                positiveLabel="Configured"
-                negativeLabel="Missing"
-              />
-              <StatusRow
-                label="Twitter cards"
-                value={preview.social.twitterTags}
-                positiveLabel="Configured"
-                negativeLabel="Missing"
-              />
-            </>
-          )}
-        </div>
-      </div>
-
-      <div className="mt-6 border-t border-border/60 pt-5">
-        <div className="flex items-center justify-between">
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Top issues
-          </div>
-          <Badge variant="secondary">{preview.topIssues.length} shown</Badge>
-        </div>
-        <div className="mt-4 space-y-3">
-          {preview.topIssues.length === 0 ? (
-            <div className="rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm text-muted-foreground">
-              No issues in preview.
-            </div>
-          ) : (
-            preview.topIssues.map((issue, index) => (
-              <div
-                key={`${issue.title}-${index}`}
-                className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-background/60 px-3 py-2"
-              >
-                <span className="text-sm text-foreground">{issue.title}</span>
-                <SeverityBadge severity={issue.severity} />
-              </div>
-            ))
-          )}
-        </div>
-        {locked && hiddenIssueCount > 0 ? (
-          <div className="mt-4 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <span>
-                Unlock {hiddenIssueCount} more issue
-                {hiddenIssueCount > 1 ? "s" : ""}.
-              </span>
-              <Button
-                size="sm"
-                onClick={onUnlock}
-                disabled={unlocking}
-                aria-busy={unlocking}
-              >
-                {unlocking
-                  ? "Processing..."
-                  : `Unlock (${REPORT_UNLOCK_PRICE_LABEL})`}
-              </Button>
-            </div>
-          </div>
-        ) : null}
-      </div>
-    </Card>
-  );
-}
-
-function QuickWinsCard({
-  title,
-  wins,
-  locked,
-  onUnlock,
-  unlocking = false,
-}: {
-  title: string;
-  wins: string[];
-  locked: boolean;
-  onUnlock: () => void;
-  unlocking?: boolean;
-}) {
-  const visible = locked ? wins.slice(0, 2) : wins;
-  const hiddenCount = Math.max(0, wins.length - visible.length);
-
-  return (
-    <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
-      <div className="flex items-center justify-between">
-        <h4 className="text-lg font-semibold">{title}</h4>
-        <Badge variant="secondary">{visible.length} shown</Badge>
-      </div>
-      <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-        {visible.length === 0 ? (
-          <li className="rounded-xl border border-border/60 bg-background/60 px-3 py-2">
-            No quick wins available.
-          </li>
-        ) : (
-          visible.map((item) => (
-            <li key={item} className="flex items-start gap-2">
-              <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
-              {item}
-            </li>
-          ))
-        )}
-      </ul>
-      {locked && hiddenCount > 0 ? (
-        <div className="mt-4 rounded-xl border border-primary/30 bg-primary/10 p-3 text-xs text-foreground">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <span>
-              Unlock {hiddenCount} more recommendation
-              {hiddenCount > 1 ? "s" : ""}.
-            </span>
-            <Button
-              size="sm"
-              onClick={onUnlock}
-              disabled={unlocking}
-              aria-busy={unlocking}
-            >
-              {unlocking ? "Processing..." : `Unlock (${REPORT_UNLOCK_PRICE_LABEL})`}
-            </Button>
-          </div>
-        </div>
-      ) : null}
-    </Card>
-  );
-}
-
-function ComparisonCard({
-  title,
-  primaryLabel,
-  competitorLabel,
-  rows,
-}: {
-  title: string;
-  primaryLabel: string;
-  competitorLabel: string;
-  rows: Array<{
-    label: string;
-    primary: number;
-    competitor: number;
-  }>;
-}) {
-  return (
-    <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
-      <div className="flex items-center justify-between">
-        <h4 className="text-lg font-semibold">{title}</h4>
-        <Badge variant="secondary">AI benchmark</Badge>
-      </div>
-      <div className="mt-5 space-y-5">
-        {rows.map((row) => (
-          <div key={row.label} className="space-y-3">
-            <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-muted-foreground">
-              <span>{row.label}</span>
-              <span>
-                {row.primary} vs {row.competitor}
-              </span>
-            </div>
-            <ComparisonBar
-              label={primaryLabel}
-              value={row.primary}
-              tone="emerald"
-            />
-            <ComparisonBar
-              label={competitorLabel}
-              value={row.competitor}
-              tone="violet"
-            />
-          </div>
-        ))}
-      </div>
-    </Card>
-  );
-}
-
-function ComparisonBar({
-  label,
-  value,
-  tone,
-}: {
-  label: string;
-  value: number;
-  tone: "emerald" | "violet";
-}) {
-  const toneMap = {
-    emerald: "from-emerald-500 to-emerald-300",
-    violet: "from-violet-500 to-violet-300",
-  }[tone];
-
-  return (
-    <div className="space-y-2">
-      <div className="flex items-center justify-between text-xs text-muted-foreground">
-        <span>{label}</span>
-        <span className="font-semibold text-foreground">{value}/100</span>
-      </div>
-      <div className="h-2 w-full rounded-full bg-muted">
-        <div
-          className={`h-2 rounded-full bg-gradient-to-r ${toneMap}`}
-          style={{ width: `${value}%` }}
-        />
-      </div>
-    </div>
-  );
-}
-
-function CompetitorAnalysisCard({
-  scoreGap,
-  summary,
-  actionItems,
-  locked,
-  onUnlock,
-  unlocking = false,
-}: {
-  scoreGap: number;
-  summary: string;
-  actionItems: string[];
-  locked: boolean;
-  onUnlock: () => void;
-  unlocking?: boolean;
-}) {
-  const visible = actionItems.slice(0, 2);
-  const hidden = actionItems.slice(2);
-
-  return (
-    <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
-      <div className="flex items-center justify-between">
-        <h4 className="text-lg font-semibold">Competitive analysis</h4>
-        <Badge variant="secondary">Gap {scoreGap}</Badge>
-      </div>
-      {summary ? (
-        <p className="mt-4 text-sm text-muted-foreground">{summary}</p>
-      ) : null}
-
-      <div className="mt-6">
-        <div className="flex items-center gap-2 text-sm font-semibold text-emerald-600">
-          <LineChart className="h-4 w-4" />
-          Opportunity actions
-        </div>
-        <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-          {visible.map((item) => (
-            <li key={item} className="flex items-start gap-2">
-              <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
-              {item}
-            </li>
-          ))}
-        </ul>
-
-        {hidden.length > 0 ? (
-          locked ? (
-            <div className="mt-5 overflow-hidden rounded-2xl border border-primary/30 bg-primary/5">
-              <div className="pointer-events-none select-none px-4 pb-3 pt-4 opacity-45 blur-[1px]">
-              </div>
-              <div className="border-t border-primary/20 bg-background/90 px-4 py-4">
-                <p className="text-sm text-muted-foreground">
-                  Unlock {hidden.length} more action
-                  {hidden.length > 1 ? "s" : ""} in the full competitor report.
-                </p>
-                <Button
-                  size="sm"
-                  className="mt-3 w-full sm:w-auto"
-                  onClick={onUnlock}
-                  disabled={unlocking}
-                  aria-busy={unlocking}
-                >
-                  {unlocking
-                    ? "Processing..."
-                    : `Unlock full report (${REPORT_UNLOCK_PRICE_LABEL})`}
-                </Button>
-              </div>
-            </div>
-          ) : (
-            <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
-              {hidden.map((item) => (
-                <li key={item} className="flex items-start gap-2">
-                  <span className="mt-1 h-2 w-2 rounded-full bg-emerald-400" />
-                  {item}
-                </li>
-              ))}
-            </ul>
-          )
-        ) : null}
-      </div>
-    </Card>
-  );
-}
-
-function CompetitorLoader({ activeStep }: { activeStep: string }) {
-  return (
-    <div className="flex justify-center">
-      <Card className="w-full max-w-5xl border-border/60 bg-background/80 p-10 text-center shadow-lg backdrop-blur">
-        <div className="mx-auto mb-6 h-16 w-16 rounded-full border border-primary/40 bg-primary/10 text-primary shadow-[0_0_30px_rgba(59,130,246,0.35)]">
-          <div className="h-full w-full animate-spin rounded-full border-2 border-transparent border-t-primary" />
-        </div>
-        <h3 className="text-xl font-semibold">Comparing competitor data…</h3>
-        <p className="mt-2 text-sm text-muted-foreground">{activeStep}</p>
-        <div className="mt-8 grid gap-4 md:grid-cols-2">
-          <SkeletonCard title="Benchmarking categories" />
-          <SkeletonCard title="Modeling opportunities" />
-        </div>
-      </Card>
-    </div>
-  );
-}
-
-function normalizeUrl(value: string) {
-  const trimmed = value
-    .trim()
-    .replace(/^`+|`+$/g, "")
-    .replace(/^["']+|["']+$/g, "")
-    .trim();
-  if (!trimmed) return "";
-  if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
-    return trimmed;
-  }
-  return `https://${trimmed}`;
-}
-
-function formatDomain(url: string) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "");
-  } catch {
-    return url.replace(/^https?:\/\//, "");
-  }
-}
-
-function getComparableSiteKey(url: string) {
-  try {
-    return new URL(url).hostname.replace(/^www\./, "").toLowerCase();
-  } catch {
-    return url
-      .replace(/^https?:\/\//, "")
-      .replace(/^www\./, "")
-      .split("/")[0]
-      .toLowerCase();
-  }
-}
-
-function readReportUnlockState() {
-  if (typeof window === "undefined") return false;
-  const params = new URLSearchParams(window.location.search);
-  if (params.get("success") === "1" || params.get("unlock") === "1") {
-    window.localStorage.setItem(REPORT_UNLOCK_STORAGE_KEY, "true");
-    return true;
-  }
-  return window.localStorage.getItem(REPORT_UNLOCK_STORAGE_KEY) === "true";
-}
-
-function clearReportUnlock() {
-  if (typeof window === "undefined") return;
-  window.localStorage.removeItem(REPORT_UNLOCK_STORAGE_KEY);
-}
-
-function setReportUnlock() {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(REPORT_UNLOCK_STORAGE_KEY, "true");
-}
-
-function readScanHistory(): HistoryItem[] {
-  if (typeof window === "undefined") return [];
-  const raw = window.localStorage.getItem(SCAN_HISTORY_STORAGE_KEY);
-  if (!raw) return [];
-
-  try {
-    const parsed = JSON.parse(raw) as unknown;
-    if (!Array.isArray(parsed)) return [];
-    return parsed
-      .filter((item): item is HistoryItem => {
-        if (!item || typeof item !== "object") return false;
-        const record = item as Record<string, unknown>;
-        return (
-          typeof record.id === "string" &&
-          typeof record.score === "number" &&
-          typeof record.date === "string" &&
-          typeof record.verdict === "string"
-        );
-      })
-      .slice(0, 10);
-  } catch {
-    return [];
-  }
-}
-
-function writeScanHistory(items: HistoryItem[]) {
-  if (typeof window === "undefined") return;
-  window.localStorage.setItem(
-    SCAN_HISTORY_STORAGE_KEY,
-    JSON.stringify(items.slice(0, 10))
-  );
-}
-
-function upsertScanHistory(existing: HistoryItem[], item: HistoryItem): HistoryItem[] {
-  const without = existing.filter((entry) => entry.id !== item.id);
-  return [item, ...without].slice(0, 10);
-}
-
-function buildPdfReport(data: {
-  url: string;
-  verdict: string;
-  totalIssuesFound: number;
-  overall: number;
-  categories: ScanPreview["categories"];
-  issues: Issue[];
-  suggestions: string[];
-}) {
-  const lines = [
-    "AI Website Audit Report",
-    `URL: ${data.url}`,
-    `Verdict: ${data.verdict}`,
-    `Total Issues Found: ${data.totalIssuesFound}`,
-    `Overall Score: ${data.overall}`,
-    `Performance: ${data.categories.performance}`,
-    `SEO: ${data.categories.seo}`,
-    `Accessibility: ${data.categories.accessibility}`,
-    `Security: ${data.categories.security}`,
-    "",
-    "Issues:",
-    ...data.issues.map((issue) => `- ${issue.title} (${issue.severity})`),
-    "",
-    "Recommendations:",
-    ...(data.suggestions.length > 0
-      ? data.suggestions.map((item) => `- ${item}`)
-      : ["- No recommendations available."]),
-  ];
-
-  const encoder = new TextEncoder();
-  const text = lines
-    .map((line, index) => {
-      const y = 750 - index * 16;
-      return `BT /F1 12 Tf 50 ${y} Td (${escapePdfText(line)}) Tj ET`;
-    })
-    .join("\n");
-
-  const objects = [
-    "1 0 obj\n<< /Type /Catalog /Pages 2 0 R >>\nendobj\n",
-    "2 0 obj\n<< /Type /Pages /Kids [3 0 R] /Count 1 >>\nendobj\n",
-    "3 0 obj\n<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R /Resources << /Font << /F1 5 0 R >> >> >>\nendobj\n",
-    `4 0 obj\n<< /Length ${encoder.encode(text).length} >>\nstream\n${text}\nendstream\nendobj\n`,
-    "5 0 obj\n<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>\nendobj\n",
-  ];
-
-  let pdf = "%PDF-1.4\n";
-  let offset = encoder.encode(pdf).length;
-  let xref = "xref\n0 6\n0000000000 65535 f \n";
-
-  objects.forEach((obj) => {
-    xref += `${offset.toString().padStart(10, "0")} 00000 n \n`;
-    pdf += obj;
-    offset += encoder.encode(obj).length;
-  });
-
-  const xrefOffset = offset;
-  pdf += `${xref}trailer\n<< /Root 1 0 R /Size 6 >>\nstartxref\n${xrefOffset}\n%%EOF`;
-
-  return new Blob([pdf], { type: "application/pdf" });
-}
-
-function escapePdfText(text: string) {
-  return text.replace(/\\/g, "\\\\").replace(/\(/g, "\\(").replace(/\)/g, "\\)");
 }

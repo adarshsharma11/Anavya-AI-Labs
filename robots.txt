@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+
+Sitemap: https://anavyaailabs.com/sitemap.xml
+Host: https://anavyaailabs.com

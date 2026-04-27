@@ -27,7 +27,7 @@ export const siteConfig: SiteConfig = {
       href: "/ai-tools",
     },
     {
-      title: "AI Services",
+      title: "Services",
       href: "/services",
     },
     {

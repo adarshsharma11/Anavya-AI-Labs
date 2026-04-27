@@ -8,51 +8,125 @@ const scanCreateResponseSchema = z.object({
 
 const stringish = z.union([z.string(), z.number()]).transform((value) => `${value}`);
 
-const scanPreviewSchema = z.object({
-  overall: z.number(),
-  verdict: z.string(),
-  totalIssuesFound: z.number().optional().default(0),
-  categories: z.object({
-    performance: z.number(),
-    seo: z.number(),
-    accessibility: z.number(),
-    security: z.number(),
-  }).passthrough(),
-  metrics: z.object({
-    loadTime: stringish,
-    pageSize: stringish,
-    images: z.number(),
-    scripts: z.number(),
-    links: z.number(),
-  }).passthrough().optional().nullable(),
-  social: z.object({
-    ogTags: z.boolean(),
-    ogImage: z.boolean().optional().default(false),
-    twitterTags: z.boolean(),
-  }).passthrough().optional().nullable(),
-  indexing: z.object({
-    robots: z.boolean(),
-    sitemap: z.boolean(),
-  }).passthrough().optional().nullable(),
-  improvements: z
+const booleanish = z
+  .union([z.boolean(), z.number(), z.string()])
+  .transform((value) => {
+    if (typeof value === "boolean") return value;
+    if (typeof value === "number") return value !== 0;
+    const normalized = value.trim().toLowerCase();
+    if (["true", "1", "yes", "present", "detected", "found"].includes(normalized)) {
+      return true;
+    }
+    if (["false", "0", "no", "missing", "absent", "not_found"].includes(normalized)) {
+      return false;
+    }
+    return false;
+  });
+
+const indexingSchema = z.preprocess(
+  (value) => {
+    if (!value || typeof value !== "object") return value;
+    const raw = value as Record<string, unknown>;
+    return {
+      ...raw,
+      robots:
+        raw.robots ??
+        raw.robotsTxt ??
+        raw.robotTxt ??
+        raw.hasRobots ??
+        raw.robotsFound,
+      sitemap:
+        raw.sitemap ??
+        raw.sitemapXml ??
+        raw.sitemapIndex ??
+        raw.hasSitemap ??
+        raw.sitemapFound,
+    };
+  },
+  z
     .object({
-      potentialScore: z.number(),
-      trafficPotential: z.string(),
-      fixCount: z.number(),
+      robots: booleanish.optional().default(false),
+      sitemap: booleanish.optional().default(false),
     })
     .passthrough()
-    .optional(),
-  topIssues: z.array(
-    z.object({
-      title: z.string(),
-      severity: z.string(),
-    }).passthrough()
-  ).optional().default([]),
-  quickWins: z.array(z.string()).optional().default([]),
-  lockedIssues: z.number().optional().default(0),
-  locked: z.boolean().optional().default(true),
-  isUnlocked: z.boolean().optional().default(false),
-}).passthrough();
+);
+
+const scanPreviewSchema = z
+  .preprocess((value) => {
+    if (!value || typeof value !== "object") return value;
+    const raw = value as Record<string, unknown>;
+    const existingIndexing = raw.indexing;
+
+    if (existingIndexing && typeof existingIndexing === "object") {
+      return value;
+    }
+
+    const robotsCandidate =
+      raw.robots ??
+      raw.robotsTxt ??
+      raw.robotTxt ??
+      raw.hasRobots ??
+      raw.robotsFound;
+    const sitemapCandidate =
+      raw.sitemap ??
+      raw.sitemapXml ??
+      raw.sitemapIndex ??
+      raw.hasSitemap ??
+      raw.sitemapFound;
+
+    if (robotsCandidate === undefined && sitemapCandidate === undefined) {
+      return value;
+    }
+
+    return {
+      ...raw,
+      indexing: {
+        robots: robotsCandidate,
+        sitemap: sitemapCandidate,
+      },
+    };
+  }, z.object({
+    overall: z.number(),
+    verdict: z.string(),
+    totalIssuesFound: z.number().optional().default(0),
+    categories: z.object({
+      performance: z.number(),
+      seo: z.number(),
+      accessibility: z.number(),
+      security: z.number(),
+    }).passthrough(),
+    metrics: z.object({
+      loadTime: stringish,
+      pageSize: stringish,
+      images: z.number(),
+      scripts: z.number(),
+      links: z.number(),
+    }).passthrough().optional().nullable(),
+    social: z.object({
+      ogTags: z.boolean(),
+      ogImage: z.boolean().optional().default(false),
+      twitterTags: z.boolean(),
+    }).passthrough().optional().nullable(),
+    indexing: indexingSchema.optional().nullable(),
+    improvements: z
+      .object({
+        potentialScore: z.number(),
+        trafficPotential: z.string(),
+        fixCount: z.number(),
+      })
+      .passthrough()
+      .optional(),
+    topIssues: z.array(
+      z.object({
+        title: z.string(),
+        severity: z.string(),
+      }).passthrough()
+    ).optional().default([]),
+    quickWins: z.array(z.string()).optional().default([]),
+    lockedIssues: z.number().optional().default(0),
+    locked: z.boolean().optional().default(true),
+    isUnlocked: z.boolean().optional().default(false),
+  }).passthrough());
 
 const codeSnippetSchema = z.object({
   html: z.string().optional(),
@@ -67,11 +141,20 @@ const reportIssueSchema = z.object({
   codeSnippet: codeSnippetSchema.optional(),
 }).passthrough();
 
-const scanReportSchema = z.object({
-  issues: z.array(reportIssueSchema),
-  suggestions: z.array(z.string()),
-  summary: z.string().optional(),
-}).passthrough();
+const scanReportSchema = z
+  .object({
+    issues: z.array(reportIssueSchema).optional().default([]),
+    suggestions: z.array(z.string()).optional().default([]),
+    summary: z.string().optional(),
+    executiveSummary: z.string().optional(),
+    technicalAnalysis: z.string().optional(),
+    seoImprovements: z.array(z.string()).optional(),
+    performanceImprovements: z.array(z.string()).optional(),
+    businessGrowthSuggestions: z.array(z.string()).optional(),
+    competitorStrategy: z.string().nullable().optional(),
+    estimatedTrafficImpact: z.string().optional(),
+  })
+  .passthrough();
 
 const scanDataSchema = z.object({
   id: z.number(),
@@ -89,7 +172,7 @@ const scanDataSchema = z.object({
     })
     .nullable()
     .optional(),
-  locked: z.boolean(),
+  locked: z.boolean().optional().default(false),
 });
 
 const scanResultSchema = z.object({
@@ -99,6 +182,7 @@ const scanResultSchema = z.object({
 
 export type ScanPreview = z.infer<typeof scanPreviewSchema>;
 export type ScanResultResponse = z.infer<typeof scanResultSchema>;
+export type ScanReport = z.infer<typeof scanReportSchema>;
 
 function parseScanResultResponse(raw: unknown): ScanResultResponse | null {
   const direct = scanResultSchema.safeParse(raw);
@@ -155,6 +239,8 @@ export async function createScanRequest(
 export async function fetchScanResult(scanId: number): Promise<ScanResultResponse> {
   const data = await apiFetch<unknown>(`/scan/${scanId}`, {
     method: "GET",
+    // Shared scan links should not trigger global auth redirects.
+    skipAuthInterceptor: true,
   });
 
   const parsed = parseScanResultResponse(data);
