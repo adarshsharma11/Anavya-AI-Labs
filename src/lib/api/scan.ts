@@ -50,6 +50,24 @@ const scanPreviewSchema = z.object({
   quickWins: z.array(z.string()),
   lockedIssues: z.number(),
   locked: z.boolean(),
+  isUnlocked: z.boolean().optional(),
+});
+
+const scanDataSchema = z.object({
+  id: z.number(),
+  url: z.string(),
+  preview: scanPreviewSchema,
+  competitorPreview: scanPreviewSchema.nullable().optional(),
+  competitorAnalysis: z
+    .object({
+      scoreGap: z.number(),
+      summary: z.string(),
+      actionItems: z.array(z.string()),
+    })
+    .nullable()
+    .optional(),
+  locked: z.boolean().optional(),
+  isUnlocked: z.boolean().optional(),
 });
 
 const scanDataSchema = z.object({

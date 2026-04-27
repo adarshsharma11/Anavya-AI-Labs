@@ -6,15 +6,17 @@ import { blogPosts } from "@/lib/blog-data";
 import BlogDetailsClient from "./blog-details-client";
 
 type PageProps = {
-  params: { slug: string };
+  params: Promise<{ slug: string }>;
 };
 
 export function generateStaticParams() {
   return blogPosts.map((post) => ({ slug: post.slug }));
 }
 
-export function generateMetadata({ params }: PageProps): Metadata {
-  const post = blogPosts.find((item) => item.slug === params.slug);
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const { slug } = await params;
+
+  const post = blogPosts.find((item) => item.slug === slug);
 
   if (!post) {
     return {
@@ -30,8 +32,10 @@ export function generateMetadata({ params }: PageProps): Metadata {
   });
 }
 
-export default function BlogDetailsPage({ params }: PageProps) {
-  const post = blogPosts.find((item) => item.slug === params.slug);
+export default async function BlogDetailsPage({ params }: PageProps) {
+  const { slug } = await params;
+
+  const post = blogPosts.find((item) => item.slug === slug);
 
   if (!post) {
     notFound();

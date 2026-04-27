@@ -2,7 +2,11 @@ export const API_PREFIX =
   (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
 
 export function buildApiUrl(path: string) {
-  if (!API_PREFIX) return path;
+  if (!API_PREFIX) {
+    console.warn(" API base URL not set. Falling back to relative path.");
+    return path;
+  }
+
   return `${API_PREFIX}${path.startsWith("/") ? path : `/${path}`}`;
 }
 
@@ -24,7 +28,11 @@ export async function apiFetch<T>(
     headers.set("content-type", "application/json");
   }
 
-  const response = await fetch(buildApiUrl(path), {
+  const url = buildApiUrl(path);
+
+  console.log(" API CALL:", method, url);
+
+  const response = await fetch(url, {
     ...init,
     method,
     headers,
