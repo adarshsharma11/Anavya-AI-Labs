@@ -77,6 +77,9 @@ const scanDataSchema = z.object({
   id: z.number(),
   url: z.string(),
   preview: scanPreviewSchema,
+  fullReport: scanReportSchema.optional().nullable(),
+  aiReport: scanReportSchema.optional().nullable(),
+  report: scanReportSchema.optional().nullable(),
   competitorPreview: scanPreviewSchema.nullable().optional(),
   competitorAnalysis: z
     .object({

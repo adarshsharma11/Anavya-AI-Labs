@@ -241,6 +241,8 @@ export default function ScannerClient() {
   const reportData: ScanResultResponse["data"] | null =
     scanQuery.data?.data ?? null;
   const previewData = reportData?.preview ?? null;
+  const fullReport =
+    reportData?.fullReport ?? reportData?.aiReport ?? reportData?.report ?? null;
   const locked = reportData
     ? (reportData.locked || reportData.preview.locked) && !isUnlocked
     : true;
@@ -248,8 +250,8 @@ export default function ScannerClient() {
     if (!reportData) return [];
     
     // If report is unlocked and we have the full AI report, use it
-    if (!locked && reportData.fullReport?.issues) {
-      return reportData.fullReport.issues.map((issue, index) => ({
+    if (!locked && fullReport?.issues) {
+      return fullReport.issues.map((issue, index) => ({
         id: `full-issue-${index}`,
         title: issue.title,
         severity: (issue.severity as any) || "Medium",
@@ -264,14 +266,14 @@ export default function ScannerClient() {
       title: issue.title,
       severity: issue.severity as any,
     }));
-  }, [reportData, locked]);
+  }, [reportData, fullReport, locked]);
 
   const previewSuggestions = useMemo(() => {
-    if (!locked && reportData?.fullReport?.suggestions) {
-      return reportData.fullReport.suggestions;
+    if (!locked && fullReport?.suggestions) {
+      return fullReport.suggestions;
     }
     return previewData?.quickWins ?? [];
-  }, [reportData, previewData, locked]);
+  }, [fullReport, previewData, locked]);
   const lockedIssuesCount = previewData?.lockedIssues ?? 0;
 
   const reportId = reportData?.id ?? null;

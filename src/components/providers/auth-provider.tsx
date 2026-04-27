@@ -16,11 +16,6 @@ interface UserProfile {
 
 const PROTECTED_ROUTES = [
   "/dashboard",
-  "/ai-tools",
-  "/services",
-  "/scanner",
-  "/portfolio",
-  "/pricing"
 ];
 
 interface AuthContextType {
