@@ -70,6 +70,22 @@ const scanDataSchema = z.object({
   isUnlocked: z.boolean().optional(),
 });
 
+const scanDataSchema = z.object({
+  id: z.number(),
+  url: z.string(),
+  preview: scanPreviewSchema,
+  competitorPreview: scanPreviewSchema.nullable().optional(),
+  competitorAnalysis: z
+    .object({
+      scoreGap: z.number(),
+      summary: z.string(),
+      actionItems: z.array(z.string()),
+    })
+    .nullable()
+    .optional(),
+  locked: z.boolean(),
+});
+
 const scanResultSchema = z.object({
   success: z.boolean(),
   data: scanDataSchema,
@@ -128,12 +144,8 @@ export async function fetchScanResult(scanId: number): Promise<ScanResultRespons
   });
 
   const parsed = parseScanResultResponse(data);
-  if (!parsed) {
-    throw new Error("Invalid scan response format.");
-  }
-
-  if (!parsed.success) {
-    console.warn("⚠️ Scan response success=false, but data exists");
+  if (!parsed || !parsed.success) {
+    throw new Error("Unable to fetch scan result.");
   }
 
   return parsed;

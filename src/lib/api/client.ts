@@ -39,11 +39,10 @@ export async function apiFetch<T>(
   });
 
   const rawBody = await response.text();
-
   const parseJson = () => {
     if (!rawBody) return null;
     try {
-      return JSON.parse(rawBody);
+      return JSON.parse(rawBody) as unknown;
     } catch {
       return null;
     }
@@ -51,11 +50,8 @@ export async function apiFetch<T>(
 
   if (!response.ok) {
     const parsed = parseJson() as { error?: string; message?: string } | null;
-
     const message =
       parsed?.error ?? parsed?.message ?? rawBody ?? "Request failed.";
-
-    console.error(" API ERROR:", message);
     throw new Error(message);
   }
 
@@ -63,6 +59,5 @@ export async function apiFetch<T>(
   if (parsed !== null) {
     return parsed as T;
   }
-
   return rawBody as T;
 }
