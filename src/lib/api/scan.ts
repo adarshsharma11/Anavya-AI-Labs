@@ -77,25 +77,6 @@ const scanDataSchema = z.object({
   id: z.number(),
   url: z.string(),
   preview: scanPreviewSchema,
-  fullReport: scanReportSchema.nullable().optional(),
-  competitorPreview: scanPreviewSchema.nullable().optional(),
-  competitorAnalysis: z
-    .object({
-      scoreGap: z.number(),
-      summary: z.string(),
-      actionItems: z.array(z.string()),
-    })
-    .passthrough()
-    .nullable()
-    .optional(),
-  locked: z.boolean().optional(),
-  isUnlocked: z.boolean().optional(),
-}).passthrough();
-
-const scanDataSchema = z.object({
-  id: z.number(),
-  url: z.string(),
-  preview: scanPreviewSchema,
   competitorPreview: scanPreviewSchema.nullable().optional(),
   competitorAnalysis: z
     .object({
