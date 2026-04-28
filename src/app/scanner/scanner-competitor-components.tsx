@@ -9,6 +9,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 import {
   createScanRequest,
   fetchScanResult,
@@ -26,15 +27,19 @@ import {
   formatDomain,
   getComparableSiteKey,
   hasReportContent,
+  hasReportUnlockEmail,
   normalizeUrl,
+  readReportUnlockEmail,
   readReportUnlockState,
   setReportUnlock,
+  setReportUnlockEmail,
 } from "./scanner-utils";
 import type { ScanState } from "./scanner-types";
 import {
   AiSuggestions,
   CompetitorAnalysisCard,
   QuickWinsCard,
+  UnlockEmailCaptureDialog,
 } from "./scanner-shared-components";
 import {
   ComparisonCard,
@@ -52,7 +57,12 @@ export function CompetitorScanner() {
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isUrlStateReady, setIsUrlStateReady] = useState(false);
+  const [showEmailCapture, setShowEmailCapture] = useState(false);
+  const [capturedEmail, setCapturedEmail] = useState("");
+  const [pendingUnlockScanId, setPendingUnlockScanId] = useState<number | null>(null);
+  const [emailPromptShownBeforeUnlock, setEmailPromptShownBeforeUnlock] = useState(false);
   const { isPaying, isFinalizingReport, startPayment } = useRazorpayPayment();
+  const { toast } = useToast();
   const unlockingLabel = isFinalizingReport
     ? "Finalizing unlocked report..."
     : "Processing payment...";
@@ -66,6 +76,7 @@ export function CompetitorScanner() {
 
   useEffect(() => {
     setIsUnlocked(readReportUnlockState());
+    setCapturedEmail(readReportUnlockEmail());
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -158,14 +169,7 @@ export function CompetitorScanner() {
     createScan.mutate({ url: normalizedPrimary, competitorUrl: normalizedCompetitor });
   };
 
-  const handleUnlock = () => {
-    const currentScanId = scanQuery.data?.data?.id ?? scanId;
-    if (!currentScanId) {
-      setErrorMessage("Run a scan before unlocking the full report.");
-      return;
-    }
-
-    setErrorMessage(null);
+  const runUnlockPayment = (currentScanId: number) => {
     startPayment({
       scanId: currentScanId,
       amount: REPORT_UNLOCK_AMOUNT,
@@ -179,10 +183,42 @@ export function CompetitorScanner() {
         });
         setReportUnlock();
         setIsUnlocked(true);
+        if (!hasReportUnlockEmail() && !emailPromptShownBeforeUnlock) {
+          setShowEmailCapture(true);
+        }
+        setEmailPromptShownBeforeUnlock(false);
         setErrorMessage(null);
       },
-      onError: (message) => setErrorMessage(message),
+      onError: (message) => {
+        setEmailPromptShownBeforeUnlock(false);
+        setErrorMessage(message);
+      },
     });
+  };
+
+  const handleUnlock = () => {
+    const currentScanId = scanQuery.data?.data?.id ?? scanId;
+    if (!currentScanId) {
+      setErrorMessage("Run a scan before unlocking the full report.");
+      return;
+    }
+
+    setErrorMessage(null);
+    if (!hasReportUnlockEmail()) {
+      setEmailPromptShownBeforeUnlock(true);
+      setPendingUnlockScanId(currentScanId);
+      setShowEmailCapture(true);
+      return;
+    }
+
+    runUnlockPayment(currentScanId);
+  };
+
+  const continuePendingUnlock = () => {
+    if (!pendingUnlockScanId) return;
+    const nextScanId = pendingUnlockScanId;
+    setPendingUnlockScanId(null);
+    runUnlockPayment(nextScanId);
   };
 
   const handleDownload = async () => {
@@ -248,6 +284,37 @@ export function CompetitorScanner() {
 
   return (
     <div className="space-y-10">
+      <UnlockEmailCaptureDialog
+        open={showEmailCapture}
+        defaultEmail={capturedEmail}
+        title={
+          pendingUnlockScanId
+            ? "Unlock full report"
+            : "✅ Report unlocked"
+        }
+        description="Enter email to access anytime"
+        saveLabel={pendingUnlockScanId ? "Save & continue" : "Save email"}
+        onOpenChange={(open) => {
+          setShowEmailCapture(open);
+          if (!open) {
+            continuePendingUnlock();
+          }
+        }}
+        onSkip={() => {
+          continuePendingUnlock();
+          setShowEmailCapture(false);
+        }}
+        onSave={(email) => {
+          setReportUnlockEmail(email);
+          setCapturedEmail(email);
+          continuePendingUnlock();
+          setShowEmailCapture(false);
+          toast({
+            title: "Email saved",
+            description: "You can use this email to access your unlocked report anytime.",
+          });
+        }}
+      />
       <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur md:p-8">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div>

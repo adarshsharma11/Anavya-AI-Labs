@@ -1,6 +1,8 @@
 import { REPORT_UNLOCK_STORAGE_KEY } from "./scanner-constants";
 import type { ScanReport } from "@/lib/api/scan";
 
+const REPORT_UNLOCK_EMAIL_STORAGE_KEY = "report_unlock_email";
+
 export function normalizeUrl(value: string) {
   const trimmed = value
     .trim()
@@ -52,6 +54,20 @@ export function clearReportUnlock() {
 export function setReportUnlock() {
   if (typeof window === "undefined") return;
   window.localStorage.setItem(REPORT_UNLOCK_STORAGE_KEY, "true");
+}
+
+export function readReportUnlockEmail() {
+  if (typeof window === "undefined") return "";
+  return window.localStorage.getItem(REPORT_UNLOCK_EMAIL_STORAGE_KEY) ?? "";
+}
+
+export function setReportUnlockEmail(email: string) {
+  if (typeof window === "undefined") return;
+  window.localStorage.setItem(REPORT_UNLOCK_EMAIL_STORAGE_KEY, email.trim());
+}
+
+export function hasReportUnlockEmail() {
+  return Boolean(readReportUnlockEmail());
 }
 
 export function hasReportContent(report: ScanReport | null | undefined) {

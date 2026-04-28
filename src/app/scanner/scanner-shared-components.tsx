@@ -1,10 +1,20 @@
 "use client";
 
-import { LineChart, Zap } from "lucide-react";
+import { useEffect, useState } from "react";
+import { LineChart, Mail, Zap } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 export function SuggestionList({ items }: { items: string[] }) {
   return (
@@ -212,5 +222,86 @@ export function CompetitorAnalysisCard({
         ) : null}
       </div>
     </Card>
+  );
+}
+
+export function UnlockEmailCaptureDialog({
+  open,
+  defaultEmail = "",
+  title = "✅ Report unlocked",
+  description = "Enter email to access anytime",
+  saveLabel = "Save email",
+  skipLabel = "Skip for now",
+  onOpenChange,
+  onSkip,
+  onSave,
+}: {
+  open: boolean;
+  defaultEmail?: string;
+  title?: string;
+  description?: string;
+  saveLabel?: string;
+  skipLabel?: string;
+  onOpenChange: (open: boolean) => void;
+  onSkip: () => void;
+  onSave: (email: string) => void;
+}) {
+  const [email, setEmail] = useState(defaultEmail);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    setEmail(defaultEmail);
+    setError(null);
+  }, [defaultEmail, open]);
+
+  const validateEmail = (value: string) =>
+    /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+
+  const handleSave = () => {
+    if (!validateEmail(email)) {
+      setError("Please enter a valid email address.");
+      return;
+    }
+    setError(null);
+    onSave(email.trim());
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-md">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <span>{title}</span>
+          </DialogTitle>
+          <DialogDescription>{description}</DialogDescription>
+        </DialogHeader>
+        <div className="space-y-2">
+          <div className="relative">
+            <Mail className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              placeholder="you@company.com"
+              type="email"
+              className="pl-10"
+            />
+          </div>
+          {error ? <p className="text-xs text-destructive">{error}</p> : null}
+        </div>
+        <DialogFooter className="gap-2 sm:justify-end">
+          <Button
+            type="button"
+            variant="outline"
+            onClick={onSkip}
+          >
+            {skipLabel}
+          </Button>
+          <Button type="button" onClick={handleSave}>
+            {saveLabel}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }

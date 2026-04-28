@@ -5,6 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { useToast } from "@/hooks/use-toast";
 import {
   createScanRequest,
   fetchScanResult,
@@ -19,15 +20,18 @@ import {
   REPORT_UNLOCK_PRICE_LABEL,
   scanSteps,
 } from "./scanner-constants";
-import { AiSuggestions } from "./scanner-shared-components";
+import { AiSuggestions, UnlockEmailCaptureDialog } from "./scanner-shared-components";
 import { CompetitorScanner } from "./scanner-competitor-components";
 import type { Issue, ScanState } from "./scanner-types";
 import {
   clearReportUnlock,
   hasReportContent,
+  hasReportUnlockEmail,
   normalizeUrl,
   readReportUnlockState,
+  readReportUnlockEmail,
   setReportUnlock,
+  setReportUnlockEmail,
 } from "./scanner-utils";
 import {
   Hero,
@@ -50,7 +54,12 @@ export default function ScannerClient() {
   const [isDownloading, setIsDownloading] = useState(false);
   const [isUrlStateReady, setIsUrlStateReady] = useState(false);
   const [hasInitialIdInUrl, setHasInitialIdInUrl] = useState(false);
+  const [showEmailCapture, setShowEmailCapture] = useState(false);
+  const [capturedEmail, setCapturedEmail] = useState("");
+  const [pendingUnlockScanId, setPendingUnlockScanId] = useState<number | null>(null);
+  const [emailPromptShownBeforeUnlock, setEmailPromptShownBeforeUnlock] = useState(false);
   const { isPaying, isFinalizingReport, startPayment } = useRazorpayPayment();
+  const { toast } = useToast();
   const unlockingLabel = isFinalizingReport
     ? "Finalizing unlocked report..."
     : "Processing payment...";
@@ -58,6 +67,7 @@ export default function ScannerClient() {
 
   useEffect(() => {
     setIsUnlocked(readReportUnlockState());
+    setCapturedEmail(readReportUnlockEmail());
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
@@ -180,14 +190,7 @@ export default function ScannerClient() {
     createScan.mutate(normalizedUrl);
   };
 
-  const handleUnlock = () => {
-    const currentScanId = scanQuery.data?.data?.id ?? scanId;
-    if (!currentScanId) {
-      setErrorMessage("Run a scan before unlocking the full report.");
-      return;
-    }
-
-    setErrorMessage(null);
+  const runUnlockPayment = (currentScanId: number) => {
     startPayment({
       scanId: currentScanId,
       amount: REPORT_UNLOCK_AMOUNT,
@@ -198,10 +201,42 @@ export default function ScannerClient() {
         });
         setReportUnlock();
         setIsUnlocked(true);
+        if (!hasReportUnlockEmail() && !emailPromptShownBeforeUnlock) {
+          setShowEmailCapture(true);
+        }
+        setEmailPromptShownBeforeUnlock(false);
         setErrorMessage(null);
       },
-      onError: (message) => setErrorMessage(message),
+      onError: (message) => {
+        setEmailPromptShownBeforeUnlock(false);
+        setErrorMessage(message);
+      },
     });
+  };
+
+  const handleUnlock = () => {
+    const currentScanId = scanQuery.data?.data?.id ?? scanId;
+    if (!currentScanId) {
+      setErrorMessage("Run a scan before unlocking the full report.");
+      return;
+    }
+
+    setErrorMessage(null);
+    if (!hasReportUnlockEmail()) {
+      setEmailPromptShownBeforeUnlock(true);
+      setPendingUnlockScanId(currentScanId);
+      setShowEmailCapture(true);
+      return;
+    }
+
+    runUnlockPayment(currentScanId);
+  };
+
+  const continuePendingUnlock = () => {
+    if (!pendingUnlockScanId) return;
+    const nextScanId = pendingUnlockScanId;
+    setPendingUnlockScanId(null);
+    runUnlockPayment(nextScanId);
   };
 
   const handleDownload = async () => {
@@ -300,6 +335,37 @@ export default function ScannerClient() {
       </div>
 
       <section className="container py-16 md:py-24">
+        <UnlockEmailCaptureDialog
+          open={showEmailCapture}
+          defaultEmail={capturedEmail}
+          title={
+            pendingUnlockScanId
+              ? "Unlock full report"
+              : "✅ Report unlocked"
+          }
+          description="Enter email to access anytime"
+          saveLabel={pendingUnlockScanId ? "Save & continue" : "Save email"}
+          onOpenChange={(open) => {
+            setShowEmailCapture(open);
+            if (!open) {
+              continuePendingUnlock();
+            }
+          }}
+          onSkip={() => {
+            continuePendingUnlock();
+            setShowEmailCapture(false);
+          }}
+          onSave={(email) => {
+            setReportUnlockEmail(email);
+            setCapturedEmail(email);
+            continuePendingUnlock();
+            setShowEmailCapture(false);
+            toast({
+              title: "Email saved",
+              description: "You can use this email to access your unlocked report anytime.",
+            });
+          }}
+        />
         <Hero />
 
         <div className="mx-auto mt-12 max-w-5xl">
