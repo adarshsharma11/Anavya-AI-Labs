@@ -2,44 +2,67 @@ import type { Metadata } from "next";
 import { notFound } from "next/navigation";
 
 import { MetaHead } from "@/components/seo/meta-head";
-import { blogPosts } from "@/lib/blog-data";
+import { getBlogBySlugApi, getBlogsApi } from "@/lib/api/blogs";
 import BlogDetailsClient from "./blog-details-client";
 
 type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export function generateStaticParams() {
-  return blogPosts.map((post) => ({ slug: post.slug }));
+export async function generateStaticParams() {
+  try {
+    const res = await getBlogsApi();
+    if (res.success) {
+      return res.data.map((post) => ({ slug: post.slug }));
+    }
+  } catch (error) {
+    console.error("Failed to generate static params for blogs:", error);
+  }
+  return [];
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
 
-  const post = blogPosts.find((item) => item.slug === slug);
+  try {
+    const res = await getBlogBySlugApi(slug);
+    if (!res.success || !res.data) {
+      return { title: "Blog Post" };
+    }
 
-  if (!post) {
-    return {
-      title: "Blog Post",
-    };
+    const post = res.data;
+    return MetaHead({
+      title: post.title,
+      description: post.excerpt,
+      canonical: `/blog/${post.slug}`,
+      image: post.image,
+    });
+  } catch {
+    return { title: "Blog Post" };
   }
-
-  return MetaHead({
-    title: post.title,
-    description: post.excerpt,
-    canonical: `/blog/${post.slug}`,
-    image: post.image,
-  });
 }
 
 export default async function BlogDetailsPage({ params }: PageProps) {
   const { slug } = await params;
 
-  const post = blogPosts.find((item) => item.slug === slug);
+  try {
+    const [blogRes, allBlogsRes] = await Promise.all([
+      getBlogBySlugApi(slug),
+      getBlogsApi(),
+    ]);
 
-  if (!post) {
+    if (!blogRes.success || !blogRes.data) {
+      notFound();
+    }
+
+    const post = blogRes.data;
+    const relatedPosts = allBlogsRes.success 
+      ? allBlogsRes.data.filter(b => b.slug !== slug)
+      : [];
+
+    return <BlogDetailsClient post={post} relatedPosts={relatedPosts} />;
+  } catch (error) {
+    console.error(`Failed to fetch blog post with slug ${slug}:`, error);
     notFound();
   }
-
-  return <BlogDetailsClient post={post} />;
 }
