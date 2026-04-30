@@ -47,20 +47,47 @@ export function SiteHeader() {
           <Logo />
         </Link>
         <nav className="hidden gap-6 md:flex">
-          {siteConfig.mainNav.map((item) => (
-            <Link
-              key={item.href}
-              href={item.href}
-              className={cn(
-                "flex items-center text-lg font-medium transition-colors hover:text-foreground/80 sm:text-sm",
-                pathname === item.href
-                  ? "text-foreground"
-                  : "text-foreground/60"
-              )}
-            >
-              {item.title}
-            </Link>
-          ))}
+          {siteConfig.mainNav.map((item) => {
+            if (item.href === "/" && isAuthenticated) {
+              return (
+                <React.Fragment key="home-and-dashboard">
+                  <Link
+                    href={item.href}
+                    className={cn(
+                      "flex items-center text-lg font-medium transition-colors hover:text-foreground/80 sm:text-sm",
+                      pathname === item.href ? "text-foreground" : "text-foreground/60"
+                    )}
+                  >
+                    {item.title}
+                  </Link>
+                  <Link
+                    href="/dashboard"
+                    className={cn(
+                      "flex items-center text-lg font-medium transition-colors hover:text-foreground/80 sm:text-sm",
+                      pathname.startsWith("/dashboard") ? "text-foreground" : "text-foreground/60"
+                    )}
+                  >
+                    My Dashboard
+                  </Link>
+                </React.Fragment>
+              );
+            }
+
+            return (
+              <Link
+                key={item.href}
+                href={item.href}
+                className={cn(
+                  "flex items-center text-lg font-medium transition-colors hover:text-foreground/80 sm:text-sm",
+                  pathname === item.href
+                    ? "text-foreground"
+                    : "text-foreground/60"
+                )}
+              >
+                {item.title}
+              </Link>
+            );
+          })}
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-4">
           <div className="hidden md:flex items-center space-x-2">
@@ -83,12 +110,6 @@ export function SiteHeader() {
                     </div>
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem asChild>
-                    <Link href="/dashboard" className="cursor-pointer">
-                      <LayoutDashboard className="mr-2 h-4 w-4" />
-                      <span>Dashboard</span>
-                    </Link>
-                  </DropdownMenuItem>
                   <DropdownMenuItem asChild>
                     <Link href="/dashboard/settings" className="cursor-pointer">
                       <User className="mr-2 h-4 w-4" />
@@ -130,21 +151,50 @@ export function SiteHeader() {
                     </Link>
                   </div>
                   <nav className="flex flex-col gap-4 p-4">
-                    {siteConfig.mainNav.map((item) => (
-                      <Link
-                        key={item.href}
-                        href={item.href}
-                        onClick={() => setIsOpen(false)}
-                        className={cn(
-                          "text-lg font-medium",
-                          pathname === item.href
-                            ? "text-foreground"
-                            : "text-foreground/60"
-                        )}
-                      >
-                        {item.title}
-                      </Link>
-                    ))}
+                    {siteConfig.mainNav.map((item) => {
+                      if (item.href === "/" && isAuthenticated) {
+                        return (
+                          <React.Fragment key="mobile-home-and-dashboard">
+                            <Link
+                              href={item.href}
+                              onClick={() => setIsOpen(false)}
+                              className={cn(
+                                "text-lg font-medium",
+                                pathname === item.href ? "text-foreground" : "text-foreground/60"
+                              )}
+                            >
+                              {item.title}
+                            </Link>
+                            <Link
+                              href="/dashboard"
+                              onClick={() => setIsOpen(false)}
+                              className={cn(
+                                "text-lg font-medium",
+                                pathname.startsWith("/dashboard") ? "text-foreground" : "text-foreground/60"
+                              )}
+                            >
+                              My Dashboard
+                            </Link>
+                          </React.Fragment>
+                        );
+                      }
+                      
+                      return (
+                        <Link
+                          key={item.href}
+                          href={item.href}
+                          onClick={() => setIsOpen(false)}
+                          className={cn(
+                            "text-lg font-medium",
+                            pathname === item.href
+                              ? "text-foreground"
+                              : "text-foreground/60"
+                          )}
+                        >
+                          {item.title}
+                        </Link>
+                      );
+                    })}
                   </nav>
                   <div className="mt-auto border-t p-4">
                     <div className="flex items-center justify-between mb-4">
@@ -162,11 +212,6 @@ export function SiteHeader() {
                              <span className="font-medium">{user?.name}</span>
                            </div>
                          </div>
-                         <Button variant="outline" asChild className="w-full justify-start">
-                           <Link href="/dashboard" onClick={() => setIsOpen(false)}>
-                             <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
-                           </Link>
-                         </Button>
                          <Button variant="destructive" className="w-full justify-start" onClick={() => { logout(); setIsOpen(false); }}>
                            <LogOut className="mr-2 h-4 w-4" /> Log Out
                          </Button>
