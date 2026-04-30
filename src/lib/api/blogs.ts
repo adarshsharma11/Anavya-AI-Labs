@@ -5,7 +5,7 @@ export interface BlogPost {
   slug: string;
   title: string;
   excerpt: string;
-  content: string;
+  content: string[];
   image: string;
   category: string;
   authorName: string;
@@ -13,8 +13,7 @@ export interface BlogPost {
   authorAvatar: string;
   readTime: string;
   date: string;
-  isFeatured: boolean;
-  published: boolean;
+  tags: string[];
   createdAt: string;
 }
 

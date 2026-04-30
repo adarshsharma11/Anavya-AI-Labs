@@ -5,7 +5,6 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
 
-import { blogPosts as staticBlogPosts, featuredPost as staticFeaturedPost } from "@/lib/blog-data";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,33 +13,48 @@ import { type BlogPost } from "@/lib/api/blogs";
 const categories = ["All", "Design", "Engineering", "AI", "Growth"] as const;
 
 export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogPost[] }) {
-  // Use backend blogs if available, otherwise fallback to static data for empty state/demo
-  const posts = initialBlogs.length > 0 
-    ? initialBlogs.map(p => ({
-        ...p,
-        author: {
-          name: p.authorName,
-          role: p.authorRole,
-          avatar: p.authorAvatar
-        }
-      }))
-    : staticBlogPosts;
+  // Only use database blogs
+  const posts = initialBlogs.map(p => ({
+    ...p,
+    author: {
+      name: p.authorName,
+      role: p.authorRole,
+      avatar: p.authorAvatar
+    }
+  }));
 
-  const featured = initialBlogs.find(p => p.isFeatured) 
+  const featuredPostObj = initialBlogs[0];
+  
+  const featured = featuredPostObj 
     ? {
-        ...initialBlogs.find(p => p.isFeatured)!,
+        ...featuredPostObj,
         author: {
-          name: initialBlogs.find(p => p.isFeatured)!.authorName,
-          role: initialBlogs.find(p => p.isFeatured)!.authorRole,
-          avatar: initialBlogs.find(p => p.isFeatured)!.authorAvatar
+          name: featuredPostObj.authorName,
+          role: featuredPostObj.authorRole,
+          avatar: featuredPostObj.authorAvatar
         }
       }
-    : staticFeaturedPost;
+    : null;
 
-  // Filter posts for the lower grid (excluding featured)
-  const displayPosts = initialBlogs.length > 0 
-    ? posts.filter(p => !p.isFeatured)
-    : staticBlogPosts;
+  // Filter posts for the lower grid (excluding the one shown as featured)
+  const displayPosts = featured 
+    ? posts.filter(p => p.id !== featured.id)
+    : [];
+
+  if (initialBlogs.length === 0) {
+    return (
+      <section className="container py-24 text-center">
+        <h2 className="text-3xl font-bold">No blog posts found.</h2>
+        <p className="mt-4 text-muted-foreground">Check back later for fresh insights.</p>
+        <Button asChild className="mt-8">
+          <Link href="/">Return Home</Link>
+        </Button>
+      </section>
+    );
+  }
+
+  // Should not happen if initialBlogs.length > 0 but safety first
+  if (!featured) return null;
 
   return (
     <motion.div

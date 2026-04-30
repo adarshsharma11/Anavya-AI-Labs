@@ -5,18 +5,22 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight } from "lucide-react";
 
-import type { BlogPost } from "@/lib/blog-data";
-import { blogPosts } from "@/lib/blog-data";
+import { type BlogPost } from "@/lib/api/blogs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 
 type BlogDetailsClientProps = {
   post: BlogPost;
+  relatedPosts?: BlogPost[];
 };
 
-export default function BlogDetailsClient({ post }: BlogDetailsClientProps) {
-  const relatedPosts = blogPosts.filter((item) => item.slug !== post.slug);
+export default function BlogDetailsClient({ post, relatedPosts = [] }: BlogDetailsClientProps) {
+  const author = {
+    name: post.authorName,
+    role: post.authorRole,
+    avatar: post.authorAvatar,
+  };
 
   return (
     <motion.div
@@ -55,17 +59,17 @@ export default function BlogDetailsClient({ post }: BlogDetailsClientProps) {
             </p>
             <div className="mt-6 flex items-center gap-4">
               <Image
-                src={post.author.avatar}
-                alt={post.author.name}
+                src={author.avatar}
+                alt={author.name}
                 width={56}
                 height={56}
                 sizes="56px"
                 className="h-14 w-14 rounded-full object-cover"
               />
               <div>
-                <p className="text-sm font-semibold">{post.author.name}</p>
+                <p className="text-sm font-semibold">{author.name}</p>
                 <p className="text-xs text-muted-foreground">
-                  {post.author.role}
+                  {author.role}
                 </p>
               </div>
             </div>
