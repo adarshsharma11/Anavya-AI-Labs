@@ -97,11 +97,16 @@ export function SiteFooter() {
           </div>
         </div>
         <Separator className="my-8" />
-        <div className="flex items-center justify-between">
+        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
           <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} {siteConfig.name}. All rights
             reserved.
           </p>
+          <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 text-sm text-muted-foreground">
+            <Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
+            <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
+            <Link href="/refund-policy" className="hover:text-foreground transition-colors">Refund Policy</Link>
+          </div>
           <div className="flex items-center gap-4">
             <Link
               href="#"
