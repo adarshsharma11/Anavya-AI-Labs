@@ -7,12 +7,7 @@ export const signupApi = async (body: any) => {
   });
 };
 
-export const verifyOtpApi = async (email: string, otp: string) => {
-  return await apiFetch<any>("/auth/verify-otp", {
-    method: "POST",
-    body: JSON.stringify({ email, otp }),
-  });
-};
+
 
 export const loginApi = async (body: any) => {
   return await apiFetch<any>("/auth/login", {
