@@ -129,6 +129,7 @@ export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogP
                   width={44}
                   height={44}
                   sizes="44px"
+                  unoptimized
                   className="h-11 w-11 rounded-full object-cover"
                 />
                 <div>
