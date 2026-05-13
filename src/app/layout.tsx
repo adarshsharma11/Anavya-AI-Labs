@@ -24,6 +24,9 @@ export const metadata: Metadata = {
   },
   description: pageMetadata.home.description,
   applicationName: siteConfig.name,
+  icons: {
+    icon: "/favicon.ico",
+  },
   alternates: {
     canonical: '/',
   },

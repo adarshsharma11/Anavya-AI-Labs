@@ -2,28 +2,24 @@
 
 import { PolicyLayout } from "@/components/layout/policy-layout";
 
-const content = `1. Our Refund Policy Philosophy
-At [Your Company Name], we strive to provide immediate, high-quality, actionable insights through our automated website audit reports. Because our premium reports are digitally delivered and instantly generated using intensive AI and server resources, our standard policy is that all payments for report unlocks are non-refundable once the full report has been successfully generated and delivered to your screen or email.
+const content = `Thank you for choosing [Your Company Name]. We appreciate your business and strive to provide you with the best experience possible. We understand that it is important to have a clear understanding of our billing and refund policies, so we have provided the following information for your convenience.
 
-2. Eligibility for Exceptions
-We understand that technical issues can occasionally occur. Therefore, we will gladly issue a full refund under the following strict conditions:
-- Delivery Failure: Your payment was successfully processed by Razorpay, but the full premium report was never delivered or generated due to a verified technical error or downtime on our servers.
-- Duplicate Billing: You were accidentally charged multiple times for the exact same report instance due to a payment gateway glitch.
+Billing:
+By using our product, you agree to pay the monthly fee for access to our platform. We reserve the right to change our pricing, pricing policies, features, and access restrictions at any time. If we do make any changes, we will notify you via email or through our website.
 
-Please note: We do NOT offer refunds if you simply disagree with the AI's suggestions, if you expected a different type of data, or if you accidentally scanned the wrong URL. We encourage you to carefully review the free preview metrics before deciding to unlock the full report.
+Refunds:
+Due to the nature of our product, we currently do not offer refunds, either partial or in full. We believe that our product provides value to our customers, and we stand behind our commitment to quality. However, if you have any concerns or issues with our product, please do not hesitate to contact our customer support team. We will do our best to address your concerns and provide you with a satisfactory resolution.
 
-3. How to Request a Refund
-If you believe you meet the criteria for an exception, please follow these steps:
-- Send an email to [email] within 7 days of your original payment date.
-- Include your official Transaction ID (which can be found in your Razorpay email receipt).
-- Provide a brief explanation of the issue (e.g., "Report failed to load after payment").
-Our support team will investigate the server logs and payment records, and we commit to responding to your request within 2 business days.
+Cancellation:
+You can easily cancel your subscription at any time by logging into your account and following the cancellation process. Once you cancel your subscription, we will no longer charge you anything. Please note that if you cancel your subscription, you will lose access to our platform and all of its features.
 
-4. Taxes and GST
-All prices listed on our platform are final and inclusive of 18% GST (Goods and Services Tax) as required by Indian law. Official GST invoices are generated for every successful transaction and are available upon request by contacting our support team.
+Emails:
+We may use your email to contact you about your account, product updates, and other marketing activities. You can unsubscribe from these emails at any time by clicking the \"unsubscribe\" link at the bottom of any email.
 
-5. Contact Information
-For any billing inquiries, payment failures, or refund requests, please reach out to us directly at [email].`;
+Conditions:
+We reserve the right to change or amend our policy at any time. By continuing to use our platform, you agree to these terms and conditions. If you have any questions or concerns about our policy, please contact our customer support team at [email].
+
+Thank you for choosing our product.`;
 
 export default function RefundPolicyClient() {
   return <PolicyLayout title="Refund Policy" rawContent={content} />;

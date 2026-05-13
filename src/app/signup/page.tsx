@@ -26,8 +26,8 @@ export default function SignupPage() {
   const { toast } = useToast();
   const router = useRouter();
 
-  const [isLoading, setIsLoading] = useState(false);
-  const [showPassword, setShowPassword] = useState(false);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [showPassword, setShowPassword] = useState<boolean>(false);
 
   const form = useForm<SignupFormValues>({
     resolver: zodResolver(signupSchema),

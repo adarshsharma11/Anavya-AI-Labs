@@ -459,11 +459,11 @@ export default function ScannerClient() {
                           <ScoreOverview
                             overall={reportData.preview.overall}
                             categories={reportData.preview.categories}
+                            indexing={reportData.preview.indexing}
+                            social={reportData.preview.social}
                           />
                           <MetricsCard
                             metrics={reportData.preview.metrics}
-                            social={reportData.preview.social}
-                            indexing={reportData.preview.indexing}
                             improvements={reportData.preview.improvements}
                             seoMeta={reportData.preview.seoMeta}
                           />

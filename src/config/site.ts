@@ -10,6 +10,15 @@ export type SiteConfig = {
   name: string;
   url: string;
   description: string;
+  logo?: {
+    src: string;
+    lightSrc?: string;
+    darkSrc?: string;
+    alt?: string;
+    width?: number;
+    height?: number;
+    showName?: boolean;
+  };
   mainNav: NavItem[];
 };
 
@@ -17,6 +26,13 @@ export const siteConfig: SiteConfig = {
   name: "Anavya AI Labs",
   url: "https://anavyaailabs.com",
   description: "AI that finds what’s costing your website customers.",
+  logo: {
+    src: "/logo.svg",
+    alt: "Anavya AI Labs",
+    width: 56,
+    height: 56,
+    showName: false,
+  },
   mainNav: [
     {
       title: "Home",

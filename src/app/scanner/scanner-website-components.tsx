@@ -212,9 +212,13 @@ export function ResultsHeader({
 export function ScoreOverview({
   overall,
   categories,
+  indexing,
+  social,
 }: {
   overall: number;
   categories: ScanPreview["categories"];
+  indexing?: ScanPreview["indexing"];
+  social?: ScanPreview["social"];
 }) {
   return (
     <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
@@ -230,6 +234,59 @@ export function ScoreOverview({
             tone="amber"
           />
           <ScoreBar label="Security" value={categories.security} tone="violet" />
+        </div>
+      </div>
+      <div className="mt-6 border-t border-border/60 pt-5">
+        <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+          Indexing & Social
+        </div>
+        <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
+          <StatusRow
+            label="Robots.txt"
+            value={Boolean(indexing?.robots)}
+            positiveLabel="Detected"
+            negativeLabel="Missing"
+          />
+          <StatusRow
+            label="Sitemap"
+            value={Boolean(indexing?.sitemap)}
+            positiveLabel="Detected"
+            negativeLabel="Missing"
+          />
+          <StatusRow
+            label="OpenGraph tags"
+            value={Boolean((social as any)?.ogTags)}
+            positiveLabel="Configured"
+            negativeLabel="Missing"
+          />
+          <StatusRow
+            label="OG image"
+            value={Boolean((social as any)?.ogImage)}
+            positiveLabel="Configured"
+            negativeLabel="Missing"
+          />
+          <StatusRow
+            label="Twitter cards"
+            value={Boolean((social as any)?.twitterTags)}
+            positiveLabel="Configured"
+            negativeLabel="Missing"
+          />
+          {social && "facebookAdmins" in (social as any) ? (
+            <StatusRow
+              label="Facebook admins"
+              value={Boolean((social as any).facebookAdmins)}
+              positiveLabel="Configured"
+              negativeLabel="Missing"
+            />
+          ) : null}
+          {social && "facebookAppId" in (social as any) ? (
+            <StatusRow
+              label="Facebook app ID"
+              value={Boolean((social as any).facebookAppId)}
+              positiveLabel="Configured"
+              negativeLabel="Missing"
+            />
+          ) : null}
         </div>
       </div>
     </Card>
@@ -335,14 +392,10 @@ function IssueCard({ issue, locked }: { issue: Issue; locked: boolean }) {
 
 export function MetricsCard({
   metrics,
-  social,
-  indexing,
   improvements,
   seoMeta,
 }: {
   metrics?: ScanPreview["metrics"];
-  social?: ScanPreview["social"];
-  indexing?: ScanPreview["indexing"];
   improvements?: ScanPreview["improvements"];
   seoMeta?: ScanPreview["seoMeta"];
 }) {
@@ -353,12 +406,6 @@ export function MetricsCard({
   const metaDescriptionWords =
     metrics && "metaDescriptionWords" in metrics ? (metrics as any).metaDescriptionWords : undefined;
 
-  const hasSeoMeta =
-    Boolean(seoMeta) ||
-    titleChars !== undefined ||
-    metaDescriptionChars !== undefined ||
-    metaDescriptionWords !== undefined;
-
   const metaDescriptionValue =
     metaDescriptionChars !== undefined && metaDescriptionWords !== undefined
       ? `${metaDescriptionChars} chars (${metaDescriptionWords} words)`
@@ -367,6 +414,12 @@ export function MetricsCard({
         : metaDescriptionWords !== undefined
           ? `${metaDescriptionWords} words`
           : "N/A";
+
+  const hasSeoMeta =
+    Boolean(seoMeta) ||
+    titleChars !== undefined ||
+    metaDescriptionChars !== undefined ||
+    metaDescriptionWords !== undefined;
 
   return (
     <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
@@ -424,69 +477,6 @@ export function MetricsCard({
           </div>
         </div>
       ) : null}
-      {(social || indexing) && (
-        <div className="mt-6 border-t border-border/60 pt-5">
-          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-            Indexing & Social
-          </div>
-          <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
-            {indexing && (
-              <>
-                <StatusRow
-                  label="Robots.txt"
-                  value={indexing.robots}
-                  positiveLabel="Detected"
-                  negativeLabel="Missing"
-                />
-                <StatusRow
-                  label="Sitemap"
-                  value={indexing.sitemap}
-                  positiveLabel="Detected"
-                  negativeLabel="Missing"
-                />
-              </>
-            )}
-            {social && (
-              <>
-                <StatusRow
-                  label="OpenGraph tags"
-                  value={social.ogTags}
-                  positiveLabel="Configured"
-                  negativeLabel="Missing"
-                />
-                <StatusRow
-                  label="OG image"
-                  value={Boolean((social as any).ogImage)}
-                  positiveLabel="Configured"
-                  negativeLabel="Missing"
-                />
-                <StatusRow
-                  label="Twitter cards"
-                  value={social.twitterTags}
-                  positiveLabel="Configured"
-                  negativeLabel="Missing"
-                />
-                {"facebookAdmins" in (social as any) ? (
-                  <StatusRow
-                    label="Facebook admins"
-                    value={Boolean((social as any).facebookAdmins)}
-                    positiveLabel="Configured"
-                    negativeLabel="Missing"
-                  />
-                ) : null}
-                {"facebookAppId" in (social as any) ? (
-                  <StatusRow
-                    label="Facebook app ID"
-                    value={Boolean((social as any).facebookAppId)}
-                    positiveLabel="Configured"
-                    negativeLabel="Missing"
-                  />
-                ) : null}
-              </>
-            )}
-          </div>
-        </div>
-      )}
     </Card>
   );
 }

@@ -259,6 +259,26 @@ export function CompetitorScanner() {
     : true;
 
   useEffect(() => {
+    if (!scanId) return;
+    if (!scanQuery.data) return;
+    if (competitorPreview) return;
+
+    let attempts = 0;
+    const maxAttempts = 20;
+    const interval = window.setInterval(() => {
+      attempts += 1;
+      void queryClient.invalidateQueries({
+        queryKey: ["competitor-scan-result", scanId],
+      });
+      if (attempts >= maxAttempts) {
+        window.clearInterval(interval);
+      }
+    }, 1500);
+
+    return () => window.clearInterval(interval);
+  }, [scanId, scanQuery.data, competitorPreview, queryClient]);
+
+  useEffect(() => {
     if (!scanId || !isUnlocked || hasFullReportContent) return;
     let attempts = 0;
     const maxAttempts = 20;
@@ -524,6 +544,10 @@ export function CompetitorScanner() {
             />
           </div>
         </motion.div>
+      ) : null}
+
+      {scanState === "results" && reportData && !competitorPreview ? (
+        <CompetitorLoader activeStep="Finalizing competitor preview..." />
       ) : null}
     </div>
   );

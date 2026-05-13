@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { apiFetch } from "@/lib/api/client";
+import { API_PREFIX, apiFetch } from "@/lib/api/client";
 
 const scanCreateResponseSchema = z.object({
   success: z.boolean(),
@@ -179,24 +179,51 @@ const scanReportSchema = z
   })
   .passthrough();
 
-const scanDataSchema = z.object({
-  id: z.number(),
-  url: z.string(),
-  preview: scanPreviewSchema,
-  fullReport: scanReportSchema.optional().nullable(),
-  aiReport: scanReportSchema.optional().nullable(),
-  report: scanReportSchema.optional().nullable(),
-  competitorPreview: scanPreviewSchema.nullable().optional(),
-  competitorAnalysis: z
-    .object({
-      scoreGap: z.number(),
-      summary: z.string(),
-      actionItems: z.array(z.string()),
-    })
-    .nullable()
-    .optional(),
-  locked: z.boolean().optional().default(false),
-});
+const scanDataSchema = z.preprocess(
+  (value) => {
+    if (!value || typeof value !== "object") return value;
+    const raw = value as Record<string, unknown>;
+
+    const competitor =
+      raw.competitor && typeof raw.competitor === "object"
+        ? (raw.competitor as Record<string, unknown>)
+        : null;
+
+    return {
+      ...raw,
+      competitorPreview:
+        raw.competitorPreview ??
+        raw.competitor_preview ??
+        competitor?.preview ??
+        competitor?.competitorPreview ??
+        competitor?.competitor_preview,
+      competitorAnalysis:
+        raw.competitorAnalysis ??
+        raw.competitor_analysis ??
+        competitor?.analysis ??
+        competitor?.competitorAnalysis ??
+        competitor?.competitor_analysis,
+    };
+  },
+  z.object({
+    id: z.number(),
+    url: z.string(),
+    preview: scanPreviewSchema,
+    fullReport: scanReportSchema.optional().nullable(),
+    aiReport: scanReportSchema.optional().nullable(),
+    report: scanReportSchema.optional().nullable(),
+    competitorPreview: scanPreviewSchema.nullable().optional(),
+    competitorAnalysis: z
+      .object({
+        scoreGap: z.number(),
+        summary: z.string(),
+        actionItems: z.array(z.string()),
+      })
+      .nullable()
+      .optional(),
+    locked: z.boolean().optional().default(false),
+  })
+);
 
 const scanResultSchema = z.object({
   success: z.boolean(),
@@ -219,6 +246,10 @@ function parseScanResultResponse(raw: unknown): ScanResultResponse | null {
   }
 
   const root = raw as Record<string, unknown>;
+  if (Object.keys(root).length === 0) {
+    console.warn("⚠️ Empty scan response object received. Check API base URL and backend route.");
+    return null;
+  }
   const rootSuccess = typeof root.success === "boolean" ? root.success : true;
   const candidates = [root.data, root.scan, root.result, root];
 
@@ -230,12 +261,10 @@ function parseScanResultResponse(raw: unknown): ScanResultResponse | null {
         success: rootSuccess,
         data: parsedCandidate.data as any,
       };
-    } else {
-       console.warn("⚠️ Candidate parsing failed:", parsedCandidate.error.format());
     }
   }
 
-  console.error("❌ All parsing candidates failed for scan response:", raw);
+  console.warn("⚠️ All parsing candidates failed for scan response shape:", raw);
   return null;
 }
 
@@ -260,18 +289,32 @@ export async function createScanRequest(
 }
 
 export async function fetchScanResult(scanId: number): Promise<ScanResultResponse> {
-  const data = await apiFetch<unknown>(`/scan/${scanId}`, {
-    method: "GET",
-    // Shared scan links should not trigger global auth redirects.
-    skipAuthInterceptor: true,
-  });
+  const base = API_PREFIX.toLowerCase();
+  const hasApiV1 = base.endsWith("/api/v1") || base.includes("/api/v1/");
+  const candidatePaths = [
+    `/scan/${scanId}`,
+    ...(hasApiV1 ? [] : [`/api/v1/scan/${scanId}`]),
+  ];
 
-  const parsed = parseScanResultResponse(data);
-  if (!parsed || !parsed.success) {
-    throw new Error("Unable to fetch scan result.");
+  for (const path of candidatePaths) {
+    const data = await apiFetch<unknown>(path, {
+      method: "GET",
+      // Shared scan links should not trigger global auth redirects.
+      skipAuthInterceptor: true,
+    });
+
+    const parsed = parseScanResultResponse(data);
+    if (parsed && parsed.success) {
+      return parsed;
+    }
   }
 
-  return parsed;
+  const baseHint = API_PREFIX
+    ? `API base is "${API_PREFIX}".`
+    : "API base is not set (NEXT_PUBLIC_API_BASE_URL).";
+  throw new Error(
+    `Unable to fetch scan result. ${baseHint} Expected backend route like ".../api/v1/scan/${scanId}".`
+  );
 }
 
 export async function fetchPublicScanResult(
