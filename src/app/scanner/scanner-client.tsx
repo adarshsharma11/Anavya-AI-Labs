@@ -464,6 +464,8 @@ export default function ScannerClient() {
                             metrics={reportData.preview.metrics}
                             social={reportData.preview.social}
                             indexing={reportData.preview.indexing}
+                            improvements={reportData.preview.improvements}
+                            seoMeta={reportData.preview.seoMeta}
                           />
                         </div>
                         <IssuesList

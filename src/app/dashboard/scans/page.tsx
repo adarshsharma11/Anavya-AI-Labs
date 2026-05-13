@@ -1,11 +1,12 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { motion } from "framer-motion";
 import { getScansApi, downloadPdfApi } from "@/lib/api/dashboard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
-import { Download, ExternalLink, Loader2, Eye } from "lucide-react";
+import { Download, ExternalLink, Loader2, Eye, FileSearch } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 
@@ -45,59 +46,89 @@ export default function ScansHistoryPage() {
   };
 
   return (
-    <div className="space-y-6 lg:py-8">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-8"
+    >
       <div>
-        <h3 className="text-2xl font-bold tracking-tight">Scan History</h3>
-        <p className="text-muted-foreground">View and download white-label PDF reports of your past audits.</p>
+        <h3 className="text-2xl font-bold tracking-tight text-foreground">Scan History</h3>
+        <p className="text-muted-foreground mt-1">View and download white-label PDF reports of your past audits.</p>
       </div>
 
-      <div className="rounded-md border bg-card">
+      <div className="rounded-2xl border border-border/60 bg-background/80 shadow-lg backdrop-blur overflow-hidden">
         <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>URL</TableHead>
-              <TableHead>Date</TableHead>
-              <TableHead>Score</TableHead>
-              <TableHead>Verdict</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
+          <TableHeader className="bg-muted/30">
+            <TableRow className="border-border/60">
+              <TableHead className="font-semibold">URL</TableHead>
+              <TableHead className="font-semibold">Date</TableHead>
+              <TableHead className="font-semibold">Score</TableHead>
+              <TableHead className="font-semibold">Verdict</TableHead>
+              <TableHead className="text-right font-semibold">Actions</TableHead>
             </TableRow>
           </TableHeader>
           <TableBody>
             {loading ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center h-24">
-                  <Loader2 className="mx-auto h-6 w-6 animate-spin text-muted-foreground" />
+                <TableCell colSpan={5} className="text-center h-48">
+                  <div className="flex flex-col items-center justify-center text-muted-foreground">
+                    <Loader2 className="h-8 w-8 animate-spin mb-4 text-primary" />
+                    <p>Loading your scans...</p>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : scans.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={5} className="text-center h-24 text-muted-foreground">
-                  No scans found. Start by analyzing a website!
+                <TableCell colSpan={5} className="text-center h-48">
+                  <div className="flex flex-col items-center justify-center text-muted-foreground">
+                    <div className="rounded-full bg-muted/50 p-4 mb-4">
+                      <FileSearch className="h-8 w-8 opacity-50" />
+                    </div>
+                    <p>No scans found. Start by analyzing a website!</p>
+                    <Button variant="outline" asChild className="mt-4">
+                      <Link href="/scanner">Run a Scan</Link>
+                    </Button>
+                  </div>
                 </TableCell>
               </TableRow>
             ) : (
               scans.map((scan) => (
-                <TableRow key={scan.id}>
+                <TableRow key={scan.id} className="border-border/60 hover:bg-muted/20 transition-colors">
                   <TableCell className="font-medium">
                     <div className="flex items-center space-x-2">
                        <span className="truncate max-w-[200px] inline-block">{scan.url}</span>
-                       <Link href={scan.url} target="_blank" className="text-muted-foreground hover:text-primary">
+                       <Link href={scan.url} target="_blank" className="text-muted-foreground hover:text-primary transition-colors">
                          <ExternalLink className="h-3 w-3" />
                        </Link>
                     </div>
                   </TableCell>
-                  <TableCell>{new Date(scan.createdAt).toLocaleDateString()}</TableCell>
+                  <TableCell className="text-muted-foreground">{new Date(scan.createdAt).toLocaleDateString()}</TableCell>
                   <TableCell>
-                    <Badge variant={scan.preview?.overall >= 80 ? "default" : scan.preview?.overall >= 50 ? "secondary" : "destructive"}>
+                    <Badge 
+                      className={
+                        scan.preview?.overall >= 80 
+                          ? "bg-emerald-500/10 text-emerald-600 hover:bg-emerald-500/20 border-emerald-500/20" 
+                          : scan.preview?.overall >= 50 
+                            ? "bg-amber-500/10 text-amber-600 hover:bg-amber-500/20 border-amber-500/20" 
+                            : "bg-rose-500/10 text-rose-600 hover:bg-rose-500/20 border-rose-500/20"
+                      }
+                      variant="outline"
+                    >
                       {scan.preview?.overall || "N/A"}
                     </Badge>
                   </TableCell>
-                  <TableCell>{scan.preview?.verdict || "N/A"}</TableCell>
+                  <TableCell>
+                    <span className="text-sm font-medium capitalize text-muted-foreground">
+                      {scan.preview?.verdict || "N/A"}
+                    </span>
+                  </TableCell>
                   <TableCell className="text-right">
                     <div className="flex items-center justify-end gap-2">
                        <Button
-                        variant="outline"
+                        variant="ghost"
                         size="sm"
+                        className="hover:bg-primary/10 hover:text-primary"
                         asChild
                       >
                         <Link href={`/scanner?id=${scan.id}`}>
@@ -110,6 +141,7 @@ export default function ScansHistoryPage() {
                         size="sm"
                         onClick={() => handleDownload(scan.id)}
                         disabled={downloadingId === scan.id}
+                        className="border-primary/20 hover:bg-primary/10 hover:text-primary"
                       >
                         {downloadingId === scan.id ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -126,6 +158,6 @@ export default function ScansHistoryPage() {
           </TableBody>
         </Table>
       </div>
-    </div>
+    </motion.div>
   );
 }

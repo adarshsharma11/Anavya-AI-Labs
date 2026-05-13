@@ -7,6 +7,15 @@ const scanCreateResponseSchema = z.object({
 });
 
 const stringish = z.union([z.string(), z.number()]).transform((value) => `${value}`);
+const numberish = z.preprocess((value) => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === "number") return value;
+  if (typeof value === "string") {
+    const parsed = Number(value);
+    return Number.isFinite(parsed) ? parsed : undefined;
+  }
+  return undefined;
+}, z.number());
 
 const booleanish = z
   .union([z.boolean(), z.number(), z.string()])
@@ -101,12 +110,26 @@ const scanPreviewSchema = z
       images: z.number(),
       scripts: z.number(),
       links: z.number(),
+      titleChars: numberish.optional(),
+      metaDescriptionChars: numberish.optional(),
+      metaDescriptionWords: numberish.optional(),
     }).passthrough().optional().nullable(),
     social: z.object({
-      ogTags: z.boolean(),
-      ogImage: z.boolean().optional().default(false),
-      twitterTags: z.boolean(),
+      ogTags: booleanish,
+      ogImage: booleanish.optional().default(false),
+      twitterTags: booleanish,
+      facebookAdmins: booleanish.optional().default(false),
+      facebookAppId: booleanish.optional().default(false),
     }).passthrough().optional().nullable(),
+    seoMeta: z
+      .object({
+        canonical: booleanish.optional().default(false),
+        metaRobots: z.string().optional(),
+        favicon: booleanish.optional().default(false),
+      })
+      .passthrough()
+      .optional()
+      .nullable(),
     indexing: indexingSchema.optional().nullable(),
     improvements: z
       .object({

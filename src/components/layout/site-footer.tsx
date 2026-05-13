@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { Github, Twitter } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
@@ -8,6 +9,12 @@ import { Logo } from "@/components/icons/logo";
 import { Separator } from "@/components/ui/separator";
 
 export function SiteFooter() {
+  const pathname = usePathname();
+
+  if (pathname.startsWith("/dashboard")) {
+    return null;
+  }
+
   return (
     <footer className="border-t bg-transparent">
       <div className="container py-8">
@@ -41,14 +48,6 @@ export function SiteFooter() {
               <ul className="mt-4 space-y-2">
                 <li>
                   <Link
-                    href="/case-study"
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Case Study
-                  </Link>
-                </li>
-                <li>
-                  <Link
                     href="/blog"
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
@@ -61,6 +60,14 @@ export function SiteFooter() {
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
                     About
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    href="/contact"
+                    className="text-sm text-muted-foreground hover:text-foreground"
+                  >
+                    Contact
                   </Link>
                 </li>
               </ul>

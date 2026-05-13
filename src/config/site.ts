@@ -38,6 +38,10 @@ export const siteConfig: SiteConfig = {
       title: "About",
       href: "/about",
     },
+    {
+      title: "Contact",
+      href: "/contact",
+    },
   ],
 };
 
@@ -89,6 +93,12 @@ export const pageMetadata = {
     description:
       'Learn about anavyaailabs.com and our mission to help teams build faster, more accessible websites.',
     canonical: '/about',
+  },
+  contact: {
+    title: 'Contact Us',
+    description:
+      'Get in touch with Anavya AI Labs for support, feedback, or enterprise inquiries.',
+    canonical: '/contact',
   },
   blog: {
     title: 'Blog',

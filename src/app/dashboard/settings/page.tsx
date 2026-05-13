@@ -2,6 +2,7 @@
 
 import React, { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
+import { motion } from "framer-motion";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
@@ -10,8 +11,8 @@ import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
-import { Loader2 } from "lucide-react";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Loader2, Save } from "lucide-react";
 
 const profileSchema = z.object({
   name: z.string().min(2, "Name is too short").optional(),
@@ -66,55 +67,85 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="space-y-6 lg:py-8 max-w-2xl">
+    <motion.div 
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="space-y-8 max-w-3xl"
+    >
       <div>
-        <h3 className="text-2xl font-bold tracking-tight">Profile & Branding</h3>
-        <p className="text-muted-foreground">Manage your personal information and PDF branding preferences.</p>
+        <h3 className="text-2xl font-bold tracking-tight text-foreground">Profile & Branding</h3>
+        <p className="text-muted-foreground mt-1">Manage your personal information and PDF branding preferences.</p>
       </div>
 
-      <Card>
-        <CardHeader>
-          <CardTitle>White-label PDF Configuration</CardTitle>
+      <Card className="border-border/60 bg-background/80 shadow-lg backdrop-blur overflow-hidden">
+        <CardHeader className="bg-muted/30 border-b border-border/60 pb-6">
+          <CardTitle className="text-lg">White-label PDF Configuration</CardTitle>
           <CardDescription>
-            These details will appear across your generated PDF audit reports.
+            These details will appear across your generated PDF audit reports to showcase your brand.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="pt-6">
           <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
             
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div className="space-y-2">
-                <Label htmlFor="name">Full Name</Label>
-                <Input id="name" {...form.register("name")} />
-                {form.formState.errors.name && <p className="text-sm text-destructive">{form.formState.errors.name.message}</p>}
+                <Label htmlFor="name" className="text-sm font-medium">Full Name</Label>
+                <Input 
+                  id="name" 
+                  className="bg-background/50 border-border/60 focus-visible:ring-primary/20" 
+                  {...form.register("name")} 
+                />
+                {form.formState.errors.name && <p className="text-xs text-destructive">{form.formState.errors.name.message}</p>}
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="phoneNumber">Phone Number</Label>
-                <Input id="phoneNumber" {...form.register("phoneNumber")} />
-                {form.formState.errors.phoneNumber && <p className="text-sm text-destructive">{form.formState.errors.phoneNumber.message}</p>}
+                <Label htmlFor="phoneNumber" className="text-sm font-medium">Phone Number</Label>
+                <Input 
+                  id="phoneNumber" 
+                  className="bg-background/50 border-border/60 focus-visible:ring-primary/20" 
+                  {...form.register("phoneNumber")} 
+                />
+                {form.formState.errors.phoneNumber && <p className="text-xs text-destructive">{form.formState.errors.phoneNumber.message}</p>}
               </div>
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="companyName">Company / Agency Name</Label>
-              <Input id="companyName" placeholder="Anavya AI Labs" {...form.register("companyName")} />
-              {form.formState.errors.companyName && <p className="text-sm text-destructive">{form.formState.errors.companyName.message}</p>}
+              <Label htmlFor="companyName" className="text-sm font-medium">Company / Agency Name</Label>
+              <Input 
+                id="companyName" 
+                placeholder="Anavya AI Labs" 
+                className="bg-background/50 border-border/60 focus-visible:ring-primary/20" 
+                {...form.register("companyName")} 
+              />
+              {form.formState.errors.companyName && <p className="text-xs text-destructive">{form.formState.errors.companyName.message}</p>}
             </div>
 
             <div className="space-y-2">
-              <Label htmlFor="companyLogoUrl">Company Logo URL</Label>
-              <Input id="companyLogoUrl" placeholder="https://example.com/logo.png" {...form.register("companyLogoUrl")} />
+              <Label htmlFor="companyLogoUrl" className="text-sm font-medium">Company Logo URL</Label>
+              <Input 
+                id="companyLogoUrl" 
+                placeholder="https://example.com/logo.png" 
+                className="bg-background/50 border-border/60 focus-visible:ring-primary/20" 
+                {...form.register("companyLogoUrl")} 
+              />
               <p className="text-xs text-muted-foreground">Must be a public image link. This will be embedded in your PDF reports.</p>
-              {form.formState.errors.companyLogoUrl && <p className="text-sm text-destructive">{form.formState.errors.companyLogoUrl.message}</p>}
+              {form.formState.errors.companyLogoUrl && <p className="text-xs text-destructive">{form.formState.errors.companyLogoUrl.message}</p>}
             </div>
 
-            <Button type="submit" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : "Save Changes"}
-            </Button>
+            <div className="pt-4 flex justify-end">
+              <Button type="submit" disabled={isLoading} className="shadow-lg shadow-primary/20 min-w-[140px]">
+                {isLoading ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Save className="mr-2 h-4 w-4" />
+                )}
+                {isLoading ? "Saving..." : "Save Changes"}
+              </Button>
+            </div>
           </form>
         </CardContent>
       </Card>
-    </div>
+    </motion.div>
   );
 }

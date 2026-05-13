@@ -337,11 +337,37 @@ export function MetricsCard({
   metrics,
   social,
   indexing,
+  improvements,
+  seoMeta,
 }: {
   metrics?: ScanPreview["metrics"];
   social?: ScanPreview["social"];
   indexing?: ScanPreview["indexing"];
+  improvements?: ScanPreview["improvements"];
+  seoMeta?: ScanPreview["seoMeta"];
 }) {
+  const titleChars =
+    metrics && "titleChars" in metrics ? (metrics as any).titleChars : undefined;
+  const metaDescriptionChars =
+    metrics && "metaDescriptionChars" in metrics ? (metrics as any).metaDescriptionChars : undefined;
+  const metaDescriptionWords =
+    metrics && "metaDescriptionWords" in metrics ? (metrics as any).metaDescriptionWords : undefined;
+
+  const hasSeoMeta =
+    Boolean(seoMeta) ||
+    titleChars !== undefined ||
+    metaDescriptionChars !== undefined ||
+    metaDescriptionWords !== undefined;
+
+  const metaDescriptionValue =
+    metaDescriptionChars !== undefined && metaDescriptionWords !== undefined
+      ? `${metaDescriptionChars} chars (${metaDescriptionWords} words)`
+      : metaDescriptionChars !== undefined
+        ? `${metaDescriptionChars} chars`
+        : metaDescriptionWords !== undefined
+          ? `${metaDescriptionWords} words`
+          : "N/A";
+
   return (
     <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
       <div className="flex items-center gap-2 text-sm font-semibold text-sky-600">
@@ -355,6 +381,49 @@ export function MetricsCard({
         <MetricRow label="Scripts" value={metrics ? `${metrics.scripts}` : "0"} />
         <MetricRow label="Links" value={metrics ? `${metrics.links}` : "0"} />
       </div>
+      {improvements ? (
+        <div className="mt-6 border-t border-border/60 pt-5">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            Potential improvements
+          </div>
+          <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
+            <MetricRow label="Potential score" value={improvements.potentialScore} />
+            <MetricRow label="Growth potential" value={improvements.trafficPotential} />
+            <MetricRow label="Fix count" value={improvements.fixCount} />
+          </div>
+        </div>
+      ) : null}
+      {hasSeoMeta ? (
+        <div className="mt-6 border-t border-border/60 pt-5">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            SEO meta
+          </div>
+          <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
+            {seoMeta ? (
+              <>
+                <StatusRow
+                  label="Favicon"
+                  value={Boolean((seoMeta as any).favicon)}
+                  positiveLabel="Detected"
+                  negativeLabel="Missing"
+                />
+                <StatusRow
+                  label="Canonical"
+                  value={Boolean((seoMeta as any).canonical)}
+                  positiveLabel="Configured"
+                  negativeLabel="Missing"
+                />
+                <MetricRow label="Meta robots" value={(seoMeta as any).metaRobots || "N/A"} />
+              </>
+            ) : null}
+            <MetricRow
+              label="Title length"
+              value={titleChars !== undefined ? `${titleChars} chars` : "N/A"}
+            />
+            <MetricRow label="Meta description" value={metaDescriptionValue} />
+          </div>
+        </div>
+      ) : null}
       {(social || indexing) && (
         <div className="mt-6 border-t border-border/60 pt-5">
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
@@ -386,11 +455,33 @@ export function MetricsCard({
                   negativeLabel="Missing"
                 />
                 <StatusRow
+                  label="OG image"
+                  value={Boolean((social as any).ogImage)}
+                  positiveLabel="Configured"
+                  negativeLabel="Missing"
+                />
+                <StatusRow
                   label="Twitter cards"
                   value={social.twitterTags}
                   positiveLabel="Configured"
                   negativeLabel="Missing"
                 />
+                {"facebookAdmins" in (social as any) ? (
+                  <StatusRow
+                    label="Facebook admins"
+                    value={Boolean((social as any).facebookAdmins)}
+                    positiveLabel="Configured"
+                    negativeLabel="Missing"
+                  />
+                ) : null}
+                {"facebookAppId" in (social as any) ? (
+                  <StatusRow
+                    label="Facebook app ID"
+                    value={Boolean((social as any).facebookAppId)}
+                    positiveLabel="Configured"
+                    negativeLabel="Missing"
+                  />
+                ) : null}
               </>
             )}
           </div>

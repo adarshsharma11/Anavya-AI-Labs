@@ -1,11 +1,14 @@
 "use client";
 
-import React from "react";
+import React, { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
-import { LayoutDashboard, FileSearch, Settings, User } from "lucide-react";
+import { LayoutDashboard, FileSearch, Settings, Menu, X, LogOut } from "lucide-react";
 import { useAuth } from "@/components/providers/auth-provider";
+import { Button } from "@/components/ui/button";
+import { ThemeToggle } from "@/components/ui/theme-toggle";
 
 const sidebarNavItems = [
   {
@@ -27,34 +30,109 @@ const sidebarNavItems = [
 
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
-  const { user } = useAuth();
+  const { user, logout } = useAuth();
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   return (
-    <div className="container flex-1 items-start md:grid md:grid-cols-[220px_minmax(0,1fr)] md:gap-6 lg:grid-cols-[240px_minmax(0,1fr)] lg:gap-10 py-8">
-      <aside className="fixed top-14 z-30 -ml-2 hidden h-[calc(100vh-3.5rem)] w-full shrink-0 md:sticky md:block">
-        <div className="h-full py-6 pl-8 pr-6 lg:py-8">
-          <div className="mb-4 px-2">
-            <h2 className="text-lg font-semibold tracking-tight">Dashboard</h2>
-            <p className="text-sm text-muted-foreground mt-1">Welcome back, {user?.name?.split(" ")[0] || "User"}.</p>
+    <div className="relative flex min-h-screen w-full overflow-hidden">
+      {/* Background Ambient Gradients (matching scanner) */}
+      <div className="absolute inset-0 -z-10 pointer-events-none">
+        <div className="absolute left-0 top-0 h-96 w-96 rounded-full bg-emerald-400/10 blur-3xl" />
+        <div className="absolute right-0 top-32 h-[30rem] w-[30rem] rounded-full bg-sky-400/10 blur-3xl" />
+        <div className="absolute bottom-0 left-1/4 h-80 w-80 rounded-full bg-amber-300/10 blur-3xl" />
+      </div>
+
+      {/* Mobile Nav Toggle */}
+      <div className="md:hidden absolute top-4 left-4 z-50">
+        <Button variant="outline" size="icon" onClick={() => setMobileOpen(!mobileOpen)} className="bg-background/80 backdrop-blur">
+          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+        </Button>
+      </div>
+
+      {/* Sidebar */}
+      <aside
+        className={cn(
+          "fixed inset-y-0 left-0 z-40 w-64 transform border-r border-border/60 bg-background/80 backdrop-blur shadow-xl transition-transform duration-300 ease-in-out md:static md:translate-x-0",
+          mobileOpen ? "translate-x-0" : "-translate-x-full"
+        )}
+      >
+        <div className="flex h-full flex-col px-4 py-8 md:py-12">
+          <div className="mb-8 px-4">
+            <h2 className="text-xl font-bold tracking-tight text-foreground">Dashboard</h2>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Welcome back, <span className="font-semibold text-foreground/90">{user?.name?.split(" ")[0] || "User"}</span>.
+            </p>
           </div>
-          <nav className="flex flex-col space-y-1">
-            {sidebarNavItems.map((item) => (
-              <Link
-                key={item.href}
-                href={item.href}
-                className={cn(
-                  "flex items-center rounded-md px-3 py-2 text-sm font-medium hover:bg-accent hover:text-accent-foreground",
-                  pathname === item.href ? "bg-accent" : "transparent"
-                )}
-              >
-                <item.icon className="mr-2 h-4 w-4" />
-                <span>{item.title}</span>
-              </Link>
-            ))}
+          <nav className="flex-1 space-y-2 px-2">
+            {sidebarNavItems.map((item) => {
+              const isActive = pathname === item.href;
+              return (
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  onClick={() => setMobileOpen(false)}
+                  className="relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors"
+                >
+                  {isActive && (
+                    <motion.div
+                      layoutId="dashboard-sidebar-active"
+                      className="absolute inset-0 z-0 rounded-xl border border-primary/20 bg-primary/10"
+                      initial={false}
+                      transition={{ type: "spring", stiffness: 320, damping: 30 }}
+                    />
+                  )}
+                  <item.icon
+                    className={cn(
+                      "relative z-10 h-5 w-5 transition-colors",
+                      isActive ? "text-primary" : "text-muted-foreground"
+                    )}
+                  />
+                  <span
+                    className={cn(
+                      "relative z-10 transition-colors",
+                      isActive ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    {item.title}
+                  </span>
+                </Link>
+              );
+            })}
           </nav>
+
+          <div className="mt-auto border-t border-border/60 pt-6 pb-2 px-2 space-y-4">
+            <div className="flex items-center justify-between px-3">
+              <span className="text-sm font-medium text-muted-foreground">Theme</span>
+              <ThemeToggle />
+            </div>
+            <Button 
+              variant="ghost" 
+              className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:text-destructive transition-colors" 
+              onClick={() => logout()}
+            >
+              <LogOut className="mr-3 h-5 w-5" />
+              Log Out
+            </Button>
+          </div>
         </div>
       </aside>
-      <main className="flex w-full flex-col overflow-hidden">{children}</main>
+
+      {/* Main Content */}
+      <main className="flex-1 w-full overflow-y-auto px-4 py-16 md:px-8 md:py-12 lg:px-12">
+        <div className="mx-auto max-w-5xl">
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={pathname}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -10 }}
+              transition={{ duration: 0.3 }}
+            >
+              {children}
+            </motion.div>
+          </AnimatePresence>
+        </div>
+      </main>
     </div>
   );
 }

@@ -78,6 +78,31 @@ export function CompetitorScoreCard({
         <MetricRow label="Images" value={preview.metrics ? `${preview.metrics.images}` : "0"} />
         <MetricRow label="Scripts" value={preview.metrics ? `${preview.metrics.scripts}` : "0"} />
         <MetricRow label="Links" value={preview.metrics ? `${preview.metrics.links}` : "0"} />
+        {"titleChars" in (preview.metrics ?? {}) ? (
+          <MetricRow
+            label="Title length"
+            value={
+              (preview.metrics as any)?.titleChars !== undefined
+                ? `${(preview.metrics as any).titleChars} chars`
+                : "N/A"
+            }
+          />
+        ) : null}
+        {"metaDescriptionChars" in (preview.metrics ?? {}) || "metaDescriptionWords" in (preview.metrics ?? {}) ? (
+          <MetricRow
+            label="Meta description"
+            value={
+              (preview.metrics as any)?.metaDescriptionChars !== undefined &&
+              (preview.metrics as any)?.metaDescriptionWords !== undefined
+                ? `${(preview.metrics as any).metaDescriptionChars} chars (${(preview.metrics as any).metaDescriptionWords} words)`
+                : (preview.metrics as any)?.metaDescriptionChars !== undefined
+                  ? `${(preview.metrics as any).metaDescriptionChars} chars`
+                  : (preview.metrics as any)?.metaDescriptionWords !== undefined
+                    ? `${(preview.metrics as any).metaDescriptionWords} words`
+                    : "N/A"
+            }
+          />
+        ) : null}
         {preview.improvements ? (
           <>
             <MetricRow
@@ -92,6 +117,29 @@ export function CompetitorScoreCard({
           </>
         ) : null}
       </div>
+
+      {preview.seoMeta ? (
+        <div className="mt-6 border-t border-border/60 pt-5">
+          <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
+            SEO meta
+          </div>
+          <div className="mt-4 grid gap-3 text-sm text-muted-foreground">
+            <StatusRow
+              label="Favicon"
+              value={Boolean((preview.seoMeta as any).favicon)}
+              positiveLabel="Detected"
+              negativeLabel="Missing"
+            />
+            <StatusRow
+              label="Canonical"
+              value={Boolean((preview.seoMeta as any).canonical)}
+              positiveLabel="Configured"
+              negativeLabel="Missing"
+            />
+            <MetricRow label="Meta robots" value={(preview.seoMeta as any).metaRobots || "N/A"} />
+          </div>
+        </div>
+      ) : null}
 
       <div className="mt-6 border-t border-border/60 pt-5">
         <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">

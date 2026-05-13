@@ -70,8 +70,6 @@ export async function apiFetch<T>(
 
   const url = buildApiUrl(path);
 
-  console.log(" API CALL:", method, url);
-
   const response = await fetch(url, {
     ...init,
     method,
