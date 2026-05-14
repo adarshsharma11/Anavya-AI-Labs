@@ -5,13 +5,14 @@ import { motion } from "framer-motion";
 import { useForm } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
-import { Send, Mail, MessageSquare, Phone, Loader2 } from "lucide-react";
+import { Send, Mail, MessageSquare, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { Card, CardContent } from "@/components/ui/card";
+import { submitContact } from "@/lib/api/contact";
 
 const contactSchema = z.object({
   name: z.string().min(2, "Name must be at least 2 characters"),
@@ -39,19 +40,22 @@ export default function ContactClient() {
   const onSubmit = async (data: ContactFormValues) => {
     setIsSubmitting(true);
     try {
-      // Mocking an API call
-      await new Promise((resolve) => setTimeout(resolve, 1500));
+      const res = await submitContact(data);
       
-      toast({
-        title: "Message Sent!",
-        description: "We've received your message and will get back to you shortly.",
-      });
-      form.reset();
-    } catch (error) {
+      if (res.success) {
+        toast({
+          title: "Message Sent!",
+          description: "We've received your message and will get back to you shortly.",
+        });
+        form.reset();
+      } else {
+        throw new Error(res.message || "Failed to send message");
+      }
+    } catch (error: any) {
       toast({
         variant: "destructive",
         title: "Failed to send",
-        description: "There was an error sending your message. Please try again.",
+        description: error.message || "There was an error sending your message. Please try again.",
       });
     } finally {
       setIsSubmitting(false);
