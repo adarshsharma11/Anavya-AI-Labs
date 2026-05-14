@@ -145,13 +145,7 @@ export default function PortfolioClient() {
                   {project.summary}
                 </CardDescription>
               </CardContent>
-              <div className="p-6 pt-0">
-                <Button variant="outline" asChild>
-                  <Link href="/case-study">
-                    View Case Study <ArrowRight className="ml-2" />
-                  </Link>
-                </Button>
-              </div>
+              
             </Card>
           </motion.div>
           );
