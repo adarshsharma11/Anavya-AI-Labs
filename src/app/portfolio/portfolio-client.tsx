@@ -15,57 +15,14 @@ import {
 import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Badge } from "@/components/ui/badge";
 
-export default function PortfolioClient() {
+import { type PortfolioItem } from "@/lib/api/portfolio";
+
+export default function PortfolioClient({ initialItems = [] }: { initialItems?: PortfolioItem[] }) {
   const pageVariants = {
     initial: { opacity: 0, y: 20 },
     in: { opacity: 1, y: 0 },
     out: { opacity: 0, y: -20 },
   };
-
-  const portfolioItems = [
-    {
-      id: "portfolio-1",
-      title: "E-commerce Platform",
-      summary:
-        "A headless storefront with real-time inventory, curated bundles, and rapid checkout.",
-      tags: ["E-commerce", "UX", "Performance"],
-    },
-    {
-      id: "portfolio-2",
-      title: "SaaS Growth Dashboard",
-      summary:
-        "An analytics command center that turns churn signals into weekly retention wins.",
-      tags: ["SaaS", "Analytics", "B2B"],
-    },
-    {
-      id: "portfolio-3",
-      title: "Mobile Banking App",
-      summary:
-        "A secure mobile experience redesigned for speed, trust, and instant onboarding.",
-      tags: ["Fintech", "Mobile", "Security"],
-    },
-    {
-      id: "portfolio-4",
-      title: "AI Support Chatbot",
-      summary:
-        "A GPT-powered support assistant that deflects 42% of tickets in week one.",
-      tags: ["Chatbot", "AI", "Support"],
-    },
-    {
-      id: "portfolio-5",
-      title: "Conversational Commerce",
-      summary:
-        "A guided shopping flow that turns product discovery into real-time conversations.",
-      tags: ["Commerce", "Conversation", "Growth"],
-    },
-    {
-      id: "portfolio-6",
-      title: "Knowledge Base Assistant",
-      summary:
-        "An internal assistant that answers policy and process questions instantly.",
-      tags: ["AI", "Knowledge", "Ops"],
-    },
-  ];
 
   const imageMap = new Map(
     PlaceHolderImages.map((image) => [image.id, image])
@@ -90,67 +47,78 @@ export default function PortfolioClient() {
         </p>
       </div>
 
-      <motion.div
-        className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3"
-        initial="initial"
-        animate="in"
-        transition={{ staggerChildren: 0.2 }}
-      >
-        {portfolioItems.map((project) => {
-          const image = imageMap.get(project.id);
-          if (!image) {
-            return null;
-          }
+      {initialItems.length === 0 ? (
+        <section className="container py-24 text-center">
+          <h2 className="text-3xl font-bold">No portfolio items found.</h2>
+          <p className="mt-4 text-muted-foreground">Check back later to see our recent work.</p>
+          <Button asChild className="mt-8">
+            <Link href="/">Return Home</Link>
+          </Button>
+        </section>
+      ) : (
+        <motion.div
+          className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-2 lg:grid-cols-3"
+          initial="initial"
+          animate="in"
+          transition={{ staggerChildren: 0.2 }}
+        >
+          {initialItems.map((project) => {
+            const imageUrl = project.imageUrl || imageMap.get(project.imageKey)?.imageUrl;
+            const imageHint = project.imageHint || imageMap.get(project.imageKey)?.imageHint || "portfolio project";
 
-          return (
-          <motion.div
-            key={project.id}
-            variants={{
-              initial: { opacity: 0, y: 20 },
-              in: {
-                opacity: 1,
-                y: 0,
-                transition: {
-                  duration: 0.5,
-                },
-              },
-            }}
-            whileHover={{ y: -5, transition: { duration: 0.2 } }}
-          >
-            <Card className="flex h-full flex-col overflow-hidden">
-              <div className="relative h-56 w-full">
-                <Image
-                  src={image.imageUrl}
-                  alt={image.description}
-                  data-ai-hint={image.imageHint}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover"
-                />
-              </div>
-              <CardHeader>
-                <CardTitle className="font-headline">
-                  {project.title}
-                </CardTitle>
-                <div className="flex flex-wrap gap-2 pt-2">
-                  {project.tags.map((tag) => (
-                    <Badge key={tag} variant="secondary">
-                      {tag}
-                    </Badge>
-                  ))}
-                </div>
-              </CardHeader>
-              <CardContent className="flex-1">
-                <CardDescription>
-                  {project.summary}
-                </CardDescription>
-              </CardContent>
-              
-            </Card>
-          </motion.div>
-          );
-        })}
-      </motion.div>
+            if (!imageUrl) {
+              return null;
+            }
+
+            return (
+              <motion.div
+                key={project.id || project.slug}
+                variants={{
+                  initial: { opacity: 0, y: 20 },
+                  in: {
+                    opacity: 1,
+                    y: 0,
+                    transition: {
+                      duration: 0.5,
+                    },
+                  },
+                }}
+                whileHover={{ y: -5, transition: { duration: 0.2 } }}
+              >
+                <Card className="flex h-full flex-col overflow-hidden">
+                  <div className="relative h-56 w-full">
+                    <Image
+                      src={imageUrl}
+                      alt={imageHint}
+                      data-ai-hint={imageHint}
+                      fill
+                      sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                      className="object-cover"
+                    />
+                  </div>
+                  <CardHeader>
+                    <CardTitle className="font-headline">
+                      {project.title}
+                    </CardTitle>
+                    <div className="flex flex-wrap gap-2 pt-2">
+                      {project.tags.map((tag) => (
+                        <Badge key={tag} variant="secondary">
+                          {tag}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardHeader>
+                  <CardContent className="flex-1">
+                    <CardDescription>
+                      {project.summary}
+                    </CardDescription>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            );
+          })}
+        </motion.div>
+      )}
     </motion.div>
   );
 }

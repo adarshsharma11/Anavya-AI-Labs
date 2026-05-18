@@ -13,7 +13,6 @@ import { type BlogPost } from "@/lib/api/blogs";
 const categories = ["All", "Design", "Engineering", "AI", "Growth"] as const;
 
 export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogPost[] }) {
-  // Only use database blogs
   const posts = initialBlogs.map(p => ({
     ...p,
     author: {
@@ -24,20 +23,20 @@ export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogP
   }));
 
   const featuredPostObj = initialBlogs[0];
-  
-  const featured = featuredPostObj 
+
+  const featured = featuredPostObj
     ? {
-        ...featuredPostObj,
-        author: {
-          name: featuredPostObj.authorName,
-          role: featuredPostObj.authorRole,
-          avatar: featuredPostObj.authorAvatar
-        }
+      ...featuredPostObj,
+      author: {
+        name: featuredPostObj.authorName,
+        role: featuredPostObj.authorRole,
+        avatar: featuredPostObj.authorAvatar
       }
+    }
     : null;
 
   // Filter posts for the lower grid (excluding the one shown as featured)
-  const displayPosts = featured 
+  const displayPosts = featured
     ? posts.filter(p => p.id !== featured.id)
     : [];
 

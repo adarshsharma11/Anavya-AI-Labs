@@ -6,7 +6,7 @@ import { getBlogsApi, type BlogPost } from "@/lib/api/blogs";
 
 export const metadata: Metadata = MetaHead(pageMetadata.blog);
 
-export const revalidate = 600; // Cache for 10 mins
+export const dynamic = "force-dynamic";
 
 export default async function BlogPage() {
   let blogs: BlogPost[] = [];
