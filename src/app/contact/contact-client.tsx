@@ -41,11 +41,11 @@ export default function ContactClient() {
     setIsSubmitting(true);
     try {
       const res = await submitContact(data);
-      
+
       if (res.success) {
         toast({
           title: "Message Sent!",
-          description: "We've received your message and will get back to you shortly.",
+          description: "We have received your message and will get back to you shortly.",
         });
         form.reset();
       } else {
@@ -81,7 +81,7 @@ export default function ContactClient() {
             Get in <span className="text-primary">Touch</span>
           </h1>
           <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
-            Have questions about our AI tools, need custom enterprise features, or just want to say hi? We'd love to hear from you.
+            we Have questions about our AI tools, need custom enterprise features, or just want to say hi? We would love to hear from you.
           </p>
         </motion.div>
 

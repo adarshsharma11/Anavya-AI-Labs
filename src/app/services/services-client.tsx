@@ -146,7 +146,7 @@ const fallbackData: ServicesPayload = {
       slug: "performance-optimization",
       title: "Performance Optimization",
       description:
-        "We'll fine-tune your application to ensure it's lightning-fast, providing a smooth experience for your users.",
+        "We will fine-tune your application to ensure it's lightning-fast, providing a smooth experience for your users.",
       icon: "Rocket",
       cta: {
         label: "Run a scan",
@@ -268,32 +268,32 @@ export default function ServicesClient({
           const Icon = iconMap[iconKey] ?? Code;
 
           return (
-          <motion.div
-            key={service.slug ?? `${service.id}`}
-            variants={cardVariants}
-            whileHover={{
-              y: -8,
-              boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.25)",
-              transition: { duration: 0.2 },
-            }}
-          >
-            <Card className="flex h-full flex-col text-center">
-              <CardHeader>
-                <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
-                  <Icon className="h-8 w-8" />
-                </div>
-                <CardTitle className="font-headline">{service.title}</CardTitle>
-              </CardHeader>
-              <CardContent className="flex flex-1 flex-col">
-                <CardDescription>{service.description}</CardDescription>
-                {service.cta ? (
-                  <Button asChild variant="outline" className="mt-6 w-full">
-                    <Link href={service.cta.href}>{service.cta.label}</Link>
-                  </Button>
-                ) : null}
-              </CardContent>
-            </Card>
-          </motion.div>
+            <motion.div
+              key={service.slug ?? `${service.id}`}
+              variants={cardVariants}
+              whileHover={{
+                y: -8,
+                boxShadow: "0 25px 50px -12px rgb(0 0 0 / 0.25)",
+                transition: { duration: 0.2 },
+              }}
+            >
+              <Card className="flex h-full flex-col text-center">
+                <CardHeader>
+                  <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
+                    <Icon className="h-8 w-8" />
+                  </div>
+                  <CardTitle className="font-headline">{service.title}</CardTitle>
+                </CardHeader>
+                <CardContent className="flex flex-1 flex-col">
+                  <CardDescription>{service.description}</CardDescription>
+                  {service.cta ? (
+                    <Button asChild variant="outline" className="mt-6 w-full">
+                      <Link href={service.cta.href}>{service.cta.label}</Link>
+                    </Button>
+                  ) : null}
+                </CardContent>
+              </Card>
+            </motion.div>
           );
         })}
       </motion.div>
