@@ -59,7 +59,7 @@ const fallbackData: ServicesPayload = {
       icon: "Bot",
       cta: {
         label: "Get a quote",
-        href: "/pricing",
+        href: "/scanner",
       },
       createdAt: new Date(0).toISOString(),
     },
@@ -89,19 +89,19 @@ const fallbackData: ServicesPayload = {
       },
       createdAt: new Date(0).toISOString(),
     },
-    {
-      id: 4,
-      slug: "prompt-optimization",
-      title: "Prompt Optimization",
-      description:
-        "Craft and refine the perfect prompts to get the most accurate and powerful responses from your large language models.",
-      icon: "Wand2",
-      cta: {
-        label: "See pricing",
-        href: "/pricing",
-      },
-      createdAt: new Date(0).toISOString(),
-    },
+    // {
+    //   id: 4,
+    //   slug: "prompt-optimization",
+    //   title: "Prompt Optimization",
+    //   description:
+    //     "Craft and refine the perfect prompts to get the most accurate and powerful responses from your large language models.",
+    //   icon: "Wand2",
+    //   cta: {
+    //     label: "See pricing",
+    //     href: "/pricing",
+    //   },
+    //   createdAt: new Date(0).toISOString(),
+    // },
     {
       id: 5,
       slug: "web-app-development",
@@ -167,19 +167,19 @@ const fallbackData: ServicesPayload = {
       },
       createdAt: new Date(0).toISOString(),
     },
-    {
-      id: 10,
-      slug: "security-compliance",
-      title: "Security & Compliance",
-      description:
-        "Protect your application and user data with our comprehensive security audits and implementation of best practices.",
-      icon: "ShieldCheck",
-      cta: {
-        label: "See pricing",
-        href: "/pricing",
-      },
-      createdAt: new Date(0).toISOString(),
-    },
+    // {
+    //   id: 10,
+    //   slug: "security-compliance",
+    //   title: "Security & Compliance",
+    //   description:
+    //     "Protect your application and user data with our comprehensive security audits and implementation of best practices.",
+    //   icon: "ShieldCheck",
+    //   cta: {
+    //     label: "See pricing",
+    //     href: "/pricing",
+    //   },
+    //   createdAt: new Date(0).toISOString(),
+    // },
   ],
 };
 

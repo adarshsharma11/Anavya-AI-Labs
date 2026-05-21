@@ -98,12 +98,12 @@ export const pageMetadata = {
       'See recent projects and examples of high-performing websites and UI/UX work delivered by anavyaailabs.com.',
     canonical: '/portfolio',
   },
-  pricing: {
-    title: 'Pricing',
-    description:
-      'Compare plans and unlock Pro checks, detailed reports, and continuous monitoring for your website.',
-    canonical: '/pricing',
-  },
+  // pricing: {
+  //   title: 'Pricing',
+  //   description:
+  //     'Compare plans and unlock Pro checks, detailed reports, and continuous monitoring for your website.',
+  //   canonical: '/pricing',
+  // },
   about: {
     title: 'About',
     description:

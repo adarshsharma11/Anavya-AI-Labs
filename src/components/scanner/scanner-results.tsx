@@ -105,9 +105,9 @@ export default function ScannerResults({ results, summary }: ScannerResultsProps
                 <Button asChild size="sm">
                   <Link href="/services">Book a strategy call</Link>
                 </Button>
-                <Button asChild variant="outline" size="sm">
+                {/* <Button asChild variant="outline" size="sm">
                   <Link href="/pricing">See Pro plans</Link>
-                </Button>
+                </Button> */}
               </div>
             </Card>
             <Card className="border-border/60 bg-background/80 p-6 shadow-sm">

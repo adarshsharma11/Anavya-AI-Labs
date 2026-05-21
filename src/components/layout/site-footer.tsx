@@ -91,14 +91,14 @@ export function SiteFooter() {
                     Services
                   </Link>
                 </li>
-                <li>
+                {/* <li>
                   <Link
                     href="/pricing"
                     className="text-sm text-muted-foreground hover:text-foreground"
                   >
                     Pricing
                   </Link>
-                </li>
+                </li> */}
               </ul>
             </div>
           </div>

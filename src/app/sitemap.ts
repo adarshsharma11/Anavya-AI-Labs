@@ -7,7 +7,7 @@ const ROUTES = [
   "/ai-tools",
   "/scanner",
   "/services",
-  "/pricing",
+  // "/pricing",
   "/portfolio",
   "/case-study",
   "/blog",
