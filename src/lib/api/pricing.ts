@@ -34,17 +34,18 @@ export async function fetchPricingPlans(options?: {
     revalidate?: number;
   };
 }): Promise<PricingPlan[]> {
-  const data = await apiFetch<unknown>("/pricing", {
-    method: "GET",
-    signal: options?.signal,
-    cache: options?.cache,
-    next: options?.next,
-  });
+  // const data = await apiFetch<unknown>("/pricing", {
+  //   method: "GET",
+  //   signal: options?.signal,
+  //   cache: options?.cache,
+  //   next: options?.next,
+  // });
 
-  const parsed = pricingResponseSchema.safeParse(data);
-  if (!parsed.success) {
-    throw new Error("Invalid pricing response.");
-  }
+  // const parsed = pricingResponseSchema.safeParse(data);
+  // if (!parsed.success) {
+  //   throw new Error("Invalid pricing response.");
+  // }
 
-  return parsed.data.data;
+  // return parsed.data.data;
+  return [];
 }
