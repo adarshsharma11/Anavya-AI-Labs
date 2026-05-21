@@ -187,7 +187,7 @@ export function ResultsHeader({
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-3">
+        <div className="flex flex-wrap items-center gap-3">
           <Badge className="rounded-full px-4 py-2">
             Overall score {overall}
           </Badge>

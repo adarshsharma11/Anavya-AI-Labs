@@ -12,7 +12,7 @@ import { useScroll } from "@/hooks/use-scroll";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/icons/logo";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
-import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle, SheetDescription } from "@/components/ui/sheet";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
   DropdownMenu,
@@ -127,6 +127,8 @@ export function SiteHeader() {
                 </Button>
               </SheetTrigger>
               <SheetContent side="right" className="w-[300px]">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                <SheetDescription className="sr-only">Access site pages and account configuration</SheetDescription>
                 <div className="flex h-full flex-col">
                   <div className="border-b p-4">
                     <Link href="/" onClick={() => setIsOpen(false)}>
@@ -157,14 +159,27 @@ export function SiteHeader() {
                     </div>
                     {isAuthenticated ? (
                        <div className="space-y-4">
-                         <div className="flex items-center space-x-3 mb-4">
+                         <div className="flex items-center space-x-3 mb-2">
                            <Avatar className="h-8 w-8">
                              <AvatarImage src={user?.companyLogoUrl} />
                              <AvatarFallback>{user?.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
                            </Avatar>
                            <div className="flex flex-col text-sm">
                              <span className="font-medium">{user?.name}</span>
+                             <span className="text-xs text-muted-foreground">{user?.email}</span>
                            </div>
+                         </div>
+                         <div className="flex flex-col gap-2 mb-2">
+                           <Button variant="outline" asChild className="w-full justify-start" onClick={() => setIsOpen(false)}>
+                             <Link href="/dashboard">
+                               <LayoutDashboard className="mr-2 h-4 w-4" /> Dashboard
+                             </Link>
+                           </Button>
+                           <Button variant="outline" asChild className="w-full justify-start" onClick={() => setIsOpen(false)}>
+                             <Link href="/dashboard/settings">
+                               <User className="mr-2 h-4 w-4" /> Profile Settings
+                             </Link>
+                           </Button>
                          </div>
                          <Button variant="destructive" className="w-full justify-start" onClick={() => { logout(); setIsOpen(false); }}>
                            <LogOut className="mr-2 h-4 w-4" /> Log Out

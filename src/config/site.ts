@@ -71,7 +71,7 @@ export const pageMetadata = {
   home: {
     title: 'AI-Powered Website Analysis',
     description:
-      'AI that finds what’s costing your website customers. Get a free, instant analysis of your website’s performance, SEO, and user experience.',
+      'AI that finds what is costing your website customers. Get a free, instant analysis of your website is performance, SEO, and user experience.',
     canonical: '/',
   },
   aiTools: {

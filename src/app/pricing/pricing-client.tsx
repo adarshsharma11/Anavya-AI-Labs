@@ -66,7 +66,7 @@ export default function PricingClient({
       </div>
 
       <motion.div
-        className="mt-16 grid grid-cols-1 gap-8 lg:grid-cols-3"
+        className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3"
         initial="hidden"
         whileInView="visible"
         viewport={{ once: true, amount: 0.3 }}

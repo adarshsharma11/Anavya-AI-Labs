@@ -4,56 +4,42 @@ import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, Sparkles } from "lucide-react";
+import { useQuery } from "@tanstack/react-query";
 
-import { PlaceHolderImages } from "@/lib/placeholder-images";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { fetchAboutData, type AboutPageData } from "@/lib/api/about";
 
-const highlights = [
-  { value: "120+", label: "Sites analyzed", detail: "Across SaaS, fintech, and retail." },
-  { value: "4.9/5", label: "Client rating", detail: "Measured after every launch." },
-  { value: "38%", label: "Avg. lift", detail: "Conversion wins within 90 days." },
-];
+export default function AboutClient({ initialData }: { initialData?: AboutPageData }) {
+  const { data } = useQuery({
+    queryKey: ["about-data"],
+    queryFn: () => fetchAboutData(),
+    initialData,
+    staleTime: 300_000,
+    refetchOnMount: true,
+  });
 
-const principles = [
-  {
-    title: "Human-first AI",
-    description:
-      "We automate the tedious parts, so teams can focus on the decisions that move the needle.",
-  },
-  {
-    title: "Performance obsessed",
-    description:
-      "Speed budgets, strict accessibility checks, and measurable impact at every release.",
-  },
-  {
-    title: "Design with intent",
-    description:
-      "Every screen is mapped to user intent with clear hierarchy and conversion flow.",
-  },
-];
+  const resolved = data ?? initialData;
 
-const culture = [
-  {
-    title: "Small, senior squads",
-    description:
-      "You work with a tight team of senior builders who ship quickly and stay accountable.",
-  },
-  {
-    title: "Transparent collaboration",
-    description:
-      "Weekly demos, shared dashboards, and candid advice on what to prioritize next.",
-  },
-  {
-    title: "Always learning",
-    description:
-      "We test new models, frameworks, and UX patterns weekly to keep results modern.",
-  },
-];
+  // Render a simple skeleton/loading state if resolved data is missing
+  if (!resolved) {
+    return (
+      <div className="container py-12 md:py-24 space-y-8">
+        <div className="h-12 w-1/3 animate-pulse bg-muted rounded-xl" />
+        <div className="h-48 w-full animate-pulse bg-muted rounded-3xl" />
+      </div>
+    );
+  }
 
-export default function AboutClient() {
-  const aboutImage = PlaceHolderImages.find((p) => p.id === "about-team");
+  const title = resolved.title;
+  const description = resolved.description;
+  const badges = resolved.badges ?? [];
+  const imageUrl = resolved.imageUrl;
+  const imageHint = resolved.imageHint ?? "team collaboration";
+  const principlesData = resolved.principles ?? [];
+  const cultureData = resolved.culture ?? [];
+  const highlights = resolved.highlights ?? [];
 
   return (
     <motion.div
@@ -76,24 +62,20 @@ export default function AboutClient() {
               About Anavya AI Labs
             </div>
             <h1 className="font-headline text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-              We turn AI insights into product momentum.
+              {title}
             </h1>
             <p className="text-lg text-muted-foreground">
-              Anavya AI Labs helps ambitious teams deliver faster, more accessible
-              web experiences. We blend AI diagnostics with human strategy to
-              unlock real revenue wins, not just prettier dashboards.
+              {description}
             </p>
             <div className="flex flex-wrap gap-3">
-              <Badge className="rounded-full px-4 py-2" variant="secondary">
-                UX + AI Strategy
-              </Badge>
-              <Badge className="rounded-full px-4 py-2" variant="secondary">
-                Performance Engineering
-              </Badge>
-              <Badge className="rounded-full px-4 py-2" variant="secondary">
-                Conversion Design
-              </Badge>
+              {badges.map((badge, idx) => (
+                <Badge key={idx} className="rounded-full px-4 py-2" variant="secondary">
+                  {badge}
+                </Badge>
+              ))}
             </div>
+            
+            {/* 1. Specific section that must remain exactly as it is */}
             <div className="flex flex-wrap gap-4">
               <Button asChild size="lg">
                 <Link href="/scanner">
@@ -107,11 +89,11 @@ export default function AboutClient() {
           </div>
 
           <div className="relative h-80 w-full overflow-hidden rounded-3xl border border-border/60 shadow-lg md:h-[420px]">
-            {aboutImage && (
+            {imageUrl && (
               <Image
-                src={aboutImage.imageUrl}
-                alt={aboutImage.description}
-                data-ai-hint={aboutImage.imageHint}
+                src={imageUrl}
+                alt={imageHint}
+                data-ai-hint={imageHint}
                 fill
                 priority
                 sizes="(max-width: 768px) 100vw, 45vw"
@@ -150,7 +132,7 @@ export default function AboutClient() {
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-1">
-            {principles.map((item) => (
+            {principlesData.map((item) => (
               <Card
                 key={item.title}
                 className="border-border/60 bg-background/80 p-6 shadow-sm"
@@ -165,6 +147,7 @@ export default function AboutClient() {
         </div>
       </section>
 
+      {/* 3. Specific section that must remain exactly as it is */}
       <section className="container pb-20">
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl space-y-3">
@@ -181,7 +164,7 @@ export default function AboutClient() {
           </Button>
         </div>
         <div className="mt-8 grid gap-6 md:grid-cols-3">
-          {culture.map((item) => (
+          {cultureData.map((item) => (
             <Card
               key={item.title}
               className="border-border/60 bg-background/80 p-6 shadow-sm"
