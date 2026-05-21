@@ -207,9 +207,9 @@ export default function ScannerResults({ results, summary }: ScannerResultsProps
             >
               Maybe Later
             </Button>
-            <Button asChild onClick={() => setUpgradeModalOpen(false)}>
+            {/* <Button asChild onClick={() => setUpgradeModalOpen(false)}>
               <Link href="/pricing">Upgrade Now</Link>
-            </Button>
+            </Button> */}
           </div>
         </DialogContent>
       </Dialog>
