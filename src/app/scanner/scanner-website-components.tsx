@@ -197,7 +197,7 @@ export function ResultsHeader({
             </Button>
           ) : (
             <Button onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
-              {unlocking ? unlockingLabel : `Unlock full report (${unlockPriceLabel})`}
+              {unlocking ? unlockingLabel : "Unlock Full Report $2.99"}
             </Button>
           )}
           <Button variant="outline" onClick={onReset}>

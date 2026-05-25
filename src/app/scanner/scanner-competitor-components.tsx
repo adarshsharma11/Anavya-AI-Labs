@@ -15,13 +15,10 @@ import {
   fetchScanResult,
   type ScanResultResponse,
 } from "@/lib/api/scan";
+import { usePaymentQuote } from "@/hooks/use-payment-quote";
 import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
 import { generateCompetitorReportPdf } from "@/lib/pdf/scan-report-pdf";
-import {
-  competitorSteps,
-  REPORT_UNLOCK_AMOUNT,
-  REPORT_UNLOCK_PRICE_LABEL,
-} from "./scanner-constants";
+import { competitorSteps } from "./scanner-constants";
 import {
   clearReportUnlock,
   formatDomain,
@@ -62,6 +59,7 @@ export function CompetitorScanner() {
   const [pendingUnlockScanId, setPendingUnlockScanId] = useState<number | null>(null);
   const [emailPromptShownBeforeUnlock, setEmailPromptShownBeforeUnlock] = useState(false);
   const { isPaying, isFinalizingReport, startPayment } = useRazorpayPayment();
+  const { priceLabel: unlockPriceLabel } = usePaymentQuote();
   const { toast } = useToast();
   const unlockingLabel = isFinalizingReport
     ? "Finalizing unlocked report..."
@@ -172,7 +170,6 @@ export function CompetitorScanner() {
   const runUnlockPayment = (currentScanId: number) => {
     startPayment({
       scanId: currentScanId,
-      amount: REPORT_UNLOCK_AMOUNT,
       onSuccess: (updatedScan) => {
         queryClient.setQueryData(
           ["competitor-scan-result", currentScanId],
@@ -446,6 +443,7 @@ export function CompetitorScanner() {
               preview={reportData.preview}
               locked={locked}
               onUnlock={handleUnlock}
+              unlockPriceLabel={unlockPriceLabel}
               unlocking={isPaying}
               unlockingLabel={unlockingLabel}
             />
@@ -455,6 +453,7 @@ export function CompetitorScanner() {
               preview={competitorPreview}
               locked={locked}
               onUnlock={handleUnlock}
+              unlockPriceLabel={unlockPriceLabel}
               unlocking={isPaying}
               unlockingLabel={unlockingLabel}
             />
@@ -466,7 +465,7 @@ export function CompetitorScanner() {
               wins={reportData.preview.quickWins}
               locked={locked}
               onUnlock={handleUnlock}
-              unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
+              unlockPriceLabel={unlockPriceLabel}
               unlocking={isPaying}
               unlockingLabel={unlockingLabel}
             />
@@ -475,7 +474,7 @@ export function CompetitorScanner() {
               wins={competitorPreview.quickWins}
               locked={locked}
               onUnlock={handleUnlock}
-              unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
+              unlockPriceLabel={unlockPriceLabel}
               unlocking={isPaying}
               unlockingLabel={unlockingLabel}
             />
@@ -515,7 +514,7 @@ export function CompetitorScanner() {
               actionItems={competitorAnalysis?.actionItems ?? []}
               locked={locked}
               onUnlock={handleUnlock}
-              unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
+              unlockPriceLabel={unlockPriceLabel}
               unlocking={isPaying}
               unlockingLabel={unlockingLabel}
             />
@@ -527,7 +526,7 @@ export function CompetitorScanner() {
               suggestions={aiSuggestions}
               locked={locked}
               onUnlock={handleUnlock}
-              unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
+              unlockPriceLabel={unlockPriceLabel}
               unlocking={isPaying}
               unlockingLabel={unlockingLabel}
               description="AI-generated opportunities from your competitor comparison report."
@@ -537,7 +536,7 @@ export function CompetitorScanner() {
               suggestions={otherSuggestions}
               locked={locked}
               onUnlock={handleUnlock}
-              unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
+              unlockPriceLabel={unlockPriceLabel}
               unlocking={isPaying}
               unlockingLabel={unlockingLabel}
               description="Combined improvement suggestions from both websites."

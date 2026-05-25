@@ -12,14 +12,11 @@ import {
   type ScanResultResponse,
 } from "@/lib/api/scan";
 import { downloadPdfApi } from "@/lib/api/dashboard";
+import { usePaymentQuote } from "@/hooks/use-payment-quote";
 import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
 import { generateScanReportPdf } from "@/lib/pdf/scan-report-pdf";
 
-import {
-  REPORT_UNLOCK_AMOUNT,
-  REPORT_UNLOCK_PRICE_LABEL,
-  scanSteps,
-} from "./scanner-constants";
+import { scanSteps } from "./scanner-constants";
 import { AiSuggestions, UnlockEmailCaptureDialog } from "./scanner-shared-components";
 import { CompetitorScanner } from "./scanner-competitor-components";
 import type { Issue, ScanState } from "./scanner-types";
@@ -59,6 +56,7 @@ export default function ScannerClient() {
   const [pendingUnlockScanId, setPendingUnlockScanId] = useState<number | null>(null);
   const [emailPromptShownBeforeUnlock, setEmailPromptShownBeforeUnlock] = useState(false);
   const { isPaying, isFinalizingReport, startPayment } = useRazorpayPayment();
+  const { priceLabel: unlockPriceLabel } = usePaymentQuote();
   const { toast } = useToast();
   const unlockingLabel = isFinalizingReport
     ? "Finalizing unlocked report..."
@@ -193,7 +191,6 @@ export default function ScannerClient() {
   const runUnlockPayment = (currentScanId: number) => {
     startPayment({
       scanId: currentScanId,
-      amount: REPORT_UNLOCK_AMOUNT,
       onSuccess: (updatedScan) => {
         queryClient.setQueryData(["scan-result", currentScanId], updatedScan);
         void queryClient.invalidateQueries({
@@ -444,7 +441,7 @@ export default function ScannerClient() {
                           unlocked={!locked}
                           onDownload={handleDownload}
                           onUnlock={handleUnlock}
-                          unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
+                          unlockPriceLabel={unlockPriceLabel}
                           unlocking={isPaying}
                           unlockingLabel={unlockingLabel}
                           downloading={isDownloading}
@@ -474,7 +471,7 @@ export default function ScannerClient() {
                           locked={locked}
                           lockedCount={lockedIssuesCount}
                           onUnlock={handleUnlock}
-                          unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
+                          unlockPriceLabel={unlockPriceLabel}
                           unlocking={isPaying}
                           unlockingLabel={unlockingLabel}
                         />
@@ -483,7 +480,7 @@ export default function ScannerClient() {
                           suggestions={aiSuggestions}
                           locked={locked}
                           onUnlock={handleUnlock}
-                          unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
+                          unlockPriceLabel={unlockPriceLabel}
                           unlocking={isPaying}
                           unlockingLabel={unlockingLabel}
                           description="Paid report includes actionable AI recommendations."

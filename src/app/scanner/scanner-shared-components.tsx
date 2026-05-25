@@ -53,7 +53,7 @@ export function UnlockReportNotice({
       <div className="flex flex-wrap items-center justify-between gap-3">
         <span>{message}</span>
         <Button size="sm" onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
-          {unlocking ? unlockingLabel : `Unlock full report (${unlockPriceLabel})`}
+          {unlocking ? unlockingLabel : "Unlock Full Report $2.99"}
         </Button>
       </div>
     </div>
