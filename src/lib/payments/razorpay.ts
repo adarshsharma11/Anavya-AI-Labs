@@ -1,6 +1,20 @@
 import { z } from "zod";
 
 import { apiFetch } from "@/lib/api/client";
+import { GST_INCLUSIVE_LABEL } from "@/lib/payments/payment-constants";
+import {
+  detectClientRegion,
+  type PaymentRegion,
+} from "@/lib/payments/payment-region";
+
+export type PaymentQuote = {
+  region: PaymentRegion;
+  currency: "INR" | "USD";
+  total: number;
+  amountSubunits: number;
+  gstInclusive: boolean;
+  gstRatePercent: number;
+};
 
 declare global {
   interface Window {
@@ -48,6 +62,21 @@ const verifyResponseSchema = z.object({
   error: z.string().optional(),
 });
 
+const paymentQuoteSchema = z.object({
+  region: z.enum(["IN", "INTL"]),
+  currency: z.enum(["INR", "USD"]),
+  total: z.number().positive(),
+  amountSubunits: z.number().positive(),
+  gstInclusive: z.boolean(),
+  gstRatePercent: z.number(),
+});
+
+const quoteResponseSchema = z.object({
+  success: z.boolean(),
+  data: paymentQuoteSchema.optional(),
+  message: z.string().optional(),
+});
+
 const createOrderSchema = z.object({
   id: z.string().min(1),
   amount: z.number().positive(),
@@ -57,15 +86,8 @@ const createOrderSchema = z.object({
 const createOrderResponseSchema = z.object({
   success: z.boolean(),
   order: createOrderSchema.optional(),
-  data: z
-    .object({
-      order: createOrderSchema.optional(),
-      key_id: z.string().optional(),
-      key: z.string().optional(),
-    })
-    .optional(),
+  quote: paymentQuoteSchema.optional(),
   key_id: z.string().optional(),
-  key: z.string().optional(),
   message: z.string().optional(),
   error: z.string().optional(),
 });
@@ -82,6 +104,42 @@ let razorpayScriptPromise: Promise<void> | null = null;
 
 function sleep(ms: number) {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function clientRegionHeaders(region: PaymentRegion) {
+  return { "x-client-region": region };
+}
+
+export function formatAmount(amount: number, currency: "INR" | "USD") {
+  const locale = currency === "INR" ? "en-IN" : "en-US";
+  return new Intl.NumberFormat(locale, {
+    style: "currency",
+    currency,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(amount);
+}
+
+export function formatPaymentPriceLabel(quote: PaymentQuote) {
+  return `${formatAmount(quote.total, quote.currency)} (${GST_INCLUSIVE_LABEL})`;
+}
+
+export async function fetchPaymentQuote(
+  region: PaymentRegion = detectClientRegion()
+): Promise<PaymentQuote> {
+  const data = await apiFetch<unknown>(
+    `/payment/razorpay/quote?region=${region}`,
+    { headers: clientRegionHeaders(region) }
+  );
+
+  const parsed = quoteResponseSchema.safeParse(data);
+  if (!parsed.success || !parsed.data.success || !parsed.data.data) {
+    throw new Error(
+      parsed.data?.message ?? "Unable to load payment quote."
+    );
+  }
+
+  return parsed.data.data;
 }
 
 async function loadRazorpayScript(): Promise<void> {
@@ -157,35 +215,19 @@ async function verifyPaymentWithRetry(payload: {
   throw lastError ?? new Error("Payment verification failed.");
 }
 
-export function formatAmount(amount: number, currency = "USD") {
-  return new Intl.NumberFormat("en-US", {
-    style: "currency",
-    currency,
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
-  }).format(amount);
-}
-
-export async function startRazorpayPayment(scanId: number, amount: number) {
+export async function startRazorpayPayment(scanId: number) {
   if (!Number.isFinite(scanId) || scanId <= 0) {
     throw new Error("Invalid scanId.");
   }
-  if (!Number.isFinite(amount) || amount <= 0) {
-    throw new Error("Invalid amount.");
-  }
 
-  const currency = (process.env.NEXT_PUBLIC_PAYMENT_CURRENCY || "USD").trim();
-  const normalizedAmount = Number(amount.toFixed(2));
+  const region = detectClientRegion();
 
   const createOrderResponse = await apiFetch<unknown>(
     "/payment/razorpay/create-order",
     {
       method: "POST",
-      body: JSON.stringify({
-        amount: normalizedAmount,
-        currency,
-        scanId,
-      }),
+      headers: clientRegionHeaders(region),
+      body: JSON.stringify({ scanId, region }),
     }
   );
 
@@ -201,17 +243,22 @@ export async function startRazorpayPayment(scanId: number, amount: number) {
     );
   }
 
-  const order = parsedCreate.data.order ?? parsedCreate.data.data?.order;
-  if (!order) {
+  const order = parsedCreate.data.order;
+  const quote = parsedCreate.data.quote;
+  if (!order || !quote) {
     throw new Error("Order details missing in create-order response.");
   }
 
+  if (String(order.currency).toUpperCase() !== quote.currency) {
+    throw new Error("Payment order currency mismatch.");
+  }
+
+  if (Number(order.amount) !== quote.amountSubunits) {
+    throw new Error("Payment order amount mismatch.");
+  }
+
   const keyId =
-    parsedCreate.data.data?.key_id ??
-    parsedCreate.data.data?.key ??
-    parsedCreate.data.key_id ??
-    parsedCreate.data.key ??
-    process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+    parsedCreate.data.key_id ?? process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
   if (!keyId) {
     throw new Error("Razorpay key is not configured.");
   }
@@ -227,10 +274,10 @@ export async function startRazorpayPayment(scanId: number, amount: number) {
       const checkout = new RazorpayCtor({
         key: keyId,
         amount: order.amount,
-        currency: order.currency,
+        currency: quote.currency,
         order_id: order.id,
         name: "Anvaya AI Labs",
-        description: "Unlock full AI report",
+        description: `Unlock full AI report (${GST_INCLUSIVE_LABEL})`,
         handler: (response) => resolve(response),
         modal: {
           ondismiss: () => reject(new Error("Payment cancelled.")),

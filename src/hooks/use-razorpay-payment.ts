@@ -8,7 +8,6 @@ import { startRazorpayPayment } from "@/lib/payments/razorpay";
 
 type StartPaymentOptions = {
   scanId: number;
-  amount: number;
   onSuccess?: (scan: ScanResultResponse) => void;
   onError?: (message: string) => void;
 };
@@ -63,13 +62,13 @@ export function useRazorpayPayment() {
   const [isFinalizingReport, setIsFinalizingReport] = useState(false);
 
   const startPayment = useCallback(
-    async ({ scanId, amount, onSuccess, onError }: StartPaymentOptions) => {
+    async ({ scanId, onSuccess, onError }: StartPaymentOptions) => {
       if (isPaying) return;
 
       setIsPaying(true);
       setIsFinalizingReport(false);
       try {
-        await startRazorpayPayment(scanId, amount);
+        await startRazorpayPayment(scanId);
         setIsFinalizingReport(true);
         const updatedScan = await fetchPostPaymentScan(scanId);
         onSuccess?.(updatedScan);

@@ -3,7 +3,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card } from "@/components/ui/card";
 import type { ScanPreview } from "@/lib/api/scan";
-import { REPORT_UNLOCK_PRICE_LABEL } from "./scanner-constants";
 import { UnlockReportNotice } from "./scanner-shared-components";
 import {
   CircularScore,
@@ -20,6 +19,7 @@ export function CompetitorScoreCard({
   preview,
   locked,
   onUnlock,
+  unlockPriceLabel,
   unlocking = false,
   unlockingLabel,
 }: {
@@ -28,6 +28,7 @@ export function CompetitorScoreCard({
   preview: ScanPreview;
   locked: boolean;
   onUnlock: () => void;
+  unlockPriceLabel: string;
   unlocking?: boolean;
   unlockingLabel?: string;
 }) {
@@ -216,7 +217,7 @@ export function CompetitorScoreCard({
             <UnlockReportNotice
               message={`Unlock ${hiddenIssueCount} more issue${hiddenIssueCount > 1 ? "s" : ""}.`}
               onUnlock={onUnlock}
-              unlockPriceLabel={REPORT_UNLOCK_PRICE_LABEL}
+              unlockPriceLabel={unlockPriceLabel}
               unlocking={unlocking}
               unlockingLabel={unlockingLabel}
               compact
