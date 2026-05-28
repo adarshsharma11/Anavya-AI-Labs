@@ -25,7 +25,9 @@ export const metadata: Metadata = {
   description: pageMetadata.home.description,
   applicationName: siteConfig.name,
   icons: {
-    icon: "/favicon.ico",
+    icon: [
+      { url: "/logo.svg", type: "image/svg+xml" },
+    ],
   },
   alternates: {
     canonical: '/',
@@ -40,11 +42,20 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     title: pageMetadata.home.title,
     description: pageMetadata.home.description,
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 630,
+        alt: `${siteConfig.name} – AI-Powered Website Analysis`,
+      },
+    ],
   },
   twitter: {
-    card: 'summary',
+    card: 'summary_large_image',
     title: pageMetadata.home.title,
     description: pageMetadata.home.description,
+    images: ['/og-image.png'],
   },
 };
 
@@ -60,6 +71,7 @@ export default function RootLayout({
           'min-h-screen bg-background font-body antialiased',
           spaceGrotesk.variable
         )}
+        suppressHydrationWarning
       >
         <ThemeProvider
           attribute="class"

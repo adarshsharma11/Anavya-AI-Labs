@@ -25,7 +25,7 @@ export type SiteConfig = {
 export const siteConfig: SiteConfig = {
   name: "Anavya AI Labs",
   url: "https://anavyaailabs.com",
-  description: "AI that finds what’s costing your website customers.",
+  description: "AI that finds what is costing your website customers.",
   logo: {
     src: "/logo.svg",
     alt: "Anavya AI Labs",
@@ -139,11 +139,20 @@ export function createPageMetadata({
       title,
       description,
       url: canonical,
+      images: [
+        {
+          url: '/og-image.png',
+          width: 1200,
+          height: 630,
+          alt: `${title} | Anavya AI Labs`,
+        },
+      ],
     },
     twitter: {
-      card: 'summary',
+      card: 'summary_large_image',
       title,
       description,
+      images: ['/og-image.png'],
     },
   };
 }

@@ -27,6 +27,10 @@ const aboutPageSchema = z.object({
   highlights: z.array(highlightSchema),
   principles: z.array(principleSchema),
   culture: z.array(cultureSchema),
+  principlesTitle: z.string().optional(),
+  principlesDescription: z.string().optional(),
+  cultureTitle: z.string().optional(),
+  cultureDescription: z.string().optional(),
 });
 
 const aboutResponseSchema = z.object({

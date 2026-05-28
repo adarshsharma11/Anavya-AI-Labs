@@ -11,6 +11,17 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { fetchAboutData, type AboutPageData } from "@/lib/api/about";
 
+const formatHighlightValue = (value: string) => {
+  const num = Number(value);
+  if (!isNaN(num) && Number.isInteger(num)) {
+    if (num >= 10) {
+      return `${Math.floor(num / 10) * 10}+`;
+    }
+    return `${num}+`;
+  }
+  return value;
+};
+
 export default function AboutClient({ initialData }: { initialData?: AboutPageData }) {
   const { data } = useQuery({
     queryKey: ["about-data"],
@@ -39,7 +50,16 @@ export default function AboutClient({ initialData }: { initialData?: AboutPageDa
   const imageHint = resolved.imageHint ?? "team collaboration";
   const principlesData = resolved.principles ?? [];
   const cultureData = resolved.culture ?? [];
-  const highlights = resolved.highlights ?? [];
+  
+  const principlesTitle = resolved.principlesTitle || "The principles behind every engagement.";
+  const principlesDescription = resolved.principlesDescription || "We combine AI diagnostics, product strategy, and performance engineering to build experiences that feel fast, intentional, and unmistakably modern.";
+  const cultureTitle = resolved.cultureTitle || "How we like to work.";
+  const cultureDescription = resolved.cultureDescription || "Our delivery model stays lean and senior. You get direct access to the people doing the work and the data behind every decision.";
+
+  const highlights = (resolved.highlights ?? []).map(item => ({
+    ...item,
+    value: formatHighlightValue(item.value)
+  }));
 
   return (
     <motion.div
@@ -123,12 +143,10 @@ export default function AboutClient({ initialData }: { initialData?: AboutPageDa
         <div className="grid gap-10 lg:grid-cols-[0.9fr_1.1fr] lg:items-center">
           <div className="space-y-4">
             <h2 className="text-3xl font-bold tracking-tight">
-              The principles behind every engagement.
+              {principlesTitle}
             </h2>
             <p className="text-muted-foreground">
-              We combine AI diagnostics, product strategy, and performance
-              engineering to build experiences that feel fast, intentional, and
-              unmistakably modern.
+              {principlesDescription}
             </p>
           </div>
           <div className="grid gap-4 md:grid-cols-3 lg:grid-cols-1">
@@ -152,11 +170,10 @@ export default function AboutClient({ initialData }: { initialData?: AboutPageDa
         <div className="flex flex-col gap-6 md:flex-row md:items-end md:justify-between">
           <div className="max-w-2xl space-y-3">
             <h2 className="text-3xl font-bold tracking-tight">
-              How we like to work.
+              {cultureTitle}
             </h2>
             <p className="text-muted-foreground">
-              Our delivery model stays lean and senior. You get direct access to
-              the people doing the work and the data behind every decision.
+              {cultureDescription}
             </p>
           </div>
           <Button asChild variant="outline">
