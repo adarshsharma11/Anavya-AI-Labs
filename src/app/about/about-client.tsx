@@ -17,7 +17,7 @@ const formatHighlightValue = (value: string) => {
     if (num >= 10) {
       return `${Math.floor(num / 10) * 10}+`;
     }
-    return `${num}+`;
+    return `${num}`;
   }
   return value;
 };
