@@ -39,16 +39,16 @@ export const siteConfig: SiteConfig = {
       href: "/",
     },
     {
-      title: "AI Tools",
-      href: "/ai-tools",
-    },
-    {
-      title: "Services",
-      href: "/services",
+      title: "Scanner",
+      href: "/scanner",
     },
     {
       title: "Blog",
       href: "/blog",
+    },
+    {
+      title: "Services",
+      href: "/services",
     },
     {
       title: "About",
@@ -74,17 +74,17 @@ export const pageMetadata = {
       'AI that finds what is costing your website customers. Get a free, instant analysis of your website is performance, SEO, and user experience.',
     canonical: '/',
   },
-  aiTools: {
-    title: 'AI Tools',
-    description:
-      'Explore AI tools by Anavya AI Labs, including website scanning, competitor comparisons, and conversion insights.',
-    canonical: '/ai-tools',
-  },
   scanner: {
-    title: 'AI Website Scanner Tool',
+    title: 'Free AI Website Scanner & SEO Audit Tool | Anavya AI Labs',
     description:
-      'Free AI website scanner for performance, SEO, accessibility, and security. Get an instant report with actionable fixes.',
+      'Scan your website for SEO, performance, accessibility, and security issues. Get a free AI-powered website audit with instant fixes and competitor insights.',
     canonical: '/scanner',
+  },
+  competitorScanner: {
+    title: 'Competitor Website Scanner & SEO Comparison Tool | Anavya AI Labs',
+    description:
+      'Compare your website against a competitor to uncover SEO, performance, accessibility, and conversion gaps with an AI-powered competitor website scanner.',
+    canonical: '/competitor-scanner',
   },
   services: {
     title: 'AI Services',

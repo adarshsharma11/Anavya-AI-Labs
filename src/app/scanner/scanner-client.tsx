@@ -1,10 +1,9 @@
 "use client";
 
 import React, { useEffect, useMemo, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
+import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useToast } from "@/hooks/use-toast";
 import {
   createScanRequest,
@@ -18,13 +17,12 @@ import { generateScanReportPdf } from "@/lib/pdf/scan-report-pdf";
 
 import { scanSteps } from "./scanner-constants";
 import { AiSuggestions, UnlockEmailCaptureDialog } from "./scanner-shared-components";
-import { CompetitorScanner } from "./scanner-competitor-components";
 import type { Issue, ScanState } from "./scanner-types";
 import {
   clearReportUnlock,
+  getValidScanUrl,
   hasReportContent,
   hasReportUnlockEmail,
-  normalizeUrl,
   readReportUnlockState,
   readReportUnlockEmail,
   setReportUnlock,
@@ -46,15 +44,14 @@ export default function ScannerClient() {
   const [urlValue, setUrlValue] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [scanId, setScanId] = useState<number | null>(null);
-  const [isUnlocked, setIsUnlocked] = useState(false);
-  const [activeTab, setActiveTab] = useState("website");
-  const [isDownloading, setIsDownloading] = useState(false);
-  const [isUrlStateReady, setIsUrlStateReady] = useState(false);
-  const [hasInitialIdInUrl, setHasInitialIdInUrl] = useState(false);
-  const [showEmailCapture, setShowEmailCapture] = useState(false);
-  const [capturedEmail, setCapturedEmail] = useState("");
+  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
+  const [isDownloading, setIsDownloading] = useState<boolean>(false);
+  const [isUrlStateReady, setIsUrlStateReady] = useState<boolean>(false);
+  const [hasInitialIdInUrl, setHasInitialIdInUrl] = useState<boolean>(false);
+  const [showEmailCapture, setShowEmailCapture] = useState<boolean>(false);
+  const [capturedEmail, setCapturedEmail] = useState<string>("");
   const [pendingUnlockScanId, setPendingUnlockScanId] = useState<number | null>(null);
-  const [emailPromptShownBeforeUnlock, setEmailPromptShownBeforeUnlock] = useState(false);
+  const [emailPromptShownBeforeUnlock, setEmailPromptShownBeforeUnlock] = useState<boolean>(false);
   const { isPaying, isFinalizingReport, startPayment } = useRazorpayPayment();
   const { priceLabel: unlockPriceLabel } = usePaymentQuote();
   const { toast } = useToast();
@@ -69,13 +66,8 @@ export default function ScannerClient() {
 
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
-      const tab = params.get("tab");
       const idParam = params.get("id") ?? params.get("scanId");
       const parsedId = idParam ? Number(idParam) : NaN;
-
-      if (tab === "competitor") {
-        setActiveTab("competitor");
-      }
 
       if (Number.isFinite(parsedId) && parsedId > 0) {
         setHasInitialIdInUrl(true);
@@ -87,37 +79,17 @@ export default function ScannerClient() {
 
   useEffect(() => {
     if (typeof window === "undefined" || !isUrlStateReady) return;
-    if (activeTab !== "website") return;
 
     const url = new URL(window.location.href);
     if (scanId && scanId > 0) {
       url.searchParams.set("id", String(scanId));
-      url.searchParams.delete("tab");
     } else {
       url.searchParams.delete("id");
     }
+    url.searchParams.delete("tab");
+    url.searchParams.delete("competitorReportTab");
     window.history.replaceState({}, "", url.toString());
-  }, [scanId, activeTab, isUrlStateReady]);
-
-  const handleTabChange = (value: string) => {
-    setActiveTab(value);
-    if (typeof window === "undefined") return;
-
-    const url = new URL(window.location.href);
-    if (value === "competitor") {
-      setScanId(null);
-      setHasInitialIdInUrl(false);
-      url.searchParams.set("tab", "competitor");
-      url.searchParams.delete("id");
-      url.searchParams.delete("scanId");
-      url.searchParams.delete("reportTab");
-    } else {
-      url.searchParams.delete("tab");
-    }
-    window.history.replaceState({}, "", url.toString());
-  };
-
-  const normalizedUrl = useMemo(() => normalizeUrl(urlValue), [urlValue]);
+  }, [scanId, isUrlStateReady]);
 
   const createScan = useMutation({
     mutationFn: (url: string) => createScanRequest(url),
@@ -162,22 +134,23 @@ export default function ScannerClient() {
 
   useEffect(() => {
     if (scanState !== "results") return;
-    if (activeTab !== "website") return;
     const node = document.getElementById("scan-report");
     if (!node) return;
     const headerOffset = 80;
     const top = node.getBoundingClientRect().top + window.scrollY - headerOffset;
     window.scrollTo({ top, behavior: "smooth" });
-  }, [scanState, activeTab]);
+  }, [scanState]);
 
   const handleScan = () => {
-    if (hasInitialIdInUrl && !normalizedUrl) {
+    const validation = getValidScanUrl(urlValue);
+
+    if (hasInitialIdInUrl && !urlValue.trim()) {
       setErrorMessage("Loaded saved report from URL. Enter a URL to start a new scan.");
       return;
     }
 
-    if (!normalizedUrl) {
-      setErrorMessage("Please enter a website URL.");
+    if (!validation.valid) {
+      setErrorMessage(validation.error);
       return;
     }
 
@@ -185,7 +158,7 @@ export default function ScannerClient() {
     setScanId(null);
     setIsUnlocked(false);
     clearReportUnlock();
-    createScan.mutate(normalizedUrl);
+    createScan.mutate(validation.normalized);
   };
 
   const runUnlockPayment = (currentScanId: number) => {
@@ -366,142 +339,88 @@ export default function ScannerClient() {
         <Hero />
 
         <div className="mx-auto mt-12 max-w-5xl">
-          <Tabs value={activeTab} onValueChange={handleTabChange}>
-            <TabsList className="grid h-14 w-full grid-cols-2 items-stretch gap-2 rounded-2xl border border-border/60 bg-muted/40 p-1.5 shadow-lg backdrop-blur">
-              <TabsTrigger
-                value="website"
-                className="relative h-full w-full overflow-hidden rounded-xl bg-transparent px-3 py-0 text-muted-foreground transition hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-              >
-                {activeTab === "website" ? (
-                  <motion.span
-                    layoutId="scanner-tab-pill"
-                    className="absolute inset-0 z-0 rounded-xl border border-border/60 bg-gradient-to-r from-emerald-500/15 to-sky-500/15 shadow-[0_12px_30px_rgba(59,130,246,0.12)]"
-                    transition={{ type: "spring", stiffness: 320, damping: 26 }}
-                  />
-                ) : null}
-                <span className="relative z-10">Website scan</span>
-              </TabsTrigger>
-              <TabsTrigger
-                value="competitor"
-                className="relative h-full w-full overflow-hidden rounded-xl bg-transparent px-3 py-0 text-muted-foreground transition hover:text-foreground data-[state=active]:bg-transparent data-[state=active]:text-foreground data-[state=active]:shadow-none"
-              >
-                {activeTab === "competitor" ? (
-                  <motion.span
-                    layoutId="scanner-tab-pill"
-                    className="absolute inset-0 z-0 rounded-xl border border-border/60 bg-gradient-to-r from-violet-500/15 to-sky-500/15 shadow-[0_12px_30px_rgba(59,130,246,0.12)]"
-                    transition={{ type: "spring", stiffness: 320, damping: 26 }}
-                  />
-                ) : null}
-                <span className="relative z-10">Competitor scan</span>
-              </TabsTrigger>
-            </TabsList>
+          <ScanInput
+            urlValue={urlValue}
+            onUrlChange={setUrlValue}
+            onScan={handleScan}
+            scanning={scanState === "scanning"}
+            errorMessage={errorMessage}
+          />
 
-            <div className="mt-6">
-              <AnimatePresence mode="wait">
-                {activeTab === "website" ? (
-                  <motion.div
-                    key="website"
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.35, ease: "easeOut" }}
-                  >
-                    <ScanInput
-                      urlValue={urlValue}
-                      onUrlChange={setUrlValue}
-                      onScan={handleScan}
-                      scanning={scanState === "scanning"}
-                      errorMessage={errorMessage}
-                    />
+          {scanState === "scanning" ? (
+            <motion.div
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.4 }}
+              className="mt-6"
+            >
+              <ScanLoader activeStep={scanSteps[activeStep]} />
+            </motion.div>
+          ) : null}
 
-                    {scanState === "scanning" ? (
-                      <motion.div
-                        initial={{ opacity: 0, y: 16 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.4 }}
-                      >
-                        <ScanLoader activeStep={scanSteps[activeStep]} />
-                      </motion.div>
-                    ) : null}
-
-                    {scanState === "results" && reportData ? (
-                      <motion.div
-                        id="scan-report"
-                        initial={{ opacity: 0, y: 18 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        transition={{ duration: 0.5 }}
-                        className="mt-14 space-y-10"
-                      >
-                        <ResultsHeader
-                          url={reportData.url}
-                          overall={reportData.preview.overall}
-                          verdict={reportData.preview.verdict}
-                          totalIssues={reportData.preview.totalIssuesFound}
-                          onReset={handleReset}
-                          unlocked={!locked}
-                          onDownload={handleDownload}
-                          onUnlock={handleUnlock}
-                          unlockPriceLabel={unlockPriceLabel}
-                          unlocking={isPaying}
-                          unlockingLabel={unlockingLabel}
-                          downloading={isDownloading}
-                        />
-                        {!locked ? (
-                          <FullReportSection
-                            report={fullReport}
-                            pending={!hasFullReportContent}
-                          />
-                        ) : null}
-                        <div className="grid gap-6 lg:grid-cols-2">
-                          <ScoreOverview
-                            overall={reportData.preview.overall}
-                            categories={reportData.preview.categories}
-                            indexing={reportData.preview.indexing}
-                            social={reportData.preview.social}
-                          />
-                          <MetricsCard
-                            metrics={reportData.preview.metrics}
-                            improvements={reportData.preview.improvements}
-                            seoMeta={reportData.preview.seoMeta}
-                          />
-                        </div>
-                        <IssuesList
-                          issues={previewIssues}
-                          totalIssues={reportData.preview.totalIssuesFound}
-                          locked={locked}
-                          lockedCount={lockedIssuesCount}
-                          onUnlock={handleUnlock}
-                          unlockPriceLabel={unlockPriceLabel}
-                          unlocking={isPaying}
-                          unlockingLabel={unlockingLabel}
-                        />
-                        <AiSuggestions
-                          title="AI suggestions"
-                          suggestions={aiSuggestions}
-                          locked={locked}
-                          onUnlock={handleUnlock}
-                          unlockPriceLabel={unlockPriceLabel}
-                          unlocking={isPaying}
-                          unlockingLabel={unlockingLabel}
-                          description="Paid report includes actionable AI recommendations."
-                        />
-                      </motion.div>
-                    ) : null}
-                  </motion.div>
-                ) : (
-                  <motion.div
-                    key="competitor"
-                    initial={{ opacity: 0, y: 12 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: -8 }}
-                    transition={{ duration: 0.35, ease: "easeOut" }}
-                  >
-                    <CompetitorScanner />
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-          </Tabs>
+          {scanState === "results" && reportData ? (
+            <motion.div
+              id="scan-report"
+              initial={{ opacity: 0, y: 18 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5 }}
+              className="mt-14 space-y-10"
+            >
+              <ResultsHeader
+                url={reportData.url}
+                overall={reportData.preview.overall}
+                verdict={reportData.preview.verdict}
+                totalIssues={reportData.preview.totalIssuesFound}
+                onReset={handleReset}
+                unlocked={!locked}
+                onDownload={handleDownload}
+                onUnlock={handleUnlock}
+                unlockPriceLabel={unlockPriceLabel}
+                unlocking={isPaying}
+                unlockingLabel={unlockingLabel}
+                downloading={isDownloading}
+              />
+              {!locked ? (
+                <FullReportSection
+                  report={fullReport}
+                  pending={!hasFullReportContent}
+                />
+              ) : null}
+              <div className="grid gap-6 lg:grid-cols-2">
+                <ScoreOverview
+                  overall={reportData.preview.overall}
+                  categories={reportData.preview.categories}
+                  indexing={reportData.preview.indexing}
+                  social={reportData.preview.social}
+                />
+                <MetricsCard
+                  metrics={reportData.preview.metrics}
+                  improvements={reportData.preview.improvements}
+                  seoMeta={reportData.preview.seoMeta}
+                />
+              </div>
+              <IssuesList
+                issues={previewIssues}
+                totalIssues={reportData.preview.totalIssuesFound}
+                locked={locked}
+                lockedCount={lockedIssuesCount}
+                onUnlock={handleUnlock}
+                unlockPriceLabel={unlockPriceLabel}
+                unlocking={isPaying}
+                unlockingLabel={unlockingLabel}
+              />
+              <AiSuggestions
+                title="AI suggestions"
+                suggestions={aiSuggestions}
+                locked={locked}
+                onUnlock={handleUnlock}
+                unlockPriceLabel={unlockPriceLabel}
+                unlocking={isPaying}
+                unlockingLabel={unlockingLabel}
+                description="Paid report includes actionable AI recommendations."
+              />
+            </motion.div>
+          ) : null}
         </div>
       </section>
     </motion.div>

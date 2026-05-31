@@ -26,11 +26,28 @@ export function CtaSection() {
               Get your free, no-obligation website analysis now and start
               turning visitors into customers.
             </p>
-            <div className="mt-10">
+            <div className="mt-10 flex flex-wrap items-center justify-center gap-4">
               <Button asChild size="lg">
                 <Link href="/scanner">Get Your Free Scan</Link>
               </Button>
+              <Button asChild size="lg" variant="outline">
+                <Link href="/competitor-scanner">Compare Against Competitors</Link>
+              </Button>
             </div>
+            <p className="mx-auto mt-5 max-w-2xl text-sm text-muted-foreground">
+              Internal tools:{" "}
+              <Link href="/scanner" className="font-medium text-foreground underline-offset-4 hover:underline">
+                website scanner
+              </Link>{" "}
+              for single-site audits and{" "}
+              <Link
+                href="/competitor-scanner"
+                className="font-medium text-foreground underline-offset-4 hover:underline"
+              >
+                competitor scanner
+              </Link>{" "}
+              for side-by-side SEO and performance comparisons.
+            </p>
           </motion.div>
         </div>
       </div>

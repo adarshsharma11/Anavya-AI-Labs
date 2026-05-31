@@ -76,10 +76,28 @@ export function HeroSection() {
             </motion.div>
             <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}>
               <Button asChild variant="outline" size="lg">
-                <Link href="/services">Explore services</Link>
+                <Link href="/competitor-scanner">Compare competitors</Link>
               </Button>
             </motion.div>
           </motion.div>
+
+          <motion.p
+            className="mt-5 max-w-2xl text-sm text-muted-foreground"
+            variants={itemVariants}
+          >
+            Start with a{" "}
+            <Link href="/scanner" className="font-medium text-foreground underline-offset-4 hover:underline">
+              free website scanner
+            </Link>{" "}
+            or jump to the{" "}
+            <Link
+              href="/competitor-scanner"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              competitor scanner
+            </Link>{" "}
+            when you want side-by-side SEO and performance benchmarking.
+          </motion.p>
 
           <motion.div
             className="mt-10 flex flex-wrap items-center justify-center gap-3"

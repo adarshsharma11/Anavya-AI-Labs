@@ -4,14 +4,13 @@ import { siteConfig } from "@/config/site";
 
 const ROUTES = [
   "/",
-  "/ai-tools",
   "/scanner",
+  "/competitor-scanner",
   "/services",
-  // "/pricing",
   "/portfolio",
-  "/case-study",
   "/blog",
   "/about",
+  "/contact",
 ] as const;
 
 export default function sitemap(): MetadataRoute.Sitemap {

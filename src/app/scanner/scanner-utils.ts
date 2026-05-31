@@ -16,6 +16,59 @@ export function normalizeUrl(value: string) {
   return `https://${trimmed}`;
 }
 
+export function getValidScanUrl(value: string) {
+  const normalized = normalizeUrl(value);
+  if (!normalized) {
+    return { valid: false as const, normalized: "", error: "Please enter a website URL." };
+  }
+
+  // Prevent plain search-style phrases like "this too" or "seo audit tool".
+  if (/\s/.test(value.trim())) {
+    return {
+      valid: false as const,
+      normalized: "",
+      error: "Enter a valid website URL like example.com or https://example.com.",
+    };
+  }
+
+  try {
+    const parsed = new URL(normalized);
+    const protocol = parsed.protocol.toLowerCase();
+    const hostname = parsed.hostname.toLowerCase();
+
+    if (protocol !== "http:" && protocol !== "https:") {
+      return {
+        valid: false as const,
+        normalized: "",
+        error: "Only http and https website URLs are supported.",
+      };
+    }
+
+    const isIpv4 = /^(\d{1,3}\.){3}\d{1,3}$/.test(hostname);
+    const isDomainLike =
+      hostname.includes(".") &&
+      !hostname.startsWith(".") &&
+      !hostname.endsWith(".") &&
+      /^[a-z0-9.-]+$/.test(hostname);
+
+    if (!isDomainLike && !isIpv4) {
+      return {
+        valid: false as const,
+        normalized: "",
+        error: "Enter a valid public website domain like example.com.",
+      };
+    }
+
+    return { valid: true as const, normalized: parsed.toString() };
+  } catch {
+    return {
+      valid: false as const,
+      normalized: "",
+      error: "Enter a valid website URL like example.com or https://example.com.",
+    };
+  }
+}
+
 export function formatDomain(url: string) {
   try {
     return new URL(url).hostname.replace(/^www\./, "");

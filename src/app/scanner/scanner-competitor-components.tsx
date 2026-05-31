@@ -22,10 +22,10 @@ import { competitorSteps } from "./scanner-constants";
 import {
   clearReportUnlock,
   formatDomain,
+  getValidScanUrl,
   getComparableSiteKey,
   hasReportContent,
   hasReportUnlockEmail,
-  normalizeUrl,
   readReportUnlockEmail,
   readReportUnlockState,
   setReportUnlock,
@@ -45,7 +45,11 @@ import {
 } from "./scanner-competitor-cards";
 import { FullReportSection } from "./scanner-website-components";
 
-export function CompetitorScanner() {
+export function CompetitorScanner({
+  standalone = false,
+}: {
+  standalone?: boolean;
+}) {
   const [primaryUrl, setPrimaryUrl] = useState("");
   const [competitorUrl, setCompetitorUrl] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
@@ -66,11 +70,15 @@ export function CompetitorScanner() {
     : "Processing payment...";
   const queryClient = useQueryClient();
 
-  const normalizedPrimary = useMemo(() => normalizeUrl(primaryUrl), [primaryUrl]);
-  const normalizedCompetitor = useMemo(
-    () => normalizeUrl(competitorUrl),
+  const primaryValidation = useMemo(() => getValidScanUrl(primaryUrl), [primaryUrl]);
+  const competitorValidation = useMemo(
+    () => getValidScanUrl(competitorUrl),
     [competitorUrl]
   );
+  const normalizedPrimary = primaryValidation.valid ? primaryValidation.normalized : "";
+  const normalizedCompetitor = competitorValidation.valid
+    ? competitorValidation.normalized
+    : "";
 
   useEffect(() => {
     setIsUnlocked(readReportUnlockState());
@@ -79,7 +87,7 @@ export function CompetitorScanner() {
     if (typeof window !== "undefined") {
       const params = new URLSearchParams(window.location.search);
       const tab = params.get("tab");
-      if (tab === "competitor") {
+      if (standalone || tab === "competitor") {
         const idParam = params.get("id") ?? params.get("scanId");
         const parsedId = idParam ? Number(idParam) : NaN;
         if (Number.isFinite(parsedId) && parsedId > 0) {
@@ -94,14 +102,21 @@ export function CompetitorScanner() {
     if (typeof window === "undefined" || !isUrlStateReady) return;
 
     const url = new URL(window.location.href);
-    url.searchParams.set("tab", "competitor");
+    if (!standalone) {
+      url.searchParams.set("tab", "competitor");
+    }
     if (scanId && scanId > 0) {
       url.searchParams.set("id", String(scanId));
     } else {
       url.searchParams.delete("id");
     }
+    if (standalone) {
+      url.searchParams.delete("tab");
+      url.searchParams.delete("reportTab");
+      url.searchParams.delete("competitorReportTab");
+    }
     window.history.replaceState({}, "", url.toString());
-  }, [scanId, isUrlStateReady]);
+  }, [scanId, isUrlStateReady, standalone]);
 
   const createScan = useMutation({
     mutationFn: (input: { url: string; competitorUrl: string }) =>
@@ -148,8 +163,18 @@ export function CompetitorScanner() {
   }, [scanState]);
 
   const handleCompare = () => {
-    if (!normalizedPrimary || !normalizedCompetitor) {
+    if (!primaryUrl.trim() || !competitorUrl.trim()) {
       setErrorMessage("Enter both websites to compare.");
+      return;
+    }
+
+    if (!primaryValidation.valid) {
+      setErrorMessage(primaryValidation.error);
+      return;
+    }
+
+    if (!competitorValidation.valid) {
+      setErrorMessage(competitorValidation.error);
       return;
     }
 

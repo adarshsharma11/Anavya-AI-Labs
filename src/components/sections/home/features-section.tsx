@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { motion } from "framer-motion";
 import {
   BarChart,
@@ -72,6 +73,20 @@ export function FeaturesSection() {
           <p className="mt-6 text-lg text-muted-foreground">
             A modern audit stack that connects engineering fixes to business
             outcomes.
+          </p>
+          <p className="mt-4 text-sm text-muted-foreground">
+            Use the{" "}
+            <Link href="/scanner" className="font-medium text-foreground underline-offset-4 hover:underline">
+              AI website scanner
+            </Link>{" "}
+            for a focused audit, or open the{" "}
+            <Link
+              href="/competitor-scanner"
+              className="font-medium text-foreground underline-offset-4 hover:underline"
+            >
+              competitor scanner
+            </Link>{" "}
+            to benchmark your site against another website.
           </p>
         </div>
         <motion.div
