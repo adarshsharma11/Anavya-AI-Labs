@@ -22,7 +22,7 @@ interface DashboardAnalytics {
 export default function DashboardOverviewPage() {
   const { user } = useAuth();
   const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
 
   useEffect(() => {
     if (!user) return;

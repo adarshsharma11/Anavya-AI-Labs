@@ -19,17 +19,17 @@ import { Textarea } from "@/components/ui/textarea";
 
 export default function AdminServicesPage() {
   const [services, setServices] = useState<ServiceItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editorOpen, setEditorOpen] = useState<boolean>(false);
   const [editingService, setEditingService] = useState<ServiceItem | null>(null);
 
   // Form states
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [description, setDescription] = useState("");
-  const [icon, setIcon] = useState("");
-  const [ctaLabel, setCtaLabel] = useState("Learn More");
-  const [ctaHref, setCtaHref] = useState("/services");
+  const [title, setTitle] = useState<string>("");
+  const [slug, setSlug] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [icon, setIcon] = useState<string>("");
+  const [ctaLabel, setCtaLabel] = useState<string>("Learn More");
+  const [ctaHref, setCtaHref] = useState<string>("/services");
 
   const { toast } = useToast();
 

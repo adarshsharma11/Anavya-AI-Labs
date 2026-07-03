@@ -20,22 +20,22 @@ import { Textarea } from "@/components/ui/textarea";
 
 export default function AdminBlogsPage() {
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editorOpen, setEditorOpen] = useState<boolean>(false);
   const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
 
   // Form states
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [excerpt, setExcerpt] = useState("");
-  const [content, setContent] = useState("");
-  const [category, setCategory] = useState("");
-  const [image, setImage] = useState("");
-  const [tags, setTags] = useState("");
-  const [readTime, setReadTime] = useState("");
-  const [authorName, setAuthorName] = useState("");
-  const [authorRole, setAuthorRole] = useState("");
-  const [authorAvatar, setAuthorAvatar] = useState("https://api.dicebear.com/7.x/initials/svg?seed=Anavya");
+  const [title, setTitle] = useState<string>("");
+  const [slug, setSlug] = useState<string>("");
+  const [excerpt, setExcerpt] = useState<string>("");
+  const [content, setContent] = useState<string>("");
+  const [category, setCategory] = useState<string>("");
+  const [image, setImage] = useState<string>("");
+  const [tags, setTags] = useState<string>("");
+  const [readTime, setReadTime] = useState<string>("");
+  const [authorName, setAuthorName] = useState<string>("");
+  const [authorRole, setAuthorRole] = useState<string>("");
+  const [authorAvatar, setAuthorAvatar] = useState<string>("https://api.dicebear.com/7.x/initials/svg?seed=Anavya");
 
   const { toast } = useToast();
 

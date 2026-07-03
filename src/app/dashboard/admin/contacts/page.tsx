@@ -29,7 +29,7 @@ interface ContactItem {
 
 export default function AdminContactsPage() {
   const [contacts, setContacts] = useState<ContactItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const [selectedContact, setSelectedContact] = useState<ContactItem | null>(null);
   const { toast } = useToast();
 

@@ -27,18 +27,18 @@ interface AboutCulture {
 }
 
 export default function AdminAboutPage() {
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [saving, setSaving] = useState<boolean>(false);
 
   // Form Fields
-  const [title, setTitle] = useState("");
-  const [description, setDescription] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [imageHint, setImageHint] = useState("");
-  const [principlesTitle, setPrinciplesTitle] = useState("");
-  const [principlesDescription, setPrinciplesDescription] = useState("");
-  const [cultureTitle, setCultureTitle] = useState("");
-  const [cultureDescription, setCultureDescription] = useState("");
+  const [title, setTitle] = useState<string>("");
+  const [description, setDescription] = useState<string>("");
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [imageHint, setImageHint] = useState<string>("");
+  const [principlesTitle, setPrinciplesTitle] = useState<string>("");
+  const [principlesDescription, setPrinciplesDescription] = useState<string>("");
+  const [cultureTitle, setCultureTitle] = useState<string>("");
+  const [cultureDescription, setCultureDescription] = useState<string>("");
 
   // JSON Array fields
   const [badges, setBadges] = useState<string[]>([]);

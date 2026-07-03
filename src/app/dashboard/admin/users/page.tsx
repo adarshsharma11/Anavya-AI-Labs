@@ -23,7 +23,7 @@ interface AdminUserItem {
 
 export default function AdminUsersPage() {
   const [users, setUsers] = useState<AdminUserItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState<boolean>(true);
   const { toast } = useToast();
 
   const fetchUsers = async () => {

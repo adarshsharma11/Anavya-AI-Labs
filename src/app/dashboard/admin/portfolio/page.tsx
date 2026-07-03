@@ -19,18 +19,18 @@ import { Badge } from "@/components/ui/badge";
 
 export default function AdminPortfolioPage() {
   const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [editorOpen, setEditorOpen] = useState(false);
+  const [loading, setLoading] = useState<boolean>(true);
+  const [editorOpen, setEditorOpen] = useState<boolean>(false);
   const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
 
   // Form states
-  const [title, setTitle] = useState("");
-  const [slug, setSlug] = useState("");
-  const [summary, setSummary] = useState("");
-  const [tags, setTags] = useState("");
-  const [imageUrl, setImageUrl] = useState("");
-  const [imageHint, setImageHint] = useState("");
-  const [imageKey, setImageKey] = useState("");
+  const [title, setTitle] = useState<string>("");
+  const [slug, setSlug] = useState<string>("");
+  const [summary, setSummary] = useState<string>("");
+  const [tags, setTags] = useState<string>("");
+  const [imageUrl, setImageUrl] = useState<string>("");
+  const [imageHint, setImageHint] = useState<string>("");
+  const [imageKey, setImageKey] = useState<string>("");
 
   const { toast } = useToast();
 
@@ -61,8 +61,8 @@ export default function AdminPortfolioPage() {
     setTitle("");
     setSlug("");
     setSummary("");
-    setTags("Web, Design, UX");
-    setImageUrl("https://images.unsplash.com/photo-1551288049-bebda4e38f71?auto=format&fit=crop&w=1200&q=80");
+    setTags("");
+    setImageUrl("");
     setImageHint("");
     setImageKey("portfolio-image");
     setEditorOpen(true);
