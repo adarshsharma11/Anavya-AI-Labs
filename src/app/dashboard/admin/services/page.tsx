@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { fetchServices } from "@/lib/api/services";
+import { fetchServices, ServiceItem } from "@/lib/api/services";
 import { createServiceApi, updateServiceApi, deleteServiceApi } from "@/lib/api/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,16 +18,16 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function AdminServicesPage() {
-  const [services, setServices] = useState<any[]>([]);
+  const [services, setServices] = useState<ServiceItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editingService, setEditingService] = useState<any | null>(null);
+  const [editingService, setEditingService] = useState<ServiceItem | null>(null);
 
   // Form states
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [description, setDescription] = useState("");
-  const [icon, setIcon] = useState("Bot");
+  const [icon, setIcon] = useState("");
   const [ctaLabel, setCtaLabel] = useState("Learn More");
   const [ctaHref, setCtaHref] = useState("/services");
 
@@ -58,7 +58,7 @@ export default function AdminServicesPage() {
     setTitle("");
     setSlug("");
     setDescription("");
-    setIcon("Bot");
+    setIcon("");
     setCtaLabel("Learn More");
     setCtaHref("/services");
     setEditorOpen(true);

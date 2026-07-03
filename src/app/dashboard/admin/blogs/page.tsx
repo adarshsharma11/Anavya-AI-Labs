@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getBlogsApi } from "@/lib/api/blogs";
+import { getBlogsApi, BlogPost } from "@/lib/api/blogs";
 import { createBlogApi, updateBlogApi, deleteBlogApi } from "@/lib/api/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -19,22 +19,22 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
 export default function AdminBlogsPage() {
-  const [blogs, setBlogs] = useState<any[]>([]);
+  const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editingBlog, setEditingBlog] = useState<any | null>(null);
+  const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
 
   // Form states
   const [title, setTitle] = useState("");
   const [slug, setSlug] = useState("");
   const [excerpt, setExcerpt] = useState("");
   const [content, setContent] = useState("");
-  const [category, setCategory] = useState("SEO");
+  const [category, setCategory] = useState("");
   const [image, setImage] = useState("");
   const [tags, setTags] = useState("");
-  const [readTime, setReadTime] = useState("5 min read");
-  const [authorName, setAuthorName] = useState("Anavya Team");
-  const [authorRole, setAuthorRole] = useState("Growth & SEO");
+  const [readTime, setReadTime] = useState("");
+  const [authorName, setAuthorName] = useState("");
+  const [authorRole, setAuthorRole] = useState("");
   const [authorAvatar, setAuthorAvatar] = useState("https://api.dicebear.com/7.x/initials/svg?seed=Anavya");
 
   const { toast } = useToast();
@@ -67,12 +67,12 @@ export default function AdminBlogsPage() {
     setSlug("");
     setExcerpt("");
     setContent("");
-    setCategory("SEO");
-    setImage("https://images.unsplash.com/photo-1432821596592-e2c18b78144f?auto=format&fit=crop&w=1200&q=80");
-    setTags("SEO, Performance, Growth");
-    setReadTime("5 min read");
-    setAuthorName("Anavya Team");
-    setAuthorRole("Growth & SEO");
+    setCategory("");
+    setImage("");
+    setTags("");
+    setReadTime("");
+    setAuthorName("");
+    setAuthorRole("");
     setAuthorAvatar("https://api.dicebear.com/7.x/initials/svg?seed=Anavya");
     setEditorOpen(true);
   };

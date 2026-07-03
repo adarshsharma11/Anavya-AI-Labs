@@ -10,6 +10,22 @@ import { Info, Save, Plus, Trash2, Heart, Award, Sparkles } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 
+interface AboutHighlight {
+  value: string;
+  label: string;
+  detail: string;
+}
+
+interface AboutPrinciple {
+  title: string;
+  description: string;
+}
+
+interface AboutCulture {
+  title: string;
+  description: string;
+}
+
 export default function AdminAboutPage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -26,9 +42,9 @@ export default function AdminAboutPage() {
 
   // JSON Array fields
   const [badges, setBadges] = useState<string[]>([]);
-  const [highlights, setHighlights] = useState<any[]>([]);
-  const [principles, setPrinciples] = useState<any[]>([]);
-  const [culture, setCulture] = useState<any[]>([]);
+  const [highlights, setHighlights] = useState<AboutHighlight[]>([]);
+  const [principles, setPrinciples] = useState<AboutPrinciple[]>([]);
+  const [culture, setCulture] = useState<AboutCulture[]>([]);
 
   const { toast } = useToast();
 
@@ -83,7 +99,7 @@ export default function AdminAboutPage() {
     setHighlights(prev => [...prev, { value: "100%", label: "Metric", detail: "Detail statement" }]);
   };
 
-  const handleUpdateHighlight = (index: number, key: string, val: string) => {
+  const handleUpdateHighlight = (index: number, key: keyof AboutHighlight, val: string) => {
     setHighlights(prev =>
       prev.map((h, i) => (i === index ? { ...h, [key]: val } : h))
     );
@@ -98,7 +114,7 @@ export default function AdminAboutPage() {
     setPrinciples(prev => [...prev, { title: "Value Title", description: "Value explanation details" }]);
   };
 
-  const handleUpdatePrinciple = (index: number, key: string, val: string) => {
+  const handleUpdatePrinciple = (index: number, key: keyof AboutPrinciple, val: string) => {
     setPrinciples(prev =>
       prev.map((p, i) => (i === index ? { ...p, [key]: val } : p))
     );
@@ -113,7 +129,7 @@ export default function AdminAboutPage() {
     setCulture(prev => [...prev, { title: "Culture Element", description: "Culture environment details" }]);
   };
 
-  const handleUpdateCulture = (index: number, key: string, val: string) => {
+  const handleUpdateCulture = (index: number, key: keyof AboutCulture, val: string) => {
     setCulture(prev =>
       prev.map((c, i) => (i === index ? { ...c, [key]: val } : c))
     );

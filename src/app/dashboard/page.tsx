@@ -9,9 +9,19 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Activity, MousePointerClick, FileText, CheckCircle, Users, Shield, Accessibility } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 
+interface DashboardAnalytics {
+  totalUsers?: number;
+  totalScans: number;
+  avgPerformanceScore: number;
+  avgSeoScore: number;
+  avgAccessibilityScore?: number;
+  avgSecurityScore?: number;
+  totalIssuesFound: number;
+}
+
 export default function DashboardOverviewPage() {
   const { user } = useAuth();
-  const [analytics, setAnalytics] = useState<any>(null);
+  const [analytics, setAnalytics] = useState<DashboardAnalytics | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {

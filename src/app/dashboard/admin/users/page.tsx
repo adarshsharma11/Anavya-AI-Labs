@@ -8,8 +8,21 @@ import { useToast } from "@/hooks/use-toast";
 import { Users, Trash2, Globe, Shield, Calendar } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
+interface AdminUserItem {
+  id: number;
+  name: string;
+  email: string;
+  username?: string;
+  phoneNumber?: string;
+  companyName?: string;
+  companyLogoUrl?: string;
+  role: string;
+  createdAt: string;
+  scanCount: number;
+}
+
 export default function AdminUsersPage() {
-  const [users, setUsers] = useState<any[]>([]);
+  const [users, setUsers] = useState<AdminUserItem[]>([]);
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
@@ -54,7 +67,7 @@ export default function AdminUsersPage() {
           title: "User Deleted",
           description: "User account deleted successfully.",
         });
-        setUsers(prev => prev.filter(u => u.id !== id));
+        setUsers((prev: AdminUserItem[]) => prev.filter(u => u.id !== id));
       }
     } catch (err: any) {
       console.error(err);

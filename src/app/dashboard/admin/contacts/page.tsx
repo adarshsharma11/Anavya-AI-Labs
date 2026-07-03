@@ -16,10 +16,21 @@ import {
 } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
 
+interface ContactItem {
+  id: number;
+  name: string;
+  email: string;
+  subject: string;
+  message: string;
+  status: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export default function AdminContactsPage() {
-  const [contacts, setContacts] = useState<any[]>([]);
+  const [contacts, setContacts] = useState<ContactItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [selectedContact, setSelectedContact] = useState<any | null>(null);
+  const [selectedContact, setSelectedContact] = useState<ContactItem | null>(null);
   const { toast } = useToast();
 
   const fetchContacts = async () => {
@@ -56,11 +67,11 @@ export default function AdminContactsPage() {
           title: "Status Updated",
           description: `Status changed to ${nextStatus}`,
         });
-        setContacts((prev: any[]) =>
+        setContacts((prev: ContactItem[]) =>
           prev.map(c => (c.id === id ? { ...c, status: nextStatus } : c))
         );
         if (selectedContact && selectedContact.id === id) {
-          setSelectedContact((prev: any) => prev ? { ...prev, status: nextStatus } : null);
+          setSelectedContact((prev: ContactItem | null) => prev ? { ...prev, status: nextStatus } : null);
         }
       }
     } catch (err) {
@@ -82,7 +93,7 @@ export default function AdminContactsPage() {
           title: "Deleted",
           description: "Contact request deleted successfully.",
         });
-        setContacts((prev: any[]) => prev.filter(c => c.id !== id));
+        setContacts((prev: ContactItem[]) => prev.filter(c => c.id !== id));
         setSelectedContact(null);
       }
     } catch (err) {

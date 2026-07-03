@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getPortfolioApi } from "@/lib/api/portfolio";
+import { getPortfolioApi, PortfolioItem } from "@/lib/api/portfolio";
 import { createPortfolioApi, updatePortfolioApi, deletePortfolioApi } from "@/lib/api/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -18,10 +18,10 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 
 export default function AdminPortfolioPage() {
-  const [portfolio, setPortfolio] = useState<any[]>([]);
+  const [portfolio, setPortfolio] = useState<PortfolioItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [editorOpen, setEditorOpen] = useState(false);
-  const [editingItem, setEditingItem] = useState<any | null>(null);
+  const [editingItem, setEditingItem] = useState<PortfolioItem | null>(null);
 
   // Form states
   const [title, setTitle] = useState("");
