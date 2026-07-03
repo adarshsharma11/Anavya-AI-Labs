@@ -12,6 +12,7 @@ interface UserProfile {
   phoneNumber?: string;
   companyName?: string;
   companyLogoUrl?: string;
+  role?: string;
 }
 
 const PROTECTED_ROUTES = [
