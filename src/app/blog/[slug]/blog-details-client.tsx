@@ -3,7 +3,7 @@
 import { motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
-import { ArrowLeft, ArrowRight } from "lucide-react";
+import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 
 import { type BlogPost } from "@/lib/api/blogs";
 import { Badge } from "@/components/ui/badge";
@@ -13,9 +13,10 @@ import { Card } from "@/components/ui/card";
 type BlogDetailsClientProps = {
   post: BlogPost;
   relatedPosts?: BlogPost[];
+  children?: React.ReactNode;
 };
 
-export default function BlogDetailsClient({ post, relatedPosts = [] }: BlogDetailsClientProps) {
+export default function BlogDetailsClient({ post, relatedPosts = [], children }: BlogDetailsClientProps) {
   const author = {
     name: post.authorName,
     role: post.authorRole,
@@ -105,10 +106,26 @@ export default function BlogDetailsClient({ post, relatedPosts = [] }: BlogDetai
           </div>
         </div>
 
-        <article className="mt-12 max-w-3xl space-y-6 text-base leading-relaxed text-muted-foreground">
-          {post.content.map((paragraph) => (
-            <p key={paragraph}>{paragraph}</p>
-          ))}
+        {/* AI Key Insights Summary Card (GEO Optimization) */}
+        <div className="mt-8 rounded-3xl border border-primary/20 bg-primary/5 p-6 md:p-8 backdrop-blur shadow-sm max-w-3xl">
+          <div className="flex items-center gap-2 text-primary font-bold text-sm mb-3 uppercase tracking-wider">
+            <Sparkles className="h-4 w-4 text-primary animate-pulse" />
+            AI Key Takeaways (GEO Summary)
+          </div>
+          <ul className="space-y-2 text-muted-foreground text-sm list-disc pl-5">
+            {post.excerpt.split('. ').filter(Boolean).map((sentence, idx) => {
+              const trimmed = sentence.trim();
+              if (!trimmed) return null;
+              const formatted = trimmed.endsWith('.') ? trimmed : `${trimmed}.`;
+              return (
+                <li key={idx} className="leading-relaxed">{formatted}</li>
+              );
+            })}
+          </ul>
+        </div>
+
+        <article className="mt-12 max-w-3xl prose prose-neutral dark:prose-invert text-base leading-relaxed text-muted-foreground">
+          {children}
         </article>
 
         <div className="mt-12 flex flex-wrap gap-2">
