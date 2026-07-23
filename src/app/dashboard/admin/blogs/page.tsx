@@ -17,12 +17,70 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { cn } from "@/lib/utils";
+
+// Basic Markdown parsing helper for client-side live preview
+const renderMarkdownToHTML = (md: string) => {
+  if (!md) return "";
+  let html = md
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+  
+  html = html.replace(/^### (.*$)/gim, '<h3 class="text-lg font-bold text-foreground mt-4 mb-2">$1</h3>');
+  html = html.replace(/^#### (.*$)/gim, '<h4 class="text-base font-semibold text-foreground mt-3 mb-1">$1</h4>');
+  html = html.replace(/^## (.*$)/gim, '<h2 class="text-xl font-bold text-foreground mt-5 mb-3">$1</h2>');
+  html = html.replace(/^# (.*$)/gim, '<h1 class="text-2xl font-extrabold text-foreground mt-6 mb-4">$1</h1>');
+  html = html.replace(/^\s*&gt;\s+(.*$)/gim, '<blockquote class="border-l-4 border-primary pl-4 italic my-4 text-muted-foreground">$1</blockquote>');
+  html = html.replace(/\*\*(.*?)\*\*/g, '<strong class="font-bold text-foreground">$1</strong>');
+  html = html.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
+  html = html.replace(/```([\s\S]*?)```/gm, '<pre class="bg-muted p-3 rounded-lg overflow-x-auto text-xs font-mono my-3">$1</pre>');
+  html = html.replace(/`([^`\n]+)`/g, '<code class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">$1</code>');
+  html = html.replace(/^\s*-\s+(.*$)/gim, '<li class="list-disc ml-6 my-1 text-muted-foreground">$1</li>');
+  html = html.replace(/^\s*\d+\.\s+(.*$)/gim, '<li class="list-decimal ml-6 my-1 text-muted-foreground">$1</li>');
+  
+  const lines = html.split('\n');
+  let inTable = false;
+  for (let i = 0; i < lines.length; i++) {
+    if (lines[i].trim().startsWith('|')) {
+      if (!inTable) {
+        lines[i] = '<table class="w-full border-collapse border border-border my-4"><thead class="bg-muted"><tr>' + 
+                   lines[i].split('|').slice(1, -1).map(c => `<th class="border border-border p-2 text-left text-xs font-bold">${c.trim()}</th>`).join('') + 
+                   '</tr></thead><tbody>';
+        inTable = true;
+      } else if (lines[i].includes('---')) {
+        lines.splice(i, 1);
+        i--;
+      } else {
+        lines[i] = '<tr>' + 
+                   lines[i].split('|').slice(1, -1).map(c => `<td class="border border-border p-2 text-xs">${c.trim()}</td>`).join('') + 
+                   '</tr>';
+      }
+    } else {
+      if (inTable) {
+        lines[i-1] += '</tbody></table>';
+        inTable = false;
+      }
+    }
+  }
+  html = lines.join('\n');
+  
+  html = html.split(/\n\n+/).map(p => {
+    if (p.trim().startsWith('<h') || p.trim().startsWith('<li') || p.trim().startsWith('<blockquote') || p.trim().startsWith('<table') || p.trim().startsWith('<pre')) {
+      return p;
+    }
+    return `<p class="my-3 leading-relaxed text-muted-foreground">${p}</p>`;
+  }).join('\n');
+  
+  return html;
+};
 
 export default function AdminBlogsPage() {
   const [blogs, setBlogs] = useState<BlogPost[]>([]);
   const [loading, setLoading] = useState<boolean>(true);
   const [editorOpen, setEditorOpen] = useState<boolean>(false);
   const [editingBlog, setEditingBlog] = useState<BlogPost | null>(null);
+  const [activeTab, setActiveTab] = useState<"edit" | "preview">("edit");
 
   // Form states
   const [title, setTitle] = useState<string>("");
@@ -74,6 +132,7 @@ export default function AdminBlogsPage() {
     setAuthorName("");
     setAuthorRole("");
     setAuthorAvatar("https://api.dicebear.com/7.x/initials/svg?seed=Anavya");
+    setActiveTab("edit");
     setEditorOpen(true);
   };
 
@@ -90,6 +149,7 @@ export default function AdminBlogsPage() {
     setAuthorName(blog.authorName);
     setAuthorRole(blog.authorRole);
     setAuthorAvatar(blog.authorAvatar);
+    setActiveTab("edit");
     setEditorOpen(true);
   };
 
@@ -109,7 +169,7 @@ export default function AdminBlogsPage() {
       title,
       slug: slug.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-"),
       excerpt,
-      content: content.split("\n\n").map(p => p.trim()).filter(Boolean),
+      content,
       category,
       image,
       tags: tags.split(",").map(t => t.trim()).filter(Boolean),
@@ -276,9 +336,51 @@ export default function AdminBlogsPage() {
               <Textarea value={excerpt} onChange={e => setExcerpt(e.target.value)} placeholder="Write a short summary..." rows={2} required />
             </div>
 
-            <div className="space-y-1.5">
-              <label className="font-semibold text-foreground">Content (Markdown/Paragraphs) *</label>
-              <Textarea value={content} onChange={e => setContent(e.target.value)} placeholder="Write the main blog content here. Use double newlines for new paragraphs." rows={6} required />
+             <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <label className="font-semibold text-foreground">Content (MDX/Markdown) *</label>
+                <div className="flex rounded-lg border border-border/60 bg-muted/40 p-0.5 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("edit")}
+                    className={cn(
+                      "rounded-md px-3 py-1 transition-colors",
+                      activeTab === "edit"
+                        ? "bg-background text-foreground shadow-sm animate-fade-in"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Write
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setActiveTab("preview")}
+                    className={cn(
+                      "rounded-md px-3 py-1 transition-colors",
+                      activeTab === "preview"
+                        ? "bg-background text-foreground shadow-sm animate-fade-in"
+                        : "text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    Preview
+                  </button>
+                </div>
+              </div>
+              
+              {activeTab === "edit" ? (
+                <Textarea 
+                  value={content} 
+                  onChange={e => setContent(e.target.value)} 
+                  placeholder="Write the blog post in MDX/Markdown. Support headings, lists, comparative tables, and markdown formatting." 
+                  rows={8} 
+                  required 
+                />
+              ) : (
+                <div 
+                  className="prose prose-sm dark:prose-invert max-w-none border border-border/60 rounded-lg p-4 min-h-[200px] max-h-[300px] overflow-y-auto bg-muted/10"
+                  dangerouslySetInnerHTML={{ __html: renderMarkdownToHTML(content) }}
+                />
+              )}
             </div>
 
             <div className="grid gap-4 md:grid-cols-3">
