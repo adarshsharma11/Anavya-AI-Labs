@@ -36,6 +36,7 @@ const renderMarkdownToHTML = (md: string) => {
   html = html.replace(/\*(.*?)\*/g, '<em class="italic">$1</em>');
   html = html.replace(/```([\s\S]*?)```/gm, '<pre class="bg-muted p-3 rounded-lg overflow-x-auto text-xs font-mono my-3">$1</pre>');
   html = html.replace(/`([^`\n]+)`/g, '<code class="bg-muted px-1.5 py-0.5 rounded text-xs font-mono">$1</code>');
+  html = html.replace(/!\[(.*?)\]\((.*?)\)/g, '<img src="$2" alt="$1" class="rounded-lg my-4 max-h-[300px] object-cover mx-auto" />');
   html = html.replace(/^\s*-\s+(.*$)/gim, '<li class="list-disc ml-6 my-1 text-muted-foreground">$1</li>');
   html = html.replace(/^\s*\d+\.\s+(.*$)/gim, '<li class="list-decimal ml-6 my-1 text-muted-foreground">$1</li>');
   
