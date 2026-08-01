@@ -107,7 +107,7 @@ export default function BlogDetailsClient({ post, relatedPosts = [], children }:
         </div>
 
         {/* AI Key Insights Summary Card (GEO Optimization) */}
-        <div className="mt-8 rounded-3xl border border-primary/20 bg-primary/5 p-6 md:p-8 backdrop-blur shadow-sm max-w-3xl">
+        <div className="mt-8 rounded-3xl border border-primary/20 bg-primary/5 p-6 md:p-8 backdrop-blur shadow-sm max-w-6xl mx-auto w-full">
           <div className="flex items-center gap-2 text-primary font-bold text-sm mb-3 uppercase tracking-wider">
             <Sparkles className="h-4 w-4 text-primary animate-pulse" />
             AI Key Takeaways (GEO Summary)
@@ -124,9 +124,11 @@ export default function BlogDetailsClient({ post, relatedPosts = [], children }:
           </ul>
         </div>
 
-        <article className="mt-12 max-w-3xl prose prose-neutral dark:prose-invert text-base leading-relaxed text-muted-foreground">
-          {children}
-        </article>
+        <div className="mt-12 max-w-6xl mx-auto w-full">
+          <article className="prose prose-neutral dark:prose-invert max-w-none text-base leading-relaxed text-muted-foreground prose-img:mx-auto prose-img:max-w-2xl prose-img:w-auto prose-img:rounded-2xl">
+            {children}
+          </article>
+        </div>
 
         <div className="mt-12 flex flex-wrap gap-2">
           {post.tags.map((tag) => (
