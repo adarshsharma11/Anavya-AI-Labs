@@ -1,0 +1,11 @@
+# Anavya AI Labs
+
+Anavya AI Labs is a premium AI-powered website analysis platform providing comprehensive technical SEO, performance, accessibility, security, and GEO (Generative Engine Optimization) audits.
+
+## Key Resources
+- [Home Page](https://anavyaailabs.com/) - Main scanner tools and feature descriptions.
+- [AI Website Scanner](https://anavyaailabs.com/scanner) - Run automated performance, SEO, accessibility, and security scans.
+- [Blog / Knowledge Base](https://anavyaailabs.com/blog) - Articles, case studies, and guides on AI optimization and web engineering.
+- [Services](https://anavyaailabs.com/services) - Professional consulting, custom audits, and site optimization services.
+- [About Us](https://anavyaailabs.com/about) - Learn about our mission and expertise in AI-driven web analysis.
+- [Contact](https://anavyaailabs.com/contact) - Get in touch with our team.

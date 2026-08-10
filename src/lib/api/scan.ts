@@ -324,3 +324,68 @@ export async function fetchPublicScanResult(
   // Keep this function name stable for callers that expect a post-payment refresh API.
   return fetchScanResult(scanId);
 }
+
+export interface GeoCheckResponse {
+  url: string;
+  score: {
+    value: number;
+    max: number;
+  };
+  categories: {
+    crawlability: number;
+    schema: number;
+    content: number;
+    metadata: number;
+    authority: number;
+    technical: number;
+  };
+  checks: {
+    robotsAllowed: boolean;
+    llmsTxt: boolean;
+    sitemap: boolean;
+    schema: boolean;
+    faqSchema: boolean;
+    metaDescription: boolean;
+    canonical: boolean;
+    author: boolean;
+    publishedDate: boolean;
+    openGraph: boolean;
+    twitterCards: boolean;
+    readability: boolean;
+    technical: boolean;
+  };
+  recommendations: Array<{
+    title: string;
+    severity: "high" | "medium" | "low";
+    description: string;
+  }>;
+}
+
+export async function runGeoScanRequest(url: string): Promise<GeoCheckResponse> {
+  // Try candidate paths to be robust
+  const base = API_PREFIX.toLowerCase();
+  const hasApiV1 = base.endsWith("/api/v1") || base.includes("/api/v1/");
+  const candidatePaths = [
+    "/geo/check",
+    ...(hasApiV1 ? [] : ["/api/v1/geo/check", "/api/geo/check"]),
+  ];
+
+  let lastError: Error | null = null;
+
+  for (const path of candidatePaths) {
+    try {
+      const data = await apiFetch<GeoCheckResponse>(path, {
+        method: "POST",
+        body: JSON.stringify({ url }),
+        skipAuthInterceptor: true,
+      });
+      if (data && data.score) {
+        return data;
+      }
+    } catch (err: any) {
+      lastError = err;
+    }
+  }
+
+  throw lastError || new Error("Failed to execute GEO analysis.");
+}
