@@ -9,17 +9,7 @@ type PageProps = {
   params: Promise<{ slug: string }>;
 };
 
-export async function generateStaticParams() {
-  try {
-    const res = await getBlogsApi();
-    if (res.success) {
-      return res.data.map((post) => ({ slug: post.slug }));
-    }
-  } catch (error) {
-    console.error("Failed to generate static params for blogs:", error);
-  }
-  return [];
-}
+export const dynamic = "force-dynamic";
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   const { slug } = await params;
