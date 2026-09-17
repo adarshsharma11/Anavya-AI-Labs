@@ -104,7 +104,7 @@ export default function ContactClient() {
                       </div>
                       <div>
                         <p className="font-medium text-foreground">Email</p>
-                        <a href="mailto:support@anavyaailabs.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">
+                        <a href="mailto:anavyaailabs@gmail.com" className="text-sm text-muted-foreground hover:text-primary transition-colors">
                           support@anavyaailabs.com
                         </a>
                       </div>

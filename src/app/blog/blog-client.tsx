@@ -1,44 +1,80 @@
 "use client";
 
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import Image from "next/image";
 import Link from "next/link";
+import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import { ArrowRight, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { type BlogPost } from "@/lib/api/blogs";
+import {
+  ALL_BLOG_CATEGORY,
+  filterBlogsByCategory,
+  getBlogCategoryTabs,
+} from "@/lib/blog-taxonomy";
+import { cn } from "@/lib/utils";
 
-const categories = ["All", "Design", "Engineering", "AI", "Growth"] as const;
+type BlogClientProps = {
+  initialBlogs?: BlogPost[];
+  initialCategory?: string;
+};
 
-export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogPost[] }) {
-  const posts = initialBlogs.map(p => ({
+export default function BlogClient({
+  initialBlogs = [],
+  initialCategory,
+}: BlogClientProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const searchParams = useSearchParams();
+  const tabs = getBlogCategoryTabs(initialBlogs);
+  const requestedCategory =
+    searchParams.get("category") ?? initialCategory ?? ALL_BLOG_CATEGORY;
+  const knownSlugs = new Set(tabs.map((tab) => tab.slug));
+  const filteredPosts = filterBlogsByCategory(initialBlogs, requestedCategory);
+  const activeCategory =
+    requestedCategory !== ALL_BLOG_CATEGORY &&
+    (knownSlugs.has(requestedCategory) || filteredPosts.length > 0)
+      ? requestedCategory
+      : ALL_BLOG_CATEGORY;
+  const visiblePosts =
+    activeCategory === ALL_BLOG_CATEGORY ? initialBlogs : filteredPosts;
+
+  const posts = visiblePosts.map((p) => ({
     ...p,
     author: {
       name: p.authorName,
       role: p.authorRole,
-      avatar: p.authorAvatar
-    }
+      avatar: p.authorAvatar,
+    },
   }));
 
-  const featuredPostObj = initialBlogs[0];
-
-  const featured = featuredPostObj
+  const featured = posts[0]
     ? {
-      ...featuredPostObj,
-      author: {
-        name: featuredPostObj.authorName,
-        role: featuredPostObj.authorRole,
-        avatar: featuredPostObj.authorAvatar
+        ...posts[0],
+        author: {
+          name: posts[0].authorName,
+          role: posts[0].authorRole,
+          avatar: posts[0].authorAvatar,
+        },
       }
-    }
     : null;
-
-  // Filter posts for the lower grid (excluding the one shown as featured)
   const displayPosts = featured
-    ? posts.filter(p => p.id !== featured.id)
+    ? posts.filter((p) => p.id !== featured.id)
     : [];
+
+  const selectCategory = (slug: string) => {
+    const params = new URLSearchParams(searchParams.toString());
+    if (slug === ALL_BLOG_CATEGORY) {
+      params.delete("category");
+    } else {
+      params.set("category", slug);
+    }
+    const query = params.toString();
+    router.replace(query ? `${pathname}?${query}` : pathname, { scroll: false });
+  };
 
   if (initialBlogs.length === 0) {
     return (
@@ -52,17 +88,14 @@ export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogP
     );
   }
 
-  // Should not happen if initialBlogs.length > 0 but safety first
-  if (!featured) return null;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 24 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="relative overflow-hidden"
+      className="relative"
     >
-      <div className="absolute inset-0 -z-10">
+      <div className="absolute inset-0 -z-10 overflow-hidden">
         <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl" />
         <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl" />
         <div className="absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-amber-300/20 blur-3xl" />
@@ -81,143 +114,191 @@ export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogP
             Field notes from AI operators, product strategists, and performance
             engineers. Practical, sharp, and built for the teams shipping now.
           </p>
-          <div className="mt-8 flex flex-wrap items-center justify-center gap-3">
-            {categories.map((category) => (
-              <Badge
-                key={category}
-                variant={category === "All" ? "default" : "secondary"}
-                className="rounded-full px-4 py-2 text-sm"
-              >
-                {category}
-              </Badge>
-            ))}
+          <div
+            role="tablist"
+            aria-label="Filter posts by category"
+            className="mt-8 flex flex-wrap items-center justify-center gap-3"
+          >
+            {[{ slug: ALL_BLOG_CATEGORY, label: "All" }, ...tabs].map((tab) => {
+              const active = tab.slug === activeCategory;
+              return (
+                <button
+                  key={tab.slug}
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => selectCategory(tab.slug)}
+                  className={cn(
+                    "relative rounded-full px-4 py-2 text-sm font-semibold transition-colors",
+                    active
+                      ? "text-primary-foreground"
+                      : "bg-secondary text-secondary-foreground hover:bg-secondary/80"
+                  )}
+                >
+                  {active ? (
+                    <motion.span
+                      layoutId="blog-category-pill"
+                      className="absolute inset-0 rounded-full bg-primary shadow-sm"
+                      transition={{ type: "spring", stiffness: 420, damping: 32 }}
+                    />
+                  ) : null}
+                  <span className="relative z-10">{tab.label}</span>
+                </button>
+              );
+            })}
           </div>
         </div>
 
-        <div className="mt-14 grid gap-8 lg:grid-cols-[1.35fr_1fr]">
-          <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur">
-            <div className="relative h-64 w-full md:h-80">
-              <Image
-                src={featured.image}
-                alt={featured.title}
-                fill
-                sizes="(max-width: 1024px) 100vw, 60vw"
-                className="object-cover"
-              />
-            </div>
-            <CardHeader className="space-y-4">
-              <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
-                <Badge variant="secondary" className="rounded-full">
-                  {featured.category}
-                </Badge>
-                <span>{featured.date}</span>
-                <span>{featured.readTime}</span>
-              </div>
-              <h2 className="line-clamp-2 min-h-[2.5em] text-2xl font-semibold leading-snug tracking-tight md:text-3xl">
-                {featured.title}
-              </h2>
-              <p className="line-clamp-3 text-base text-muted-foreground">
-                {featured.excerpt}
-              </p>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-6">
-              <div className="flex items-center gap-3">
-                <Image
-                  src={featured.author.avatar}
-                  alt={featured.author.name}
-                  width={44}
-                  height={44}
-                  sizes="44px"
-                  unoptimized
-                  className="h-11 w-11 rounded-full object-cover"
-                />
-                <div>
-                  <p className="text-sm font-semibold">
-                    {featured.author.name}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {featured.author.role}
-                  </p>
-                </div>
-              </div>
-              <Button asChild className="w-fit">
-                <Link href={`/blog/${featured.slug}`}>
-                  Read the feature <ArrowRight className="ml-2 h-4 w-4" />
-                </Link>
-              </Button>
-            </CardContent>
-          </Card>
-
-          <div className="grid gap-6">
-            {displayPosts.slice(0, 3).map((post) => (
-              <Card
-                key={post.slug}
-                className="group flex h-full flex-col gap-4 border-border/60 bg-background/80 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-              >
-                <div className="flex items-center justify-between text-xs text-muted-foreground">
-                  <Badge variant="secondary" className="rounded-full">
-                    {post.category}
-                  </Badge>
-                  <span>{post.readTime}</span>
-                </div>
-                <div className="flex-1">
-                  <h3 className="line-clamp-2 min-h-[2.75em] text-lg font-semibold leading-snug group-hover:text-primary">
-                    {post.title}
-                  </h3>
-                  <p className="mt-2 line-clamp-3 min-h-[3.75em] text-sm text-muted-foreground">
-                    {post.excerpt}
-                  </p>
-                </div>
-                <Button variant="ghost" className="mt-auto w-fit px-0" asChild>
-                  <Link href={`/blog/${post.slug}`}>
-                    Read story <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
-                </Button>
-              </Card>
-            ))}
-          </div>
-        </div>
-
-        <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          {displayPosts.map((post) => (
-            <Card
-              key={post.slug}
-              className="group flex h-full flex-col overflow-hidden border-border/60 bg-background/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
-            >
-              <div className="relative h-44 w-full shrink-0">
-                <Image
-                  src={post.image}
-                  alt={post.title}
-                  fill
-                  sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
-                  className="object-cover transition duration-500 group-hover:scale-105"
-                />
-              </div>
-              <CardHeader className="flex flex-1 flex-col space-y-3">
-                <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-                  <Badge variant="secondary" className="rounded-full">
-                    {post.category}
-                  </Badge>
-                  <span>{post.date}</span>
-                  <span>{post.readTime}</span>
-                </div>
-                <h3 className="line-clamp-2 min-h-[2.75em] text-xl font-semibold leading-snug tracking-tight group-hover:text-primary">
-                  {post.title}
-                </h3>
-                <p className="line-clamp-3 min-h-[4.875em] text-sm leading-relaxed text-muted-foreground">
-                  {post.excerpt}
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={activeCategory}
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+          >
+            {!featured ? (
+              <div className="mt-14 rounded-3xl border border-border/60 bg-background/70 px-6 py-16 text-center">
+                <h2 className="text-2xl font-semibold">No posts in this category yet</h2>
+                <p className="mt-3 text-muted-foreground">
+                  Try another topic, or browse the full journal.
                 </p>
-              </CardHeader>
-              <CardContent className="mt-auto pb-6">
-                <Button variant="outline" asChild>
-                  <Link href={`/blog/${post.slug}`}>
-                    Explore article <ArrowRight className="ml-2 h-4 w-4" />
-                  </Link>
+                <Button className="mt-6" onClick={() => selectCategory(ALL_BLOG_CATEGORY)}>
+                  View all articles
                 </Button>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+              </div>
+            ) : (
+              <>
+                <div className="mt-14 grid gap-8 lg:grid-cols-[1.35fr_1fr]">
+                  <Card className="relative overflow-hidden border-border/60 bg-background/80 shadow-lg backdrop-blur">
+                    <div className="relative h-64 w-full md:h-80">
+                      <Image
+                        src={featured.image}
+                        alt={featured.title}
+                        fill
+                        sizes="(max-width: 1024px) 100vw, 60vw"
+                        className="object-cover"
+                      />
+                    </div>
+                    <CardHeader className="space-y-4">
+                      <div className="flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
+                        <Badge variant="secondary" className="rounded-full">
+                          {featured.category}
+                        </Badge>
+                        <span>{featured.date}</span>
+                        <span>{featured.readTime}</span>
+                      </div>
+                      <h2 className="line-clamp-2 min-h-[2.5em] text-2xl font-semibold leading-snug tracking-tight md:text-3xl">
+                        {featured.title}
+                      </h2>
+                      <p className="line-clamp-3 text-base text-muted-foreground">
+                        {featured.excerpt}
+                      </p>
+                    </CardHeader>
+                    <CardContent className="flex flex-col gap-6">
+                      <div className="flex items-center gap-3">
+                        <Image
+                          src={featured.author.avatar}
+                          alt={featured.author.name}
+                          width={44}
+                          height={44}
+                          sizes="44px"
+                          unoptimized
+                          className="h-11 w-11 rounded-full object-cover"
+                        />
+                        <div>
+                          <p className="text-sm font-semibold">
+                            {featured.author.name}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {featured.author.role}
+                          </p>
+                        </div>
+                      </div>
+                      <Button asChild className="w-fit">
+                        <Link href={`/blog/${featured.slug}`}>
+                          Read the feature <ArrowRight className="ml-2 h-4 w-4" />
+                        </Link>
+                      </Button>
+                    </CardContent>
+                  </Card>
+
+                  <div className="grid gap-6">
+                    {displayPosts.slice(0, 3).map((post) => (
+                      <Card
+                        key={post.slug}
+                        className="group flex h-full flex-col gap-4 border-border/60 bg-background/80 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                      >
+                        <div className="flex items-center justify-between text-xs text-muted-foreground">
+                          <Badge variant="secondary" className="rounded-full">
+                            {post.category}
+                          </Badge>
+                          <span>{post.readTime}</span>
+                        </div>
+                        <div className="flex-1">
+                          <h3 className="line-clamp-2 min-h-[2.75em] text-lg font-semibold leading-snug group-hover:text-primary">
+                            {post.title}
+                          </h3>
+                          <p className="mt-2 line-clamp-3 min-h-[3.75em] text-sm text-muted-foreground">
+                            {post.excerpt}
+                          </p>
+                        </div>
+                        <Button variant="ghost" className="mt-auto w-fit px-0" asChild>
+                          <Link href={`/blog/${post.slug}`}>
+                            Read story <ArrowRight className="ml-2 h-4 w-4" />
+                          </Link>
+                        </Button>
+                      </Card>
+                    ))}
+                  </div>
+                </div>
+
+                {displayPosts.length > 0 ? (
+                  <div className="mt-16 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                    {displayPosts.map((post) => (
+                      <Card
+                        key={post.slug}
+                        className="group flex h-full flex-col overflow-hidden border-border/60 bg-background/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                      >
+                        <div className="relative h-44 w-full shrink-0">
+                          <Image
+                            src={post.image}
+                            alt={post.title}
+                            fill
+                            sizes="(max-width: 768px) 100vw, (max-width: 1200px) 50vw, 33vw"
+                            className="object-cover transition duration-500 group-hover:scale-105"
+                          />
+                        </div>
+                        <CardHeader className="flex flex-1 flex-col space-y-3">
+                          <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
+                            <Badge variant="secondary" className="rounded-full">
+                              {post.category}
+                            </Badge>
+                            <span>{post.date}</span>
+                            <span>{post.readTime}</span>
+                          </div>
+                          <h3 className="line-clamp-2 min-h-[2.75em] text-xl font-semibold leading-snug tracking-tight group-hover:text-primary">
+                            {post.title}
+                          </h3>
+                          <p className="line-clamp-3 min-h-[4.875em] text-sm leading-relaxed text-muted-foreground">
+                            {post.excerpt}
+                          </p>
+                        </CardHeader>
+                        <CardContent className="mt-auto pb-6">
+                          <Button variant="outline" asChild>
+                            <Link href={`/blog/${post.slug}`}>
+                              Explore article <ArrowRight className="ml-2 h-4 w-4" />
+                            </Link>
+                          </Button>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                ) : null}
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
 
         <div className="mt-20 rounded-3xl border border-border/60 bg-gradient-to-br from-foreground/5 via-background to-background p-10 shadow-lg md:p-14">
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
