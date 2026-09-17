@@ -13,6 +13,7 @@ declare global {
 type AdSenseAdProps = {
   adSlot: string;
   className?: string;
+  variant?: "in-article" | "banner";
 };
 
 const ADSENSE_SCRIPT_SELECTOR =
@@ -21,7 +22,7 @@ const ADSENSE_SCRIPT_SELECTOR =
 function loadAdSenseScript(client: string) {
   const existing = document.querySelector<HTMLScriptElement>(ADSENSE_SCRIPT_SELECTOR);
   if (existing) {
-    if (existing.dataset.loaded === "true" || window.adsbygoogle) {
+    if (existing.dataset.loaded === "true") {
       return Promise.resolve();
     }
     return new Promise<void>((resolve, reject) => {
@@ -44,11 +45,39 @@ function loadAdSenseScript(client: string) {
   });
 }
 
-export function AdSenseAd({ adSlot, className }: AdSenseAdProps) {
+function waitUntilVisible(element: Element) {
+  if (element.getBoundingClientRect().width > 0) {
+    const opacity = Number(getComputedStyle(element).opacity);
+    if (opacity > 0) return Promise.resolve();
+  }
+
+  return new Promise<void>((resolve) => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio > 0)) {
+          observer.disconnect();
+          resolve();
+        }
+      },
+      { threshold: 0.01 }
+    );
+    observer.observe(element);
+    window.setTimeout(() => {
+      observer.disconnect();
+      resolve();
+    }, 1500);
+  });
+}
+
+export function AdSenseAd({
+  adSlot,
+  className,
+  variant = "banner",
+}: AdSenseAdProps) {
   const [isClient, setIsClient] = useState(false);
   const pushedRef = useRef(false);
+  const insRef = useRef<HTMLModElement>(null);
   const client = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim();
-  const isDev = process.env.NODE_ENV !== "production";
 
   useEffect(() => {
     setIsClient(true);
@@ -56,12 +85,14 @@ export function AdSenseAd({ adSlot, className }: AdSenseAdProps) {
 
   useEffect(() => {
     if (!isClient || !client || !adSlot || pushedRef.current) return;
+    const ins = insRef.current;
+    if (!ins) return;
 
     let cancelled = false;
 
-    loadAdSenseScript(client)
+    Promise.all([loadAdSenseScript(client), waitUntilVisible(ins)])
       .then(() => {
-        if (cancelled || pushedRef.current) return;
+        if (cancelled || pushedRef.current || !insRef.current) return;
         window.adsbygoogle = window.adsbygoogle || [];
         window.adsbygoogle.push({});
         pushedRef.current = true;
@@ -77,20 +108,28 @@ export function AdSenseAd({ adSlot, className }: AdSenseAdProps) {
 
   if (!isClient || !client || !adSlot) return null;
 
+  const isBanner = variant === "banner";
+
   return (
-    <aside className={cn("not-prose my-5 mx-auto w-full max-w-xl", className)}>
-      {isDev ? (
-        <p className="mb-1 text-center text-[10px] uppercase tracking-wide text-muted-foreground">
-          AdSense unit {adSlot} — Google usually will not fill ads on localhost
-        </p>
-      ) : null}
+    <aside
+      className={cn(
+        "not-prose my-6 w-full",
+        isBanner ? "flex justify-center" : "mx-auto max-w-lg",
+        className
+      )}
+    >
       <ins
+        ref={insRef}
         className="adsbygoogle"
-        style={{ display: "block", width: "100%", height: 90 }}
+        style={
+          isBanner
+            ? { display: "inline-block", width: 300, height: 250 }
+            : { display: "block", width: "100%" }
+        }
         data-ad-client={client}
         data-ad-slot={adSlot}
-        data-ad-format="horizontal"
-        data-full-width-responsive="false"
+        data-ad-format={isBanner ? "rectangle" : "auto"}
+        data-full-width-responsive={isBanner ? "false" : "true"}
       />
     </aside>
   );

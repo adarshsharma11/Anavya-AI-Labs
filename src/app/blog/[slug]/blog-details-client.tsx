@@ -93,7 +93,7 @@ export default function BlogDetailsClient({ post, relatedPosts = [], children }:
   const articleContent = insertAfterNthParagraph(
     children,
     2,
-    <AdSenseAd key="blog-in-article-ad" adSlot={inArticleSlot} />
+    <AdSenseAd key="blog-in-article-ad" adSlot={inArticleSlot} variant="in-article" />
   );
 
   return (
@@ -213,7 +213,7 @@ export default function BlogDetailsClient({ post, relatedPosts = [], children }:
       </section>
 
       <section className="container pb-16">
-        <AdSenseAd adSlot={beforeRelatedSlot} />
+        <AdSenseAd adSlot={beforeRelatedSlot} variant="banner" />
         <div className="flex items-center justify-between">
           <h2 className="text-2xl font-semibold">More from the journal</h2>
           <Button variant="ghost" asChild>
