@@ -7,7 +7,7 @@ import { ArrowRight, Sparkles } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader } from "@/components/ui/card";
 import { type BlogPost } from "@/lib/api/blogs";
 
 const categories = ["All", "Design", "Engineering", "AI", "Growth"] as const;
@@ -113,10 +113,10 @@ export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogP
                 <span>{featured.date}</span>
                 <span>{featured.readTime}</span>
               </div>
-              <CardTitle className="text-2xl leading-tight md:text-3xl">
+              <h2 className="line-clamp-2 min-h-[2.5em] text-2xl font-semibold leading-snug tracking-tight md:text-3xl">
                 {featured.title}
-              </CardTitle>
-              <p className="text-base text-muted-foreground">
+              </h2>
+              <p className="line-clamp-3 text-base text-muted-foreground">
                 {featured.excerpt}
               </p>
             </CardHeader>
@@ -152,7 +152,7 @@ export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogP
             {displayPosts.slice(0, 3).map((post) => (
               <Card
                 key={post.slug}
-                className="group flex flex-col gap-4 border-border/60 bg-background/80 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+                className="group flex h-full flex-col gap-4 border-border/60 bg-background/80 p-5 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
               >
                 <div className="flex items-center justify-between text-xs text-muted-foreground">
                   <Badge variant="secondary" className="rounded-full">
@@ -160,15 +160,15 @@ export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogP
                   </Badge>
                   <span>{post.readTime}</span>
                 </div>
-                <div>
-                  <h3 className="text-lg font-semibold leading-snug group-hover:text-primary">
+                <div className="flex-1">
+                  <h3 className="line-clamp-2 min-h-[2.75em] text-lg font-semibold leading-snug group-hover:text-primary">
                     {post.title}
                   </h3>
-                  <p className="mt-2 text-sm text-muted-foreground">
+                  <p className="mt-2 line-clamp-3 min-h-[3.75em] text-sm text-muted-foreground">
                     {post.excerpt}
                   </p>
                 </div>
-                <Button variant="ghost" className="w-fit px-0" asChild>
+                <Button variant="ghost" className="mt-auto w-fit px-0" asChild>
                   <Link href={`/blog/${post.slug}`}>
                     Read story <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
@@ -182,9 +182,9 @@ export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogP
           {displayPosts.map((post) => (
             <Card
               key={post.slug}
-              className="group overflow-hidden border-border/60 bg-background/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              className="group flex h-full flex-col overflow-hidden border-border/60 bg-background/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
             >
-              <div className="relative h-44 w-full">
+              <div className="relative h-44 w-full shrink-0">
                 <Image
                   src={post.image}
                   alt={post.title}
@@ -193,7 +193,7 @@ export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogP
                   className="object-cover transition duration-500 group-hover:scale-105"
                 />
               </div>
-              <CardHeader className="space-y-3">
+              <CardHeader className="flex flex-1 flex-col space-y-3">
                 <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
                   <Badge variant="secondary" className="rounded-full">
                     {post.category}
@@ -201,12 +201,14 @@ export default function BlogClient({ initialBlogs = [] }: { initialBlogs?: BlogP
                   <span>{post.date}</span>
                   <span>{post.readTime}</span>
                 </div>
-                <CardTitle className="text-xl leading-snug">
+                <h3 className="line-clamp-2 min-h-[2.75em] text-xl font-semibold leading-snug tracking-tight group-hover:text-primary">
                   {post.title}
-                </CardTitle>
-                <p className="text-sm text-muted-foreground">{post.excerpt}</p>
+                </h3>
+                <p className="line-clamp-3 min-h-[4.875em] text-sm leading-relaxed text-muted-foreground">
+                  {post.excerpt}
+                </p>
               </CardHeader>
-              <CardContent className="pb-6">
+              <CardContent className="mt-auto pb-6">
                 <Button variant="outline" asChild>
                   <Link href={`/blog/${post.slug}`}>
                     Explore article <ArrowRight className="ml-2 h-4 w-4" />

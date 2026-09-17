@@ -152,7 +152,7 @@ export default function BlogDetailsClient({ post, relatedPosts = [], children }:
           {relatedPosts.slice(0, 3).map((item) => (
             <Card
               key={item.slug}
-              className="group overflow-hidden border-border/60 bg-background/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
+              className="group flex h-full flex-col overflow-hidden border-border/60 bg-background/80 shadow-sm transition hover:-translate-y-1 hover:shadow-lg"
             >
               <div className="relative h-40 w-full">
                 <Image
@@ -163,18 +163,20 @@ export default function BlogDetailsClient({ post, relatedPosts = [], children }:
                   className="object-cover transition duration-500 group-hover:scale-105"
                 />
               </div>
-              <div className="space-y-3 p-6">
+              <div className="flex flex-1 flex-col space-y-3 p-6">
                 <div className="flex items-center gap-2 text-xs text-muted-foreground">
                   <Badge variant="secondary" className="rounded-full">
                     {item.category}
                   </Badge>
                   <span>{item.readTime}</span>
                 </div>
-                <h3 className="text-lg font-semibold leading-snug">
+                <h3 className="line-clamp-2 min-h-[2.75em] text-lg font-semibold leading-snug">
                   {item.title}
                 </h3>
-                <p className="text-sm text-muted-foreground">{item.excerpt}</p>
-                <Button variant="outline" asChild>
+                <p className="line-clamp-3 min-h-[3.75em] text-sm text-muted-foreground">
+                  {item.excerpt}
+                </p>
+                <Button variant="outline" className="mt-auto w-fit" asChild>
                   <Link href={`/blog/${item.slug}`}>
                     Read more <ArrowRight className="ml-2 h-4 w-4" />
                   </Link>
