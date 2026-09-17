@@ -144,13 +144,18 @@ gtag('config', '${googleAnalyticsId}');`}
         ) : null}
         {googleAdsId ? (
           <>
-           <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${googleAdsId}`}
-     crossOrigin="anonymous" strategy="afterInteractive">
-              {`(adsbygoogle = window.adsbygoogle || []).push({
+            <Script
+              id="google-adsense"
+              src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${googleAdsId}`}
+              crossOrigin="anonymous"
+              strategy="afterInteractive"
+            />
+            <Script id="google-adsense-init" strategy="afterInteractive">
+              {`(window.adsbygoogle = window.adsbygoogle || []).push({
     google_ad_client: "${googleAdsId}",
     enable_page_level_ads: true
 });`}
-          </Script>
+            </Script>
           </>
         ) : null}
         <ThemeProvider
