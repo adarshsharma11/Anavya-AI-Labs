@@ -30,82 +30,108 @@ export function GeoReportSection({ report, onReset }: GeoReportProps) {
   const checklistItems = [
     {
       key: "robotsAllowed",
-      label: "robots.txt allows GPTBot & AI Crawlers",
       passed: report.checks.robotsAllowed,
-      desc: "Dictates whether OpenAI, Anthropic, and other AI systems are allowed to scan your pages."
+      passedLabel: "robots.txt allows GPTBot & AI Crawlers",
+      failedLabel: "robots.txt blocks GPTBot & AI Crawlers",
+      passedDesc: "OpenAI, Anthropic, and other AI systems are allowed to scan your pages.",
+      failedDesc: "AI crawlers are blocked in robots.txt, so GPTBot and similar bots cannot index this site.",
     },
     {
       key: "llmsTxt",
-      label: "llms.txt configuration file present",
       passed: report.checks.llmsTxt,
-      desc: "Provides a clean index file of your resources specifically designed for consumption by LLMs."
+      passedLabel: "llms.txt configuration file present",
+      failedLabel: "llms.txt configuration file not present",
+      passedDesc: "A clean LLM index file was found for your resources.",
+      failedDesc: "No llms.txt file was found at the site root. Add one so LLMs can discover your content.",
     },
     {
       key: "sitemap",
-      label: "Valid XML Sitemap discovered",
       passed: report.checks.sitemap,
-      desc: "Indexes all valid URLs of your site to allow systematic crawling by search robots."
+      passedLabel: "Valid XML Sitemap discovered",
+      failedLabel: "Valid XML Sitemap not discovered",
+      passedDesc: "A sitemap was found to help crawlers discover your URLs.",
+      failedDesc: "No valid sitemap.xml was found. Add one so search and AI crawlers can index your pages.",
     },
     {
       key: "schema",
-      label: "Structured Schema metadata present",
       passed: report.checks.schema,
-      desc: "Validates application/ld+json blocks like Article, Product, or Organization."
+      passedLabel: "Structured Schema metadata present",
+      failedLabel: "Structured Schema metadata not present",
+      passedDesc: "JSON-LD blocks such as Article, Product, or Organization were detected.",
+      failedDesc: "No JSON-LD structured data was found. Add schema so AI systems can identify your entities.",
     },
     {
       key: "faqSchema",
-      label: "FAQ / HowTo structural mapping present",
       passed: report.checks.faqSchema,
-      desc: "Powers conversational AI answers by directly answering specific question patterns."
+      passedLabel: "FAQ / HowTo structural mapping present",
+      failedLabel: "FAQ / HowTo structural mapping not present",
+      passedDesc: "FAQ or HowTo schema is available for conversational AI answers.",
+      failedDesc: "No FAQ or HowTo schema was found. Add it to help AI engines cite direct answers.",
     },
     {
       key: "metaDescription",
-      label: "Meta description tags present",
       passed: report.checks.metaDescription,
-      desc: "Supplies description fragments used by search engines for response recommendation snippets."
+      passedLabel: "Meta description tags present",
+      failedLabel: "Meta description tags not present",
+      passedDesc: "A meta description is available for search and generative snippets.",
+      failedDesc: "No meta description was found. Add one so AI and search engines can summarize the page.",
     },
     {
       key: "canonical",
-      label: "Canonical link tags defined",
       passed: report.checks.canonical,
-      desc: "Consolidates ranking authority for your pages and avoids duplicate content index issues."
+      passedLabel: "Canonical link tags defined",
+      failedLabel: "Canonical link tags not defined",
+      passedDesc: "A canonical URL is defined to consolidate ranking authority.",
+      failedDesc: "No canonical tag was found. Add one to avoid duplicate-content confusion for crawlers.",
     },
     {
       key: "author",
-      label: "Author attribution metadata present",
       passed: report.checks.author,
-      desc: "Supports E-E-A-T score credibility by identifying the source content creators."
+      passedLabel: "Author attribution metadata present",
+      failedLabel: "Author attribution metadata not present",
+      passedDesc: "Author identity metadata was found, which supports E-E-A-T signals.",
+      failedDesc: "No author metadata was found. Add creator attribution to strengthen E-E-A-T credibility.",
     },
     {
       key: "publishedDate",
-      label: "Publication or modification dates present",
       passed: report.checks.publishedDate,
-      desc: "Allows AI engines to determine the age, freshness, and relevance of facts."
+      passedLabel: "Publication or modification dates present",
+      failedLabel: "Publication or modification dates not present",
+      passedDesc: "Publish or modified dates were found so engines can judge freshness.",
+      failedDesc: "No publication or modification date was found. Add dates so AI systems can verify freshness.",
     },
     {
       key: "openGraph",
-      label: "OpenGraph metadata tags complete",
       passed: report.checks.openGraph,
-      desc: "Controls rich media and title layout previews when pages are shared in chat windows."
+      passedLabel: "OpenGraph metadata tags complete",
+      failedLabel: "OpenGraph metadata tags not complete",
+      passedDesc: "Open Graph tags are in place for rich share previews.",
+      failedDesc: "Open Graph tags are missing or incomplete. Add og:title, og:description, and og:image.",
     },
     {
       key: "twitterCards",
-      label: "Twitter Cards meta configuration complete",
       passed: report.checks.twitterCards,
-      desc: "Handles visualization structure when pages are embedded in social feeds."
+      passedLabel: "Twitter Cards meta configuration complete",
+      failedLabel: "Twitter Cards meta configuration not complete",
+      passedDesc: "Twitter Card tags are configured for social embeds.",
+      failedDesc: "Twitter Card tags are missing. Add twitter:card and twitter:title for social previews.",
     },
     {
       key: "readability",
-      label: "Page readability standards met",
       passed: report.checks.readability,
-      desc: "Ensures well-structured paragraph lengths and heading outlines."
+      passedLabel: "Page readability standards met",
+      failedLabel: "Page readability standards not met",
+      passedDesc: "Paragraph length and heading outline meet readability standards.",
+      failedDesc: "The page structure did not meet readability standards. Tighten headings and paragraph length.",
     },
     {
       key: "technical",
-      label: "Technical tags (Viewport & Charset) configured",
       passed: report.checks.technical,
-      desc: "Confirms proper viewport definitions, UTF-8 charsets, and page indexability configurations."
-    }
+      passedLabel: "Technical tags (Viewport & Charset) configured",
+      failedLabel: "Technical tags (Viewport & Charset) not configured",
+      passedDesc: "Viewport, charset, and indexability tags are configured.",
+      failedDesc: "Viewport, charset, or indexability tags are missing or misconfigured.",
+    },
   ];
 
   return (
@@ -233,12 +259,12 @@ export function GeoReportSection({ report, onReset }: GeoReportProps) {
                     <XCircle className="h-5 w-5 text-rose-500" />
                   )}
                 </div>
-                <div className="space-y-0.5">
+                <div className="min-w-0 flex-1 space-y-0.5">
                   <h4 className="text-sm font-semibold text-foreground">
-                    {item.label}
+                    {item.passed ? item.passedLabel : item.failedLabel}
                   </h4>
                   <p className="text-xs text-muted-foreground leading-relaxed">
-                    {item.desc}
+                    {item.passed ? item.passedDesc : item.failedDesc}
                   </p>
                 </div>
               </div>

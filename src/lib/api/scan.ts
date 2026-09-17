@@ -26,7 +26,11 @@ const booleanish = z
     if (["true", "1", "yes", "present", "detected", "found"].includes(normalized)) {
       return true;
     }
-    if (["false", "0", "no", "missing", "absent", "not_found"].includes(normalized)) {
+    if (
+      ["false", "0", "no", "missing", "absent", "not_found", "not present", "not_present"].includes(
+        normalized
+      )
+    ) {
       return false;
     }
     return false;
@@ -361,6 +365,88 @@ export interface GeoCheckResponse {
   }>;
 }
 
+function toGeoCheckBoolean(value: unknown): boolean {
+  if (typeof value === "boolean") return value;
+  if (typeof value === "number") return value !== 0;
+  if (typeof value !== "string") return Boolean(value);
+
+  const normalized = value.trim().toLowerCase();
+  if (["true", "1", "yes", "present", "detected", "found", "allowed", "complete"].includes(normalized)) {
+    return true;
+  }
+  if (
+    [
+      "false",
+      "0",
+      "no",
+      "missing",
+      "absent",
+      "not_found",
+      "not present",
+      "not_present",
+      "blocked",
+      "incomplete",
+    ].includes(normalized)
+  ) {
+    return false;
+  }
+  return false;
+}
+
+function normalizeGeoCheckResponse(raw: unknown): GeoCheckResponse | null {
+  if (!raw || typeof raw !== "object") return null;
+
+  const root = raw as Record<string, unknown>;
+  const payload =
+    root.data && typeof root.data === "object"
+      ? (root.data as Record<string, unknown>)
+      : root;
+
+  const score = payload.score;
+  const checks = payload.checks;
+  if (!score || typeof score !== "object" || !checks || typeof checks !== "object") {
+    return null;
+  }
+
+  const checkMap = checks as Record<string, unknown>;
+  const scoreMap = score as Record<string, unknown>;
+  const categories = (payload.categories ?? {}) as Record<string, unknown>;
+
+  return {
+    url: typeof payload.url === "string" ? payload.url : "",
+    score: {
+      value: Number(scoreMap.value) || 0,
+      max: Number(scoreMap.max) || 100,
+    },
+    categories: {
+      crawlability: Number(categories.crawlability) || 0,
+      schema: Number(categories.schema) || 0,
+      content: Number(categories.content) || 0,
+      metadata: Number(categories.metadata) || 0,
+      authority: Number(categories.authority) || 0,
+      technical: Number(categories.technical) || 0,
+    },
+    checks: {
+      robotsAllowed: toGeoCheckBoolean(checkMap.robotsAllowed),
+      llmsTxt: toGeoCheckBoolean(checkMap.llmsTxt),
+      sitemap: toGeoCheckBoolean(checkMap.sitemap),
+      schema: toGeoCheckBoolean(checkMap.schema),
+      faqSchema: toGeoCheckBoolean(checkMap.faqSchema),
+      metaDescription: toGeoCheckBoolean(checkMap.metaDescription),
+      canonical: toGeoCheckBoolean(checkMap.canonical),
+      author: toGeoCheckBoolean(checkMap.author),
+      publishedDate: toGeoCheckBoolean(checkMap.publishedDate),
+      openGraph: toGeoCheckBoolean(checkMap.openGraph),
+      twitterCards: toGeoCheckBoolean(checkMap.twitterCards),
+      readability: toGeoCheckBoolean(checkMap.readability),
+      technical: toGeoCheckBoolean(checkMap.technical),
+    },
+    recommendations: Array.isArray(payload.recommendations)
+      ? (payload.recommendations as GeoCheckResponse["recommendations"])
+      : [],
+  };
+}
+
 export async function runGeoScanRequest(url: string): Promise<GeoCheckResponse> {
   // Try candidate paths to be robust
   const base = API_PREFIX.toLowerCase();
@@ -374,13 +460,14 @@ export async function runGeoScanRequest(url: string): Promise<GeoCheckResponse> 
 
   for (const path of candidatePaths) {
     try {
-      const data = await apiFetch<GeoCheckResponse>(path, {
+      const data = await apiFetch<unknown>(path, {
         method: "POST",
         body: JSON.stringify({ url }),
         skipAuthInterceptor: true,
       });
-      if (data && data.score) {
-        return data;
+      const normalized = normalizeGeoCheckResponse(data);
+      if (normalized) {
+        return normalized;
       }
     } catch (err: any) {
       lastError = err;
