@@ -118,6 +118,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   const googleAnalyticsId = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
+  const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
 
   return (
     <html lang="en" suppressHydrationWarning>
@@ -139,6 +140,17 @@ function gtag(){window.dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', '${googleAnalyticsId}');`}
             </Script>
+          </>
+        ) : null}
+        {googleAdsId ? (
+          <>
+           <Script async src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${googleAdsId}`}
+     crossOrigin="anonymous" strategy="afterInteractive">
+              {`(adsbygoogle = window.adsbygoogle || []).push({
+    google_ad_client: "${googleAdsId}",
+    enable_page_level_ads: true
+});`}
+          </Script>
           </>
         ) : null}
         <ThemeProvider
