@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
 import { ArrowRight, BarChart3, ShieldCheck, Sparkles } from "lucide-react";
+import Link from "next/link";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -36,6 +37,21 @@ export function Hero() {
         Scan your website and get an AI-powered report for performance, SEO,
         accessibility, and security.
       </p>
+      <motion.p
+        initial={{ opacity: 0, x: -18 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.55, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
+        className="mt-5 text-sm text-muted-foreground sm:text-[15px]"
+      >
+        Want to compare against a competitor?{" "}
+        <Link
+          href="/competitor-scanner"
+          className="group inline-flex items-center gap-1.5 font-medium text-foreground transition-colors hover:text-primary"
+        >
+          Try the Competitor Scanner
+          <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 ease-out group-hover:translate-x-1" />
+        </Link>
+      </motion.p>
     </div>
   );
 }
