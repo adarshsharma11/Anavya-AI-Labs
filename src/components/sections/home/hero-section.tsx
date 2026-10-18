@@ -2,133 +2,57 @@
 
 import Link from "next/link";
 import { motion } from "framer-motion";
-import { ArrowRight, Bot, Sparkles } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
+
+import { ScanReportFrame } from "./scan-report-frame";
 
 export function HeroSection() {
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: { staggerChildren: 0.2 },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { y: 24, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: { duration: 0.6, ease: "easeOut" },
-    },
-  };
-
   return (
-    <section className="relative overflow-hidden py-16 md:py-28">
-      <div className="animated-grid absolute inset-0 -z-10" />
-      <div className="absolute inset-0 -z-10">
-        <div className="absolute left-0 top-0 h-72 w-72 rounded-full bg-emerald-400/20 blur-3xl" />
-        <div className="absolute right-0 top-24 h-96 w-96 rounded-full bg-sky-400/20 blur-3xl" />
-        <div className="absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-amber-300/20 blur-3xl" />
-      </div>
-
-      <div className="container">
+    <section className="relative w-full overflow-hidden">
+      <div className="mx-auto grid min-h-[calc(100svh-4rem)] w-full max-w-[1400px] items-center gap-12 px-6 py-16 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.05fr)] lg:px-12 lg:py-20">
         <motion.div
-          className="mx-auto flex max-w-5xl flex-col items-center text-center"
-          variants={containerVariants}
-          initial="hidden"
-          animate="visible"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, ease: "easeOut" }}
+          className="max-w-xl"
         >
-          <motion.div variants={itemVariants}>
-            <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground shadow-sm backdrop-blur">
-              <Sparkles className="h-4 w-4 text-emerald-500" />
-              Anavya AI Labs
-            </div>
-          </motion.div>
-
-          <motion.h1
-            className="mt-6 font-headline text-4xl font-bold tracking-tight text-foreground sm:text-5xl lg:text-6xl"
-            variants={itemVariants}
-          >
-            AI that pinpoints exactly where your website leaks revenue.
-          </motion.h1>
-
-          <motion.p
-            className="mt-6 text-lg leading-8 text-muted-foreground"
-            variants={itemVariants}
-          >
-            Diagnose performance, UX, SEO, and accessibility in one scan. Then
-            get a ranked action plan your team can ship within days.
-          </motion.p>
-
-          <motion.div
-            className="mt-10 flex flex-wrap items-center justify-center gap-4"
-            variants={itemVariants}
-          >
-            <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}>
-              <Button asChild size="lg" className="shadow-lg shadow-primary/20">
-                <Link href="/scanner">
-                  Run a free scan
-                  <ArrowRight className="ml-2 h-5 w-5" />
-                </Link>
-              </Button>
-            </motion.div>
-            <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.98 }}>
-              <Button asChild variant="outline" size="lg">
-                <Link href="/competitor-scanner">Compare competitors</Link>
-              </Button>
-            </motion.div>
-          </motion.div>
-
-          <motion.p
-            className="mt-5 max-w-2xl text-sm text-muted-foreground"
-            variants={itemVariants}
-          >
-            Start with a{" "}
-            <Link href="/scanner" className="font-medium text-foreground underline-offset-4 hover:underline">
-              free website scanner
-            </Link>{" "}
-            or jump to the{" "}
+          <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
+            Anavya AI Labs
+          </p>
+          <h1 className="mt-5 font-headline text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.05]">
+            See what is blocking search, AI answers, and sales.
+          </h1>
+          <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">
+            Scan a public URL for SEO, performance, and GEO. Get a ranked fix
+            list in about a minute.
+          </p>
+          <div className="mt-8 flex flex-wrap items-center gap-3">
+            <Link
+              href="/scanner"
+              className="inline-flex h-11 items-center bg-foreground px-5 text-sm font-medium text-background transition hover:bg-foreground/90"
+            >
+              Run a free scan
+            </Link>
             <Link
               href="/competitor-scanner"
-              className="font-medium text-foreground underline-offset-4 hover:underline"
+              className="inline-flex h-11 items-center px-5 text-sm font-medium text-muted-foreground underline-offset-4 transition hover:text-foreground hover:underline"
             >
-              competitor scanner
-            </Link>{" "}
-            when you want side-by-side SEO and performance benchmarking.
-          </motion.p>
+              Compare a competitor
+            </Link>
+          </div>
+        </motion.div>
 
-          <motion.div
-            className="mt-10 flex flex-wrap items-center justify-center gap-3"
-            variants={itemVariants}
+        <motion.div
+          initial={{ opacity: 0, y: 28, rotateY: -18, rotateX: 10 }}
+          animate={{ opacity: 1, y: 0, rotateY: -14, rotateX: 8 }}
+          transition={{ duration: 0.7, ease: "easeOut", delay: 0.08 }}
+          className="[perspective:1400px]"
+        >
+          <div
+            className="origin-center [transform:rotateY(-14deg)_rotateX(8deg)]"
+            style={{ transformStyle: "preserve-3d" }}
           >
-            <Badge variant="secondary" className="rounded-full px-4 py-2">
-              <Bot className="mr-2 h-4 w-4" />
-              AI + Human strategy
-            </Badge>
-            <Badge variant="secondary" className="rounded-full px-4 py-2">
-              120+ sites improved
-            </Badge>
-            <Badge variant="secondary" className="rounded-full px-4 py-2">
-              Avg. 38% conversion lift
-            </Badge>
-          </motion.div>
-
-          <motion.div
-            className="mt-6 flex flex-wrap items-center justify-center gap-4 text-sm text-muted-foreground"
-            variants={itemVariants}
-          >
-            <span className="rounded-full border border-border/60 bg-background/70 px-4 py-2">
-              Scan in 60 seconds
-            </span>
-            <span className="rounded-full border border-border/60 bg-background/70 px-4 py-2">
-              No credit card needed
-            </span>
-            <span className="rounded-full border border-border/60 bg-background/70 px-4 py-2">
-              Action plan included
-            </span>
-          </motion.div>
+            <ScanReportFrame stage={3} />
+          </div>
         </motion.div>
       </div>
     </section>

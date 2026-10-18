@@ -1,81 +1,58 @@
-"use client";
+import Link from "next/link";
 
-import { motion } from "framer-motion";
-import { ScanLine, FileBarChart, Wrench } from "lucide-react";
-import { Card } from "@/components/ui/card";
-
-const steps = [
+const STEPS = [
   {
-    icon: ScanLine,
-    title: "1. Scan Your URL",
-    description:
-      "Enter your website's URL and let our AI get to work. No code or setup required.",
+    title: "Paste a public URL",
+    body: "No install, plugin, or account required to run the first scan.",
   },
   {
-    icon: FileBarChart,
-    title: "2. Get Your Report",
-    description:
-      "Receive a detailed, easy-to-understand report with prioritized issues in minutes.",
+    title: "Read SEO, performance, and GEO",
+    body: "One report for crawl issues, speed, accessibility, and AI-search files.",
   },
   {
-    icon: Wrench,
-    title: "3. Fix and Improve",
-    description:
-      "Follow our actionable recommendations to fix issues and watch your metrics improve.",
+    title: "Fix in priority order",
+    body: "Ship the work that restores indexing and conversion first.",
   },
-];
+] as const;
 
 export function HowItWorksSection() {
-  const containerVariants = {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: 0.3,
-      },
-    },
-  };
-
-  const itemVariants = {
-    hidden: { x: -50, opacity: 0 },
-    visible: {
-      x: 0,
-      opacity: 1,
-      transition: { duration: 0.5 },
-    },
-  };
-
   return (
-    <section className="py-16 md:py-24">
-      <div className="container">
-        <div className="mx-auto max-w-2xl text-center">
-          <h2 className="font-headline text-3xl font-bold tracking-tight sm:text-4xl">
-            How It Works
-          </h2>
-          <p className="mt-6 text-lg text-muted-foreground">
-            Start improving your website in just three simple steps.
-          </p>
-        </div>
-        <motion.div
-          className="mt-16 grid gap-6 md:grid-cols-3"
-          variants={containerVariants}
-          initial="hidden"
-          whileInView="visible"
-          viewport={{ once: true, amount: 0.4 }}
-        >
-          {steps.map((step) => (
-            <motion.div key={step.title} variants={itemVariants}>
-              <Card className="h-full border-border/60 bg-background/80 p-6 shadow-sm transition hover:-translate-y-1 hover:shadow-lg">
-                <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-primary/10 text-primary">
-                  <step.icon className="h-6 w-6" />
-                </div>
-                <h3 className="mt-5 text-lg font-semibold">{step.title}</h3>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  {step.description}
-                </p>
-              </Card>
-            </motion.div>
+    <section className="w-full border-t border-border">
+      <div className="mx-auto max-w-[1400px] px-6 py-20 lg:px-12">
+        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+          How a scan works
+        </p>
+        <h2 className="mt-4 max-w-xl font-headline text-3xl font-semibold tracking-tight sm:text-4xl">
+          Three steps. Then a list you can ship.
+        </h2>
+        <ol className="mt-14 divide-y divide-border border-y border-border">
+          {STEPS.map((step, index) => (
+            <li
+              key={step.title}
+              className="grid gap-3 py-8 md:grid-cols-[4rem_minmax(0,16rem)_1fr] md:items-baseline"
+            >
+              <span className="font-mono text-xs text-muted-foreground">
+                {String(index + 1).padStart(2, "0")}
+              </span>
+              <h3 className="text-lg font-medium">{step.title}</h3>
+              <p className="text-sm leading-6 text-muted-foreground">{step.body}</p>
+            </li>
           ))}
-        </motion.div>
+        </ol>
+        <p className="mt-8 text-sm text-muted-foreground">
+          Use the{" "}
+          <Link href="/scanner" className="text-foreground underline-offset-4 hover:underline">
+            website scanner
+          </Link>{" "}
+          for one URL, or the{" "}
+          <Link
+            href="/competitor-scanner"
+            className="text-foreground underline-offset-4 hover:underline"
+          >
+            competitor scanner
+          </Link>{" "}
+          for a side-by-side report.
+        </p>
       </div>
     </section>
   );

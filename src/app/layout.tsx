@@ -49,7 +49,7 @@ export const metadata: Metadata = {
         url: '/og-image.png',
         width: 1200,
         height: 630,
-        alt: `${siteConfig.name} – AI-Powered Website Analysis`,
+          alt: `${siteConfig.name} – Free AI website scanner and GEO audit`,
       },
     ],
   },

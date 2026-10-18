@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630">
+  <rect width="1200" height="630" fill="#121418"/>
+  <rect width="10" height="630" fill="#7C3AED"/>
+  <text x="72" y="104" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="4">ANAVYA AI LABS</text>
+  <text x="72" y="210" fill="#F5F6F8" font-family="Arial, Helvetica, sans-serif" font-size="68" font-weight="700">Free AI website</text>
+  <text x="72" y="288" fill="#F5F6F8" font-family="Arial, Helvetica, sans-serif" font-size="68" font-weight="700">scanner &amp; GEO audit</text>
+  <text x="72" y="362" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="26">Scan SEO, performance, and AI-search gaps.</text>
+  <text x="72" y="400" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="26">Get a ranked fix list in about a minute.</text>
+  <rect x="72" y="452" width="86" height="42" rx="21" fill="none" stroke="#2A2E36" stroke-width="2"/>
+  <text x="115" y="479" fill="#F5F6F8" font-family="Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle">SEO</text>
+  <rect x="170" y="452" width="160" height="42" rx="21" fill="none" stroke="#2A2E36" stroke-width="2"/>
+  <text x="250" y="479" fill="#F5F6F8" font-family="Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle">Performance</text>
+  <rect x="346" y="452" width="90" height="42" rx="21" fill="none" stroke="#2A2E36" stroke-width="2"/>
+  <text x="391" y="479" fill="#F5F6F8" font-family="Arial, Helvetica, sans-serif" font-size="18" text-anchor="middle">GEO</text>
+  <text x="72" y="560" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="20">anavyaailabs.com</text>
+  <rect x="760" y="92" width="380" height="446" rx="20" fill="#181B20" stroke="#2A2E36" stroke-width="2"/>
+  <circle cx="790" cy="122" r="6" fill="#464A52"/>
+  <circle cx="812" cy="122" r="6" fill="#464A52"/>
+  <circle cx="834" cy="122" r="6" fill="#464A52"/>
+  <text x="860" y="128" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="18">scanner report</text>
+  <circle cx="950" cy="214" r="62" fill="none" stroke="#7C3AED" stroke-width="6"/>
+  <text x="950" y="232" fill="#F5F6F8" font-family="Arial, Helvetica, sans-serif" font-size="48" font-weight="700" text-anchor="middle">72</text>
+  <text x="796" y="318" fill="#F5F6F8" font-family="Arial, Helvetica, sans-serif" font-size="20">SEO</text>
+  <text x="1100" y="318" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="20" text-anchor="end">61</text>
+  <rect x="796" y="330" width="308" height="4" fill="#2A2E36"/>
+  <rect x="796" y="330" width="188" height="4" fill="#7C3AED"/>
+  <text x="796" y="382" fill="#F5F6F8" font-family="Arial, Helvetica, sans-serif" font-size="20">Performance</text>
+  <text x="1100" y="382" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="20" text-anchor="end">54</text>
+  <rect x="796" y="394" width="308" height="4" fill="#2A2E36"/>
+  <rect x="796" y="394" width="166" height="4" fill="#60A5FA"/>
+  <text x="796" y="446" fill="#F5F6F8" font-family="Arial, Helvetica, sans-serif" font-size="20">GEO</text>
+  <text x="1100" y="446" fill="#9CA3AF" font-family="Arial, Helvetica, sans-serif" font-size="20" text-anchor="end">68</text>
+  <rect x="796" y="458" width="308" height="4" fill="#2A2E36"/>
+  <rect x="796" y="458" width="210" height="4" fill="#34D399"/>
+</svg>

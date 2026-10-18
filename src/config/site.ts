@@ -69,9 +69,9 @@ export type PageMetadataConfig = {
 
 export const pageMetadata = {
   home: {
-    title: 'AI-Powered Website Analysis',
+    title: 'Free AI Website Scanner & GEO Audit',
     description:
-      'AI that finds what is costing your website customers. Get a free, instant analysis of your website is performance, SEO, and user experience.',
+      'Scan any public URL for SEO, performance, and AI-search (GEO) issues. Get a ranked fix list in about a minute. Free, no credit card.',
     canonical: '/',
   },
   scanner: {
