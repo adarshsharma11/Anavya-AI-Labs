@@ -3,7 +3,7 @@
 import { PolicyLayout } from "@/components/layout/policy-layout";
 
 const content = `1. Who we are
-[Your Company Name] operates the advanced AI-powered website audit and analysis platform available at [your domain]. Our platform helps businesses, developers, and marketers identify performance bottlenecks, SEO issues, accessibility gaps, and security vulnerabilities to improve their digital presence. For any privacy-related questions or concerns, you can contact our Data Protection Officer at [email].
+Anavya AI Labs operates the advanced AI-powered website audit and analysis platform available at anavyaailabs.com. Our platform helps businesses, developers, and marketers identify performance bottlenecks, SEO issues, accessibility gaps, and security vulnerabilities to improve their digital presence. For any privacy-related questions or concerns, you can contact our Data Protection Officer at support@anavyaailabs.com.
 
 2. What information we collect
 To provide our auditing services effectively, we collect the following types of information:
@@ -32,7 +32,7 @@ We respect your privacy and only share data with trusted third parties necessary
 - Security Measures: All data transfers are encrypted in transit via SSL/TLS. We implement strict access controls to protect your information from unauthorized access.
 
 6. Your rights and choices
-You have the right to access, update, or request the deletion of your personal data at any time. You can request a complete deletion of your email and associated scan history by contacting us directly at [email]. We will process your request within 7 business days.
+You have the right to access, update, or request the deletion of your personal data at any time. You can request a complete deletion of your email and associated scan history by contacting us directly at support@anavyaailabs.com. We will process your request within 7 business days.
 
 7. Cookies and Tracking
 We use cookies strictly for session management, security, and basic analytics. These cookies help us understand how you interact with our platform and ensure a seamless experience. You can manage or disable non-essential cookies directly within your browser settings.

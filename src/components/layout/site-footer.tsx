@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Github, Twitter } from "lucide-react";
+import { Linkedin } from "lucide-react";
 
 import { siteConfig } from "@/config/site";
 import { Logo } from "@/components/icons/logo";
@@ -114,22 +114,15 @@ export function SiteFooter() {
             <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
             <Link href="/refund-policy" className="hover:text-foreground transition-colors">Refund Policy</Link>
           </div>
-          <div className="flex items-center gap-4">
-            <Link
-              href="#"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Twitter className="h-5 w-5" />
-              <span className="sr-only">Twitter</span>
-            </Link>
-            <Link
-              href="#"
-              className="text-muted-foreground hover:text-foreground"
-            >
-              <Github className="h-5 w-5" />
-              <span className="sr-only">GitHub</span>
-            </Link>
-          </div>
+          <a
+            href={siteConfig.linkedin}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Linkedin className="h-5 w-5" />
+            <span className="sr-only">LinkedIn</span>
+          </a>
         </div>
       </div>
     </footer>

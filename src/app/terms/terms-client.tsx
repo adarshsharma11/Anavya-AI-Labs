@@ -3,10 +3,10 @@
 import { PolicyLayout } from "@/components/layout/policy-layout";
 
 const content = `1. Acceptance of Terms
-By accessing or using the website auditing platform located at [your domain], you agree to be bound by these Terms of Service. If you do not agree to these terms, please refrain from using our services.
+By accessing or using the website auditing platform located at anavyaailabs.com, you agree to be bound by these Terms of Service. If you do not agree to these terms, please refrain from using our services.
 
 2. Description of Service
-[Your Company Name] provides an automated, AI-assisted platform that analyzes websites for performance metrics, SEO optimization, accessibility standards, and basic security configurations. The service generates comprehensive reports containing technical analysis and actionable insights. Our findings are generated using automated scraping tools and AI models, and are provided strictly for informational and educational purposes.
+Anavya AI Labs provides an automated, AI-assisted platform that analyzes websites for performance metrics, SEO optimization, accessibility standards, and basic security configurations. The service generates comprehensive reports containing technical analysis and actionable insights. Our findings are generated using automated scraping tools and AI models, and are provided strictly for informational and educational purposes.
 
 3. Acceptable Use and Restrictions
 To ensure a safe and reliable environment for all users, you agree to the following conditions:
@@ -22,17 +22,17 @@ While basic preview scans are provided for free, detailed AI-generated reports a
 
 5. Disclaimers and Limitations of Liability
 - Accuracy: While we strive for high precision, our audit results and AI suggestions are fully automated and may not be 100% accurate or complete. You should independently verify any critical technical changes before applying them to your production website.
-- Liability: [Your Company Name] shall not be held liable for any business decisions, financial losses, traffic drops, or technical issues that result from implementing the suggestions found in our reports.
+- Liability: Anavya AI Labs shall not be held liable for any business decisions, financial losses, traffic drops, or technical issues that result from implementing the suggestions found in our reports.
 - Availability: We provide the service on an "as-is" and "as-available" basis. We do not guarantee 100% uptime, uninterrupted access, or error-free operation.
 
 6. Intellectual Property Rights
-All original content, branding, UI design, custom code, and the proprietary structure of the AI-generated recommendations provided on this platform are the exclusive property of [Your Company Name]. You may use the generated reports for your internal business purposes, but you may not reproduce, resell, or distribute our platform's UI or core technology.
+All original content, branding, UI design, custom code, and the proprietary structure of the AI-generated recommendations provided on this platform are the exclusive property of Anavya AI Labs. You may use the generated reports for your internal business purposes, but you may not reproduce, resell, or distribute our platform's UI or core technology.
 
 7. Governing Law and Dispute Resolution
 These Terms of Service, and any disputes arising from them, shall be governed by and construed in accordance with the laws of India, without regard to its conflict of law provisions.
 
 8. Contact Information
-If you have any questions regarding these terms, please contact our support team at [email].`;
+If you have any questions regarding these terms, please contact our support team at support@anavyaailabs.com.`;
 
 export default function TermsClient() {
   return <PolicyLayout title="Terms of Service" rawContent={content} />;

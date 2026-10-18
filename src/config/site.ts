@@ -10,6 +10,7 @@ export type SiteConfig = {
   name: string;
   url: string;
   description: string;
+  linkedin: string;
   logo?: {
     src: string;
     lightSrc?: string;
@@ -26,6 +27,7 @@ export const siteConfig: SiteConfig = {
   name: "Anavya AI Labs",
   url: "https://anavyaailabs.com",
   description: "AI that finds what is costing your website customers.",
+  linkedin: "https://www.linkedin.com/in/anavya-ai-labs-8811523a6/",
   logo: {
     src: "/logo.svg",
     alt: "Anavya AI Labs",
@@ -75,13 +77,13 @@ export const pageMetadata = {
     canonical: '/',
   },
   scanner: {
-    title: 'Free AI Website Scanner & SEO Audit Tool | Anavya AI Labs',
+    title: 'Free AI Website Scanner & SEO Audit Tool',
     description:
       'Scan your website for SEO, performance, accessibility, and security issues. Get a free AI-powered website audit with instant fixes and competitor insights.',
     canonical: '/scanner',
   },
   competitorScanner: {
-    title: 'Competitor Website Scanner & SEO Comparison Tool | Anavya AI Labs',
+    title: 'Competitor Website Scanner & SEO Comparison Tool',
     description:
       'Compare your website against a competitor to uncover SEO, performance, accessibility, and conversion gaps with an AI-powered competitor website scanner.',
     canonical: '/competitor-scanner',
