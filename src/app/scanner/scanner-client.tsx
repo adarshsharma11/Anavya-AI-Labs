@@ -126,6 +126,8 @@ export default function ScannerClient() {
     enabled: typeof scanId === "number" && mode === "seo",
   });
 
+  console.log("scanQuery", scanQuery);
+
   useEffect(() => {
     if (!scanQuery.error) return;
     setErrorMessage((scanQuery.error as Error).message ?? "Scan failed.");

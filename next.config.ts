@@ -1,7 +1,9 @@
 import type {NextConfig} from 'next';
 
+import { exposeVarToPublic } from './src/env';
+
 const nextConfig: NextConfig = {
-  /* config options here */
+  env: exposeVarToPublic(),
   images: {
     remotePatterns: [
       {

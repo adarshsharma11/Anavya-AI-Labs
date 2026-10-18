@@ -1,5 +1,6 @@
 import { z } from "zod";
 
+import { env } from "@/env";
 import { apiFetch } from "@/lib/api/client";
 import { GST_INCLUSIVE_LABEL } from "@/lib/payments/payment-constants";
 import {
@@ -258,7 +259,7 @@ export async function startRazorpayPayment(scanId: number) {
   }
 
   const keyId =
-    parsedCreate.data.key_id ?? process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
+    parsedCreate.data.key_id ?? env.razorpayKeyId;
   if (!keyId) {
     throw new Error("Razorpay key is not configured.");
   }

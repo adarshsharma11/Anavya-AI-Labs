@@ -1,3 +1,4 @@
+import { env } from "@/env";
 import { apiFetch } from "./client";
 
 export interface SiteSettings {
@@ -17,21 +18,13 @@ export const DEFAULT_SITE_SETTINGS: SiteSettings = {
 
 export const fetchSiteSettings = async (): Promise<SiteSettings> => {
   const envSettings: SiteSettings = {
-    companyName:
-      (process.env.NEXT_PUBLIC_SITE_COMPANY_NAME ?? "").trim() ||
-      DEFAULT_SITE_SETTINGS.companyName,
-    domain:
-      (process.env.NEXT_PUBLIC_SITE_DOMAIN ?? "").trim() ||
-      DEFAULT_SITE_SETTINGS.domain,
-    effectiveDate:
-      (process.env.NEXT_PUBLIC_SITE_EFFECTIVE_DATE ?? "").trim() ||
-      DEFAULT_SITE_SETTINGS.effectiveDate,
-    email:
-      (process.env.NEXT_PUBLIC_SITE_EMAIL ?? "").trim() ||
-      DEFAULT_SITE_SETTINGS.email,
+    companyName: env.siteCompanyName || DEFAULT_SITE_SETTINGS.companyName,
+    domain: env.siteDomain || DEFAULT_SITE_SETTINGS.domain,
+    effectiveDate: env.siteEffectiveDate || DEFAULT_SITE_SETTINGS.effectiveDate,
+    email: env.siteEmail || DEFAULT_SITE_SETTINGS.email,
   };
 
-  const enableRemote = process.env.NEXT_PUBLIC_ENABLE_SITE_SETTINGS_API === "true";
+  const enableRemote = env.enableSiteSettingsApi;
   if (!enableRemote) {
     return envSettings;
   }

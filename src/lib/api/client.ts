@@ -1,5 +1,6 @@
-export const API_PREFIX =
-  (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+import { env } from "@/env";
+
+export const API_PREFIX = env.apiBaseUrl;
 
 export function buildApiUrl(path: string) {
   if (!API_PREFIX) {

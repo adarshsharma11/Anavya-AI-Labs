@@ -315,7 +315,7 @@ export async function fetchScanResult(scanId: number): Promise<ScanResultRespons
 
   const baseHint = API_PREFIX
     ? `API base is "${API_PREFIX}".`
-    : "API base is not set (NEXT_PUBLIC_API_BASE_URL).";
+    : "API base is not set (env.apiBaseUrl / NEXT_PUBLIC_API_BASE_URL).";
   throw new Error(
     `Unable to fetch scan result. ${baseHint} Expected backend route like ".../api/v1/scan/${scanId}".`
   );

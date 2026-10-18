@@ -7,6 +7,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
+import { env } from '@/env';
 import { siteConfig, pageMetadata } from '@/config/site';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { AuthProvider } from '@/components/providers/auth-provider';
@@ -117,8 +118,8 @@ export default function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const googleAnalyticsId = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
-  const googleAdsId = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID;
+  const googleAnalyticsId = env.googleAnalyticsId;
+  const googleAdsId = env.googleAdsId;
 
   return (
     <html lang="en" suppressHydrationWarning>

@@ -6,6 +6,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { ArrowLeft, ArrowRight, Sparkles } from "lucide-react";
 
+import { env } from "@/env";
 import { type BlogPost } from "@/lib/api/blogs";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -87,9 +88,8 @@ export default function BlogDetailsClient({ post, relatedPosts = [], children }:
     role: post.authorRole,
     avatar: post.authorAvatar,
   };
-  const inArticleSlot = process.env.NEXT_PUBLIC_ADSENSE_SLOT_IN_ARTICLE ?? "";
-  const beforeRelatedSlot =
-    process.env.NEXT_PUBLIC_ADSENSE_SLOT_BEFORE_RELATED ?? "";
+  const inArticleSlot = env.adsenseSlotInArticle;
+  const beforeRelatedSlot = env.adsenseSlotBeforeRelated;
   const articleContent = insertAfterNthParagraph(
     children,
     2,

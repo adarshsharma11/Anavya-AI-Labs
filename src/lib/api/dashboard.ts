@@ -1,3 +1,4 @@
+import { env } from "@/env";
 import { apiFetch } from "./client";
 
 export const getProfileApi = async () => {
@@ -28,7 +29,7 @@ export const getAnalyticsApi = async () => {
 export const downloadPdfApi = async (scanId: number) => {
   // Returns BLOB via standard fetch because apiFetch tries to parse JSON usually,
   // Let's rely on standard fetch here for binary data.
-  const API_PREFIX = (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, "");
+  const API_PREFIX = env.apiBaseUrl;
   const token = localStorage.getItem("accessToken");
   const headers = new Headers();
   if (token) headers.set("Authorization", `Bearer ${token}`);

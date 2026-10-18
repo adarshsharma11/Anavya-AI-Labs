@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 
+import { env } from "@/env";
 import { cn } from "@/lib/utils";
 
 declare global {
@@ -78,7 +79,7 @@ export function AdSenseAd({
   const [isUnfilled, setIsUnfilled] = useState(false);
   const pushedRef = useRef(false);
   const insRef = useRef<HTMLModElement>(null);
-  const client = process.env.NEXT_PUBLIC_GOOGLE_ADS_ID?.trim();
+  const client = env.googleAdsId;
 
   useEffect(() => {
     setIsClient(true);
