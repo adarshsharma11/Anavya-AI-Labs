@@ -1,5 +1,10 @@
 User-agent: *
 Allow: /
+Disallow: /dashboard
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /reset-password
 
-Sitemap: https://anavyaailabs.com/sitemap.xml
 Host: https://anavyaailabs.com
+Sitemap: https://anavyaailabs.com/sitemap.xml
