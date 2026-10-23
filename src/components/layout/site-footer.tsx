@@ -8,6 +8,24 @@ import { siteConfig } from "@/config/site";
 import { Logo } from "@/components/icons/logo";
 import { Separator } from "@/components/ui/separator";
 
+const PRODUCT_LINKS = [
+  { title: "Website Scanner", href: "/scanner" },
+  { title: "Competitor Scanner", href: "/competitor-scanner" },
+  { title: "Services", href: "/services" },
+  { title: "Blog", href: "/blog" },
+] as const;
+
+const COMPANY_LINKS = [
+  { title: "About", href: "/about" },
+  { title: "Contact", href: "/contact" },
+] as const;
+
+const LEGAL_LINKS = [
+  { title: "Terms of Service", href: "/terms" },
+  { title: "Privacy Policy", href: "/privacy" },
+  { title: "Refund Policy", href: "/refund-policy" },
+] as const;
+
 export function SiteFooter() {
   const pathname = usePathname();
 
@@ -18,7 +36,7 @@ export function SiteFooter() {
   return (
     <footer className="border-t bg-transparent">
       <div className="container py-8">
-        <div className="flex flex-col gap-8 lg:flex-row lg:justify-between">
+        <div className="flex flex-col gap-10 lg:flex-row lg:justify-between">
           <div>
             <Link href="/" className="inline-flex items-center">
               <Logo />
@@ -27,11 +45,11 @@ export function SiteFooter() {
               {siteConfig.description}
             </p>
           </div>
-          <div className="grid grid-cols-2 gap-8 sm:grid-cols-3">
+          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 lg:grid-cols-4">
             <div>
               <h3 className="font-semibold">Product</h3>
               <ul className="mt-4 space-y-2">
-                {siteConfig.mainNav.map((item) => (
+                {PRODUCT_LINKS.map((item) => (
                   <li key={item.href}>
                     <Link
                       href={item.href}
@@ -46,82 +64,64 @@ export function SiteFooter() {
             <div>
               <h3 className="font-semibold">Company</h3>
               <ul className="mt-4 space-y-2">
-                <li>
-                  <Link
-                    href="/blog"
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Blog
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/about"
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    About
-                  </Link>
-                </li>
-                <li>
-                  <Link
-                    href="/contact"
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Contact
-                  </Link>
-                </li>
+                {COMPANY_LINKS.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      {item.title}
+                    </Link>
+                  </li>
+                ))}
               </ul>
             </div>
             <div>
-              <h3 className="font-semibold">Resources</h3>
+              <h3 className="font-semibold">Legal</h3>
               <ul className="mt-4 space-y-2">
+                {LEGAL_LINKS.map((item) => (
+                  <li key={item.href}>
+                    <Link
+                      href={item.href}
+                      className="text-sm text-muted-foreground hover:text-foreground"
+                    >
+                      {item.title}
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+            <div>
+              <h3 className="font-semibold">Contact</h3>
+              <ul className="mt-4 space-y-2 text-sm text-muted-foreground">
                 <li>
-                  <Link
-                    href="/scanner"
-                    className="text-sm text-muted-foreground hover:text-foreground"
+                  <a
+                    href={`mailto:${siteConfig.email}`}
+                    className="hover:text-foreground"
                   >
-                    AI Website Scanner
-                  </Link>
+                    {siteConfig.email}
+                  </a>
                 </li>
-                <li>
-                  <Link
-                    href="/services"
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Services
-                  </Link>
-                </li>
-                {/* <li>
-                  <Link
-                    href="/pricing"
-                    className="text-sm text-muted-foreground hover:text-foreground"
-                  >
-                    Pricing
-                  </Link>
-                </li> */}
+                <li>{siteConfig.location}</li>
+                <li>{siteConfig.name}</li>
               </ul>
             </div>
           </div>
         </div>
         <Separator className="my-8" />
-        <div className="flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="flex flex-col items-center justify-between gap-6 md:flex-row">
           <p className="text-sm text-muted-foreground">
             &copy; {new Date().getFullYear()} {siteConfig.name}. All rights
             reserved.
           </p>
-          <div className="flex flex-wrap justify-center items-center gap-4 md:gap-6 text-sm text-muted-foreground">
-            <Link href="/terms" className="hover:text-foreground transition-colors">Terms of Service</Link>
-            <Link href="/privacy" className="hover:text-foreground transition-colors">Privacy Policy</Link>
-            <Link href="/refund-policy" className="hover:text-foreground transition-colors">Refund Policy</Link>
-          </div>
           <a
             href={siteConfig.linkedin}
             target="_blank"
             rel="noopener noreferrer"
+            aria-label="Anavya AI Labs on LinkedIn"
             className="text-muted-foreground hover:text-foreground"
           >
             <Linkedin className="h-5 w-5" />
-            <span className="sr-only">LinkedIn</span>
           </a>
         </div>
       </div>

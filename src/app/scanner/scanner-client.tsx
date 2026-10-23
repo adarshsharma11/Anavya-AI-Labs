@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -50,13 +50,18 @@ import {
   ScoreOverview,
 } from "./scanner-website-components";
 
-export default function ScannerClient() {
+export default function ScannerClient({
+  initialUrl = "",
+}: {
+  initialUrl?: string;
+}) {
   const [mode, setMode] = useState<"seo" | "geo">("seo");
   const [geoScanData, setGeoScanData] = useState<GeoCheckResponse | null>(null);
   const [geoScanning, setGeoScanning] = useState<boolean>(false);
 
   const [activeStep, setActiveStep] = useState(0);
-  const [urlValue, setUrlValue] = useState("");
+  const [urlValue, setUrlValue] = useState(initialUrl);
+  const didAutoStart = useRef(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [scanId, setScanId] = useState<number | null>(null);
   const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
@@ -119,6 +124,22 @@ export default function ScannerClient() {
       setErrorMessage(err.message ?? "Unable to start scan.");
     },
   });
+
+  useEffect(() => {
+    if (!isUrlStateReady || didAutoStart.current || hasInitialIdInUrl) return;
+    if (!initialUrl.trim()) return;
+
+    const validation = getValidScanUrl(initialUrl);
+    if (!validation.valid) {
+      setErrorMessage(validation.error);
+      return;
+    }
+
+    didAutoStart.current = true;
+    setUrlValue(validation.normalized);
+    setErrorMessage(null);
+    createScan.mutate(validation.normalized);
+  }, [isUrlStateReady, hasInitialIdInUrl, initialUrl, createScan]);
 
   const scanQuery = useQuery({
     queryKey: ["scan-result", scanId],

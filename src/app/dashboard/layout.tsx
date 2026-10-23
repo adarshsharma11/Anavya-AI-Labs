@@ -1,9 +1,9 @@
 import type { Metadata } from "next";
 
-import { noindexMetadata } from "@/components/seo/noindex";
+import { noindexMetadataFor } from "@/components/seo/noindex";
 import { DashboardShell } from "./dashboard-shell";
 
-export const metadata: Metadata = noindexMetadata;
+export const metadata: Metadata = noindexMetadataFor("/dashboard");
 
 export default function DashboardLayout({
   children,

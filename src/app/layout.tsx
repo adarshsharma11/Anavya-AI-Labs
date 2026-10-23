@@ -8,7 +8,7 @@ import { Toaster } from '@/components/ui/toaster';
 import { SiteHeader } from '@/components/layout/site-header';
 import { SiteFooter } from '@/components/layout/site-footer';
 import { env } from '@/env';
-import { siteConfig, pageMetadata } from '@/config/site';
+import { siteConfig, pageMetadata, toCanonicalUrl } from '@/config/site';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { AuthProvider } from '@/components/providers/auth-provider';
 
@@ -32,7 +32,7 @@ export const metadata: Metadata = {
     ],
   },
   alternates: {
-    canonical: '/',
+    canonical: toCanonicalUrl('/'),
   },
   robots: {
     index: true,
@@ -40,7 +40,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    url: '/',
+    url: toCanonicalUrl('/'),
     siteName: siteConfig.name,
     title: pageMetadata.home.title,
     description: pageMetadata.home.description,
@@ -87,28 +87,6 @@ const jsonLd = {
       "publisher": {
         "@id": "https://anavyaailabs.com/#organization"
       }
-    },
-    {
-      "@type": "FAQPage",
-      "@id": "https://anavyaailabs.com/#faq",
-      "mainEntity": [
-        {
-          "@type": "Question",
-          "name": "What is Anavya AI Labs?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Anavya AI Labs is a premium AI-powered website analysis platform that provides detailed performance, SEO, accessibility, security, and Generative Engine Optimization (GEO) audits."
-          }
-        },
-        {
-          "@type": "Question",
-          "name": "How does the website scanner work?",
-          "acceptedAnswer": {
-            "@type": "Answer",
-            "text": "Our scanner analyzes your public URLs to retrieve key structural elements, schema metadata, speed metrics, and AI discoverability tags to generate a comprehensive optimization score."
-          }
-        }
-      ]
     }
   ]
 };
@@ -123,6 +101,15 @@ export default function RootLayout({
 
   return (
     <html lang="en" suppressHydrationWarning>
+      <head>
+        {googleAdsId ? (
+          <script
+            async
+            src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${googleAdsId}`}
+            crossOrigin="anonymous"
+          />
+        ) : null}
+      </head>
       <body
         className={cn(
           'min-h-screen bg-background font-body antialiased',
@@ -140,22 +127,6 @@ export default function RootLayout({
 function gtag(){window.dataLayer.push(arguments);}
 gtag('js', new Date());
 gtag('config', '${googleAnalyticsId}');`}
-            </Script>
-          </>
-        ) : null}
-        {googleAdsId ? (
-          <>
-            <Script
-              id="google-adsense"
-              src={`https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${googleAdsId}`}
-              crossOrigin="anonymous"
-              strategy="afterInteractive"
-            />
-            <Script id="google-adsense-init" strategy="afterInteractive">
-              {`(window.adsbygoogle = window.adsbygoogle || []).push({
-    google_ad_client: "${googleAdsId}",
-    enable_page_level_ads: true
-});`}
             </Script>
           </>
         ) : null}

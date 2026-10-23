@@ -20,10 +20,10 @@ type AdSenseAdProps = {
 const ADSENSE_SCRIPT_SELECTOR =
   'script[src*="pagead2.googlesyndication.com/pagead/js/adsbygoogle.js"]';
 
-function loadAdSenseScript(client: string) {
+function loadAdSenseScript() {
   const existing = document.querySelector<HTMLScriptElement>(ADSENSE_SCRIPT_SELECTOR);
   if (existing) {
-    if (existing.dataset.loaded === "true") {
+    if (existing.dataset.loaded === "true" || window.adsbygoogle) {
       return Promise.resolve();
     }
     return new Promise<void>((resolve, reject) => {
@@ -34,7 +34,10 @@ function loadAdSenseScript(client: string) {
 
   return new Promise<void>((resolve, reject) => {
     const script = document.createElement("script");
-    script.src = `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${client}`;
+    // Load the library only. Auto ads are enabled once by the root layout
+    // script (`?client=`). A second client-tagged script retriggers
+    // enable_page_level_ads and throws.
+    script.src = "https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js";
     script.async = true;
     script.crossOrigin = "anonymous";
     script.onload = () => {
@@ -92,7 +95,7 @@ export function AdSenseAd({
 
     let cancelled = false;
 
-    Promise.all([loadAdSenseScript(client), waitUntilVisible(ins)])
+    Promise.all([loadAdSenseScript(), waitUntilVisible(ins)])
       .then(() => {
         if (cancelled || pushedRef.current || !insRef.current) return;
         window.adsbygoogle = window.adsbygoogle || [];

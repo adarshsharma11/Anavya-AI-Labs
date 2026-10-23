@@ -1,5 +1,6 @@
 import { createPageMetadata, pageMetadata } from "@/config/site";
 import { CtaSection } from "@/components/sections/home/cta-section";
+import { FaqSection } from "@/components/sections/home/faq-section";
 import { HeroSection } from "@/components/sections/home/hero-section";
 import { HowItWorksSection } from "@/components/sections/home/how-it-works-section";
 import { SalesScrollSection } from "@/components/sections/home/sales-scroll-section";
@@ -12,6 +13,7 @@ export default function Home() {
       <HeroSection />
       <SalesScrollSection />
       <HowItWorksSection />
+      <FaqSection />
       <CtaSection />
     </div>
   );

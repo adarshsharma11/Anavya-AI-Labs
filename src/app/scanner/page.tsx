@@ -36,10 +36,12 @@ export default async function ScannerPage({
     redirect(query ? `/competitor-scanner?${query}` : "/competitor-scanner");
   }
 
+  const initialUrl = typeof params.url === "string" ? params.url : "";
+
   return (
     <>
       <ScannerStructuredData variant="website" />
-      <ScannerClient />
+      <ScannerClient initialUrl={initialUrl} />
       <section className="container pb-16 md:pb-24">
         <ScannerSeoSections variant="website" />
       </section>

@@ -6,10 +6,35 @@ export type NavItem = {
   disabled?: boolean;
 };
 
+const CANONICAL_ORIGIN = "https://anavyaailabs.com";
+
+const TRACKING_PARAM_PATTERN =
+  /^(utm_|utm$)|^(gclid|gbraid|wbraid|fbclid|msclkid|mc_cid|mc_eid|ref|_ga|_gl|yclid|ttclid)$/i;
+
+export function toCanonicalUrl(path: string): string {
+  const url = new URL(path, `${CANONICAL_ORIGIN}/`);
+  url.protocol = "https:";
+  url.hostname = "anavyaailabs.com";
+  url.port = "";
+  url.hash = "";
+
+  for (const key of [...url.searchParams.keys()]) {
+    if (TRACKING_PARAM_PATTERN.test(key)) {
+      url.searchParams.delete(key);
+    }
+  }
+
+  const pathname = url.pathname === "/" ? "" : url.pathname.replace(/\/+$/, "");
+  const search = url.searchParams.toString();
+  return `${CANONICAL_ORIGIN}${pathname}${search ? `?${search}` : ""}`;
+}
+
 export type SiteConfig = {
   name: string;
   url: string;
   description: string;
+  email: string;
+  location: string;
   linkedin: string;
   logo?: {
     src: string;
@@ -25,8 +50,10 @@ export type SiteConfig = {
 
 export const siteConfig: SiteConfig = {
   name: "Anavya AI Labs",
-  url: "https://anavyaailabs.com",
+  url: CANONICAL_ORIGIN,
   description: "AI that finds what is costing your website customers.",
+  email: "support@anavyaailabs.com",
+  location: "Mohali, India",
   linkedin: "https://www.linkedin.com/in/anavya-ai-labs-8811523a6/",
   logo: {
     src: "/logo.svg",
@@ -71,9 +98,9 @@ export type PageMetadataConfig = {
 
 export const pageMetadata = {
   home: {
-    title: 'Free AI Website Scanner & GEO Audit',
+    title: 'Free AI Website Scanner: SEO, Speed & AI Visibility Audit',
     description:
-      'Scan any public URL for SEO, performance, and AI-search (GEO) issues. Get a ranked fix list in about a minute. Free, no credit card.',
+      'Scan any URL for SEO, speed, and AI-search issues. Get a ranked fix list in 60 seconds. Free, no signup needed.',
     canonical: '/',
   },
   scanner: {
@@ -131,16 +158,19 @@ export function createPageMetadata({
   description,
   canonical,
 }: PageMetadataConfig): Metadata {
+  const canonicalUrl = toCanonicalUrl(canonical);
+  const isHome = canonical === "/";
+
   return {
-    title,
+    title: isHome ? { absolute: title } : title,
     description,
     alternates: {
-      canonical,
+      canonical: canonicalUrl,
     },
     openGraph: {
       title,
       description,
-      url: canonical,
+      url: canonicalUrl,
       images: [
         {
           url: '/og-image.png',

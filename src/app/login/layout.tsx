@@ -1,8 +1,8 @@
 import type { Metadata } from "next";
 
-import { noindexMetadata } from "@/components/seo/noindex";
+import { noindexMetadataFor } from "@/components/seo/noindex";
 
-export const metadata: Metadata = noindexMetadata;
+export const metadata: Metadata = noindexMetadataFor("/login");
 
 export default function LoginLayout({
   children,

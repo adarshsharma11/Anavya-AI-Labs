@@ -67,12 +67,12 @@ export function SiteHeader() {
           ))}
         </nav>
         <div className="flex flex-1 items-center justify-end space-x-4">
-          <div className="hidden md:flex items-center space-x-2">
+          <div className="hidden md:flex items-center gap-4">
             <ThemeToggle />
             {isAuthenticated ? (
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" className="relative h-8 w-8 rounded-full ml-4">
+                  <Button variant="ghost" className="relative h-8 w-8 rounded-full">
                     <Avatar className="h-8 w-8">
                       <AvatarImage src={user?.companyLogoUrl} alt={user?.name} />
                       <AvatarFallback>{user?.name?.charAt(0).toUpperCase() || "U"}</AvatarFallback>
@@ -107,16 +107,20 @@ export function SiteHeader() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-               <div className="flex items-center space-x-2 ml-4">
-                  <Button variant="ghost" asChild>
-                    <Link href="/login">Sign In</Link>
-                  </Button>
-                  <Button asChild>
-                    <Link href="/signup">Sign Up</Link>
-                  </Button>
-               </div>
+              <Link
+                href="/login"
+                className="text-sm text-foreground/70 transition-colors hover:text-foreground"
+              >
+                Sign In
+              </Link>
             )}
+            <Button asChild>
+              <Link href="/scanner">Run free scan</Link>
+            </Button>
           </div>
+          <Button asChild className="md:hidden">
+            <Link href="/scanner">Run free scan</Link>
+          </Button>
           
           <div className="md:hidden">
             <Sheet open={isOpen} onOpenChange={setIsOpen}>
@@ -186,12 +190,16 @@ export function SiteHeader() {
                          </Button>
                        </div>
                     ) : (
-                       <div className="flex flex-col gap-2">
-                         <Button variant="outline" asChild className="w-full">
-                           <Link href="/login" onClick={() => setIsOpen(false)}>Sign In</Link>
-                         </Button>
+                       <div className="flex flex-col gap-3">
+                         <Link
+                           href="/login"
+                           onClick={() => setIsOpen(false)}
+                           className="text-sm text-foreground/70 transition-colors hover:text-foreground"
+                         >
+                           Sign In
+                         </Link>
                          <Button asChild className="w-full">
-                           <Link href="/signup" onClick={() => setIsOpen(false)}>Sign Up</Link>
+                           <Link href="/scanner" onClick={() => setIsOpen(false)}>Run free scan</Link>
                          </Button>
                        </div>
                     )}
