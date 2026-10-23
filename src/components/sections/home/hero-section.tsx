@@ -41,7 +41,7 @@ export function HeroSection() {
             Anavya AI Labs
           </p>
           <h1 className="mt-5 font-headline text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.05]">
-            Find out why ChatGPT and Google don't recommend your website
+            Find out why ChatGPT and Google don&apos;t recommend your website
           </h1>
           <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">
             Free scan for SEO, speed, and AI visibility. Get a ranked fix list
