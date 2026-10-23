@@ -27,7 +27,6 @@ export function Hero() {
   return (
     <div className="mx-auto max-w-4xl text-center">
       <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground shadow-sm backdrop-blur">
-        <Sparkles className="h-4 w-4 text-emerald-500" />
         Free AEO & GEO audit
       </div>
       <h1 className="mt-6 font-headline text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
