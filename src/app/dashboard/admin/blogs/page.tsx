@@ -1,8 +1,9 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
-import { getBlogsApi, BlogPost } from "@/lib/api/blogs";
-import { createBlogApi, updateBlogApi, deleteBlogApi } from "@/lib/api/admin";
+import { BlogPost } from "@/lib/api/blogs";
+import { createBlogApi, getAdminBlogsApi, updateBlogApi, deleteBlogApi } from "@/lib/api/admin";
+import type { BlogStatus } from "@/types/api";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
@@ -95,14 +96,15 @@ export default function AdminBlogsPage() {
   const [authorName, setAuthorName] = useState<string>("");
   const [authorRole, setAuthorRole] = useState<string>("");
   const [authorAvatar, setAuthorAvatar] = useState<string>("https://api.dicebear.com/7.x/initials/svg?seed=Anavya");
+  const [status, setStatus] = useState<BlogStatus>("draft");
 
   const { toast } = useToast();
 
   const fetchBlogs = async () => {
     try {
-      const res = await getBlogsApi();
+      const res = await getAdminBlogsApi();
       if (res && res.success) {
-        setBlogs(res.data || []);
+        setBlogs([...(res.data || [])]);
       }
     } catch (err) {
       console.error(err);
@@ -133,6 +135,7 @@ export default function AdminBlogsPage() {
     setAuthorName("");
     setAuthorRole("");
     setAuthorAvatar("https://api.dicebear.com/7.x/initials/svg?seed=Anavya");
+    setStatus("draft");
     setActiveTab("edit");
     setEditorOpen(true);
   };
@@ -150,6 +153,7 @@ export default function AdminBlogsPage() {
     setAuthorName(blog.authorName);
     setAuthorRole(blog.authorRole);
     setAuthorAvatar(blog.authorAvatar);
+    setStatus(blog.status === "published" ? "published" : "draft");
     setActiveTab("edit");
     setEditorOpen(true);
   };
@@ -179,6 +183,7 @@ export default function AdminBlogsPage() {
       authorRole,
       authorAvatar,
       date: new Date().toISOString().substring(0, 10),
+      status,
     };
 
     try {
@@ -252,7 +257,7 @@ export default function AdminBlogsPage() {
         <CardHeader>
           <CardTitle className="text-lg font-semibold flex items-center gap-2">
             <FileText className="h-5 w-5 text-primary" />
-            Published Articles ({blogs.length})
+            All posts ({blogs.length})
           </CardTitle>
         </CardHeader>
         <CardContent>
@@ -279,6 +284,7 @@ export default function AdminBlogsPage() {
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1.5 flex-wrap">
                       <Badge className="bg-sky-500/10 text-sky-600 border-sky-500/20">{b.category}</Badge>
+                      <Badge variant="outline">{b.status === "published" ? "Published" : "Draft"}</Badge>
                       <span className="text-[10px] text-muted-foreground">{b.readTime}</span>
                     </div>
                     <h4 className="font-bold text-foreground truncate">{b.title}</h4>
@@ -416,6 +422,18 @@ export default function AdminBlogsPage() {
                 <label className="font-semibold text-foreground">Tags (comma separated)</label>
                 <Input value={tags} onChange={e => setTags(e.target.value)} placeholder="SEO, Performance" />
               </div>
+            </div>
+
+            <div className="space-y-1.5">
+              <label className="font-semibold text-foreground">Status</label>
+              <select
+                className="h-10 w-full rounded-md border border-input bg-background px-3 text-sm"
+                value={status}
+                onChange={(event) => setStatus(event.target.value as BlogStatus)}
+              >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+              </select>
             </div>
 
             <div className="flex items-center justify-end gap-3 border-t border-border/40 pt-4 mt-6">

@@ -17,6 +17,7 @@
  *   ENABLE_SITE_SETTINGS_API
  */
 const PUBLIC_ENV_KEYS = [
+  "API_URL",
   "API_BASE_URL",
   "RAZORPAY_KEY_ID",
   "PAYMENT_CURRENCY",
@@ -45,7 +46,10 @@ export function exposeVarToPublic() {
 }
 
 export const env = {
-  // API_BASE_URL — backend origin, e.g. https://anavyaailabs.com/api/v1
+  // NEXT_PUBLIC_API_URL — backend origin, e.g. https://anavya-ai-labs-backend.vercel.app
+  apiUrl: (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, ""),
+
+  // API_BASE_URL — legacy full prefix, e.g. https://host/api/v1
   apiBaseUrl: (process.env.NEXT_PUBLIC_API_BASE_URL ?? "").replace(/\/$/, ""),
 
   // RAZORPAY_KEY_ID — Razorpay checkout key

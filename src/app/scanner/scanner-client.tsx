@@ -1,177 +1,83 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
-import { AnimatePresence, motion } from "framer-motion";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { motion } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Download } from "lucide-react";
 
-import { useToast } from "@/hooks/use-toast";
-import {
-  createScanRequest,
-  fetchScanResult,
-  type ScanResultResponse,
-  runGeoScanRequest,
-  type GeoCheckResponse,
-} from "@/lib/api/scan";
-import { downloadPdfApi } from "@/lib/api/dashboard";
+import { isApiError } from "@/lib/api/client";
+import { createScanRequest, fetchScanResult, getAuditPreview } from "@/lib/api/scan";
+import { useAuth } from "@/components/providers/auth-provider";
 import { usePaymentQuote } from "@/hooks/use-payment-quote";
+import { usePdfDownload } from "@/hooks/use-pdf-download";
+import { usePolling } from "@/hooks/use-polling";
 import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
-import { generateScanReportPdf } from "@/lib/pdf/scan-report-pdf";
+import { AuditView } from "@/components/report/audit-view";
+import { ShareReportButton } from "@/components/report/share-report-button";
+import { UnlockEmailModal } from "@/components/report/unlock-modal";
+import { UpgradeProCard } from "@/components/report/upgrade-pro-card";
+import type { ScanRecord } from "@/types/api";
 
 import { scanSteps } from "./scanner-constants";
-import { AiSuggestions, UnlockEmailCaptureDialog } from "./scanner-shared-components";
-import type { Issue, ScanState } from "./scanner-types";
-import { GeoReportSection } from "./scanner-geo-components";
-const geoScanSteps = [
-  "Fetching website target HTML...",
-  "Verifying robots.txt and AI crawlers configurations...",
-  "Searching for llms.txt and XML sitemap records...",
-  "Parsing JSON-LD schema objects...",
-  "Calculating generative engine score..."
-];
-import {
-  clearReportUnlock,
-  getValidScanUrl,
-  hasReportContent,
-  hasReportUnlockEmail,
-  readReportUnlockState,
-  readReportUnlockEmail,
-  setReportUnlock,
-  setReportUnlockEmail,
-} from "./scanner-utils";
-import {
-  Hero,
-  IssuesList,
-  MetricsCard,
-  FullReportSection,
-  ResultsHeader,
-  ScanInput,
-  ScanLoader,
-  ScoreOverview,
-} from "./scanner-website-components";
+import type { ScanState } from "./scanner-types";
+import { getValidScanUrl } from "./scanner-utils";
+import { Hero, ScanInput, ScanLoader } from "./scanner-website-components";
+import { V1ReportView } from "./v1-report-view";
+
+function stopPolling(scan: ScanRecord | undefined) {
+  if (!scan) return false;
+  if (!scan.auditComplete) return false;
+  if (scan.processing && !scan.fullReport && scan.status !== "report_failed") {
+    return false;
+  }
+  return true;
+}
 
 export default function ScannerClient({
   initialUrl = "",
-  initialMode = "seo",
+  initialPublicId = "",
 }: {
   initialUrl?: string;
   initialMode?: "seo" | "geo";
+  initialPublicId?: string;
 }) {
-  const [mode, setMode] = useState<"seo" | "geo">(initialMode);
-  const [geoScanData, setGeoScanData] = useState<GeoCheckResponse | null>(null);
-  const [geoScanning, setGeoScanning] = useState<boolean>(false);
-
-  const [activeStep, setActiveStep] = useState(0);
   const [urlValue, setUrlValue] = useState(initialUrl);
-  const didAutoStart = useRef(false);
+  const [publicId, setPublicId] = useState(initialPublicId);
+  const [cached, setCached] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [scanId, setScanId] = useState<number | null>(null);
-  const [isUnlocked, setIsUnlocked] = useState<boolean>(false);
-  const [isDownloading, setIsDownloading] = useState<boolean>(false);
-  const [isUrlStateReady, setIsUrlStateReady] = useState<boolean>(false);
-  const [hasInitialIdInUrl, setHasInitialIdInUrl] = useState<boolean>(false);
-  const [showEmailCapture, setShowEmailCapture] = useState<boolean>(false);
-  const [capturedEmail, setCapturedEmail] = useState<string>("");
-  const [pendingUnlockScanId, setPendingUnlockScanId] = useState<number | null>(null);
-  const [emailPromptShownBeforeUnlock, setEmailPromptShownBeforeUnlock] = useState<boolean>(false);
+  const [dailyLimit, setDailyLimit] = useState(false);
+  const [showUnlock, setShowUnlock] = useState(false);
+  const [emailError, setEmailError] = useState<string | null>(null);
+  const [activeStep, setActiveStep] = useState(0);
+  const didAutoStart = useRef(false);
+  const { user, isAuthenticated } = useAuth();
   const { isPaying, isFinalizingReport, startPayment } = useRazorpayPayment();
   const { priceLabel: unlockPriceLabel } = usePaymentQuote();
-  const { toast } = useToast();
-  const unlockingLabel = isFinalizingReport
-    ? "Finalizing unlocked report..."
-    : "Processing payment...";
-  const queryClient = useQueryClient();
+  const pdf = usePdfDownload();
 
-  useEffect(() => {
-    setErrorMessage(null);
-  }, [mode]);
-
-  useEffect(() => {
-    setIsUnlocked(readReportUnlockState());
-    setCapturedEmail(readReportUnlockEmail());
-
-    if (typeof window !== "undefined") {
-      const params = new URLSearchParams(window.location.search);
-      const idParam = params.get("id") ?? params.get("scanId");
-      const parsedId = idParam ? Number(idParam) : NaN;
-
-      if (Number.isFinite(parsedId) && parsedId > 0) {
-        setHasInitialIdInUrl(true);
-        setScanId(parsedId);
-      }
-    }
-    setIsUrlStateReady(true);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === "undefined" || !isUrlStateReady) return;
-
-    const url = new URL(window.location.href);
-    if (scanId && scanId > 0) {
-      url.searchParams.set("id", String(scanId));
-    } else {
-      url.searchParams.delete("id");
-    }
-    if (mode === "geo") {
-      url.searchParams.set("mode", "geo");
-    } else {
-      url.searchParams.delete("mode");
-    }
-    url.searchParams.delete("tab");
-    url.searchParams.delete("competitorReportTab");
-    window.history.replaceState({}, "", url.toString());
-  }, [scanId, mode, isUrlStateReady]);
-
-  const createScan = useMutation({
-    mutationFn: (url: string) => createScanRequest(url),
-    onSuccess: (data) => {
-      setScanId(data.scanId);
+  const pollingEnabled = Boolean(publicId);
+  const fetchScan = useCallback(
+    (signal: AbortSignal) => {
+      return fetchScanResult(publicId).then((record) => {
+        if (signal.aborted) return record;
+        return record;
+      });
     },
-    onError: (err: Error) => {
-      setErrorMessage(err.message ?? "Unable to start scan.");
-    },
+    [publicId]
+  );
+
+  const scanPoll = usePolling(fetchScan, {
+    enabled: pollingEnabled,
+    interval: 1500,
+    maxInterval: 5000,
+    backoffAfterMs: 30_000,
+    stopWhen: stopPolling,
   });
 
-  useEffect(() => {
-    if (!isUrlStateReady || didAutoStart.current || hasInitialIdInUrl) return;
-    if (!initialUrl.trim()) return;
-
-    const validation = getValidScanUrl(initialUrl);
-    if (!validation.valid) {
-      setErrorMessage(validation.error);
-      return;
-    }
-
-    didAutoStart.current = true;
-    setUrlValue(validation.normalized);
-    setErrorMessage(null);
-    createScan.mutate(validation.normalized);
-  }, [isUrlStateReady, hasInitialIdInUrl, initialUrl, createScan]);
-
-  const scanQuery = useQuery({
-    queryKey: ["scan-result", scanId],
-    queryFn: () => fetchScanResult(scanId as number),
-    enabled: typeof scanId === "number" && mode === "seo",
-  });
-
-  useEffect(() => {
-    if (!scanQuery.error) return;
-    setErrorMessage((scanQuery.error as Error).message ?? "Scan failed.");
-  }, [scanQuery.error]);
-
-  useEffect(() => {
-    if (!scanQuery.data) return;
-    setErrorMessage(null);
-  }, [scanQuery.data]);
-
-  const isScanning = mode === "seo"
-    ? (createScan.isPending || scanQuery.isFetching)
-    : geoScanning;
-
-  const hasResults = mode === "seo"
-    ? Boolean(scanQuery.data)
-    : Boolean(geoScanData);
-
+  const scan = scanPoll.data ?? null;
+  const audit = getAuditPreview(scan);
+  const isScanning = Boolean(publicId) && !scan?.preview && (scanPoll.isLoading || !scan);
+  const hasResults = Boolean(scan?.preview);
   const scanState: ScanState = hasResults
     ? "results"
     : isScanning
@@ -179,189 +85,139 @@ export default function ScannerClient({
       : "idle";
 
   useEffect(() => {
-    if (scanState !== "scanning") return;
-    setActiveStep(0);
-    const stepsLength = mode === "seo" ? scanSteps.length : geoScanSteps.length;
-    const stepTimer = setInterval(() => {
-      setActiveStep((prev) => (prev + 1) % stepsLength);
-    }, 700);
-    return () => clearInterval(stepTimer);
-  }, [scanState, mode]);
+    if (typeof window === "undefined") return;
+    const url = new URL(window.location.href);
+    if (publicId) url.searchParams.set("id", publicId);
+    else url.searchParams.delete("id");
+    url.searchParams.delete("mode");
+    window.history.replaceState({}, "", url.toString());
+  }, [publicId]);
 
   useEffect(() => {
-    if (scanState !== "results") return;
-    const node = document.getElementById("scan-report");
-    if (!node) return;
-    const headerOffset = 80;
-    const top = node.getBoundingClientRect().top + window.scrollY - headerOffset;
-    window.scrollTo({ top, behavior: "smooth" });
+    if (scanState !== "scanning") return;
+    const timer = window.setInterval(() => {
+      setActiveStep((prev) => (prev + 1) % scanSteps.length);
+    }, 700);
+    return () => window.clearInterval(timer);
   }, [scanState]);
 
-  const handleScan = () => {
-    const validation = getValidScanUrl(urlValue);
+  const startScan = async (url: string, forceNew = false) => {
+    setErrorMessage(null);
+    setDailyLimit(false);
+    setCached(false);
+    setPublicId("");
+    try {
+      const created = await createScanRequest({ url });
+      setPublicId(created.publicId);
+      setCached(created.cached && !forceNew);
+    } catch (err) {
+      if (isApiError(err) && err.status === 429 && err.code === "DAILY_LIMIT") {
+        setDailyLimit(true);
+        setErrorMessage(null);
+        return;
+      }
+      if (isApiError(err) && err.status === 429) {
+        setErrorMessage("Too many requests, wait a minute");
+        return;
+      }
+      if (isApiError(err) && err.status === 400) {
+        setErrorMessage(err.message);
+        return;
+      }
+      setErrorMessage(err instanceof Error ? err.message : "Unable to start scan.");
+    }
+  };
 
-    if (hasInitialIdInUrl && !urlValue.trim()) {
-      setErrorMessage("Loaded saved report from URL. Enter a URL to start a new scan.");
+  useEffect(() => {
+    if (didAutoStart.current) return;
+    if (initialPublicId) {
+      didAutoStart.current = true;
       return;
     }
-
+    if (!initialUrl.trim()) return;
+    const validation = getValidScanUrl(initialUrl);
     if (!validation.valid) {
       setErrorMessage(validation.error);
       return;
     }
+    didAutoStart.current = true;
+    setUrlValue(validation.normalized);
+    void startScan(validation.normalized);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialPublicId, initialUrl]);
 
-    setErrorMessage(null);
-    if (mode === "seo") {
-      setScanId(null);
-      setIsUnlocked(false);
-      clearReportUnlock();
-      createScan.mutate(validation.normalized);
-    } else {
-      setGeoScanData(null);
-      setGeoScanning(true);
-      runGeoScanRequest(validation.normalized)
-        .then((data) => {
-          setGeoScanData(data);
-          setGeoScanning(false);
-        })
-        .catch((err: any) => {
-          setErrorMessage(err.message || "Failed to execute GEO analysis.");
-          setGeoScanning(false);
-        });
+  const handleScan = () => {
+    const validation = getValidScanUrl(urlValue);
+    if (publicId && !urlValue.trim()) {
+      setErrorMessage("Loaded saved report from URL. Enter a URL to start a new scan.");
+      return;
     }
+    if (!validation.valid) {
+      setErrorMessage(validation.error);
+      return;
+    }
+    void startScan(validation.normalized);
   };
 
-  const runUnlockPayment = (currentScanId: number) => {
-    startPayment({
-      scanId: currentScanId,
-      onSuccess: (updatedScan) => {
-        queryClient.setQueryData(["scan-result", currentScanId], updatedScan);
-        void queryClient.invalidateQueries({
-          queryKey: ["scan-result", currentScanId],
-        });
-        setReportUnlock();
-        setIsUnlocked(true);
-        if (!hasReportUnlockEmail() && !emailPromptShownBeforeUnlock) {
-          setShowEmailCapture(true);
-        }
-        setEmailPromptShownBeforeUnlock(false);
-        setErrorMessage(null);
+  const handleUnlockSubmit = (email: string) => {
+    if (!publicId) return;
+    setEmailError(null);
+    void startPayment({
+      scanId: publicId,
+      email,
+      onSuccess: () => {
+        setShowUnlock(false);
+        void scanPoll.refetch();
       },
-      onError: (message) => {
-        setEmailPromptShownBeforeUnlock(false);
-        setErrorMessage(message);
+      onError: (error) => {
+        if (isApiError(error) && error.code === "EMAIL_REQUIRED") {
+          setEmailError("Email is required to unlock this report.");
+          return;
+        }
+        if (isApiError(error) && error.status === 409 && error.code === "ALREADY_UNLOCKED") {
+          setShowUnlock(false);
+          void scanPoll.refetch();
+          return;
+        }
+        if (isApiError(error) && error.status === 409) {
+          setEmailError("The scan is still running. Wait a moment and try again.");
+          return;
+        }
+        if (isApiError(error) && error.status === 404) {
+          setEmailError("This scan could not be found.");
+        }
       },
     });
   };
 
-  const handleUnlock = () => {
-    const currentScanId = scanQuery.data?.data?.id ?? scanId;
-    if (!currentScanId) {
-      setErrorMessage("Run a scan before unlocking the full report.");
-      return;
-    }
+  const reportActions = useMemo(() => {
+    const ready = Boolean(scan?.auditComplete && audit);
+    const label = pdf.isPreparing
+      ? "Preparing your report…"
+      : pdf.exhausted
+        ? "Retry PDF"
+        : "Download PDF";
+    return (
+      <div className="flex flex-wrap gap-2">
+        {publicId ? <ShareReportButton publicId={publicId} /> : null}
+        <Button
+          variant="outline"
+          disabled={!ready || pdf.isDownloading}
+          onClick={() => {
+            if (publicId && scan) {
+              void pdf.download(publicId, scan.url, audit);
+            }
+          }}
+          aria-busy={pdf.isDownloading}
+        >
+          <Download className="mr-2 h-4 w-4" />
+          {label}
+        </Button>
+      </div>
+    );
+  }, [audit, pdf, publicId, scan]);
 
-    setErrorMessage(null);
-    if (!hasReportUnlockEmail()) {
-      setEmailPromptShownBeforeUnlock(true);
-      setPendingUnlockScanId(currentScanId);
-      setShowEmailCapture(true);
-      return;
-    }
-
-    runUnlockPayment(currentScanId);
-  };
-
-  const continuePendingUnlock = () => {
-    if (!pendingUnlockScanId) return;
-    const nextScanId = pendingUnlockScanId;
-    setPendingUnlockScanId(null);
-    runUnlockPayment(nextScanId);
-  };
-
-  const handleDownload = async () => {
-    const currentScanId = scanQuery.data?.data?.id ?? scanId;
-    if (!currentScanId) return;
-
-    setIsDownloading(true);
-    try {
-      if (reportData) {
-        await generateScanReportPdf(reportData);
-      } else {
-        const blob = await downloadPdfApi(currentScanId);
-        const url = window.URL.createObjectURL(blob);
-        const link = document.createElement("a");
-        link.href = url;
-        link.download = `audit-report-${currentScanId}.pdf`;
-        link.click();
-        window.URL.revokeObjectURL(url);
-      }
-    } catch {
-      setErrorMessage("Failed to download PDF report.");
-    } finally {
-      setIsDownloading(false);
-    }
-  };
-
-  const handleReset = () => {
-    setScanId(null);
-    setGeoScanData(null);
-    setErrorMessage(null);
-  };
-
-  const reportData: ScanResultResponse["data"] | null =
-    scanQuery.data?.data ?? null;
-  const previewData = reportData?.preview ?? null;
-  const fullReport =
-    reportData?.fullReport ?? reportData?.aiReport ?? reportData?.report ?? null;
-  const hasFullReportContent = hasReportContent(fullReport);
-
-  const locked = reportData
-    ? (reportData.locked || reportData.preview.locked) && !isUnlocked
-    : true;
-
-  useEffect(() => {
-    if (!scanId || !isUnlocked || hasFullReportContent) return;
-    let attempts = 0;
-    const maxAttempts = 20;
-    const interval = window.setInterval(() => {
-      attempts += 1;
-      void queryClient.invalidateQueries({ queryKey: ["scan-result", scanId] });
-      if (attempts >= maxAttempts) {
-        window.clearInterval(interval);
-      }
-    }, 1500);
-
-    return () => window.clearInterval(interval);
-  }, [scanId, isUnlocked, hasFullReportContent, queryClient]);
-
-  const previewIssues = useMemo<Issue[]>(() => {
-    if (!reportData) return [];
-
-    if (!locked && fullReport?.issues) {
-      return fullReport.issues.map((issue, index) => ({
-        id: `full-issue-${index}`,
-        title: issue.title,
-        severity: (issue.severity as string) || "Medium",
-        suggestion: issue.suggestion,
-        codeSnippet: issue.codeSnippet,
-      }));
-    }
-
-    return reportData.preview.topIssues.map((issue, index) => ({
-      id: `preview-issue-${index}`,
-      title: issue.title,
-      severity: issue.severity,
-    }));
-  }, [reportData, fullReport, locked]);
-
-  const aiSuggestions = useMemo(() => {
-    if (locked) return [];
-    if (fullReport?.suggestions?.length) return fullReport.suggestions;
-    return previewData?.quickWins ?? [];
-  }, [fullReport, previewData, locked]);
-
-  const lockedIssuesCount = previewData?.lockedIssues ?? 0;
+  const defaultEmail = user?.email ?? "";
 
   return (
     <motion.div
@@ -376,173 +232,111 @@ export default function ScannerClient({
         <div className="absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-amber-300/20 blur-3xl" />
       </div>
 
+      <UnlockEmailModal
+        open={showUnlock}
+        defaultEmail={defaultEmail}
+        priceLabel={unlockPriceLabel}
+        submitting={isPaying}
+        emailError={emailError}
+        onOpenChange={setShowUnlock}
+        onSubmit={handleUnlockSubmit}
+      />
+
       <section className="container py-16 md:py-24">
-        <UnlockEmailCaptureDialog
-          open={showEmailCapture}
-          defaultEmail={capturedEmail}
-          title={
-            pendingUnlockScanId
-              ? "Unlock full report"
-              : "✅ Report unlocked"
-          }
-          description="Enter email to access anytime"
-          saveLabel={pendingUnlockScanId ? "Save & continue" : "Save email"}
-          onOpenChange={(open) => {
-            setShowEmailCapture(open);
-            if (!open) {
-              continuePendingUnlock();
-            }
-          }}
-          onSkip={() => {
-            continuePendingUnlock();
-            setShowEmailCapture(false);
-          }}
-          onSave={(email) => {
-            setReportUnlockEmail(email);
-            setCapturedEmail(email);
-            continuePendingUnlock();
-            setShowEmailCapture(false);
-            toast({
-              title: "Email saved",
-              description: "You can use this email to access your unlocked report anytime.",
-            });
-          }}
-        />
         <Hero />
-
         <div className="mx-auto mt-12 max-w-5xl space-y-6">
-          <div className="flex justify-center">
-            <Tabs
-              value={mode}
-              onValueChange={(val: string) => setMode(val as "seo" | "geo")}
-              className="w-80"
-            >
-              <TabsList className="relative grid w-full grid-cols-2">
-                <TabsTrigger
-                  value="seo"
-                  className="relative data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-                >
-                  {mode === "seo" ? (
-                    <motion.span
-                      layoutId="scanner-mode-pill"
-                      className="absolute inset-0 z-0 rounded-sm bg-background shadow-sm"
-                      transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                    />
-                  ) : null}
-                  <span className="relative z-10">SEO Checker</span>
-                </TabsTrigger>
-                <TabsTrigger
-                  value="geo"
-                  className="relative data-[state=active]:bg-transparent data-[state=active]:shadow-none"
-                >
-                  {mode === "geo" ? (
-                    <motion.span
-                      layoutId="scanner-mode-pill"
-                      className="absolute inset-0 z-0 rounded-sm bg-background shadow-sm"
-                      transition={{ type: "spring", stiffness: 380, damping: 32 }}
-                    />
-                  ) : null}
-                  <span className="relative z-10">GEO Checker</span>
-                </TabsTrigger>
-              </TabsList>
-            </Tabs>
-          </div>
+          <ScanInput
+            urlValue={urlValue}
+            onUrlChange={setUrlValue}
+            onScan={handleScan}
+            scanning={scanState === "scanning"}
+            errorMessage={errorMessage}
+          />
 
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={mode}
-              initial={{ opacity: 0, x: mode === "geo" ? 28 : -28 }}
-              animate={{ opacity: 1, x: 0 }}
-              exit={{ opacity: 0, x: mode === "geo" ? -28 : 28 }}
-              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
-              className="space-y-6"
-            >
-              <ScanInput
-                urlValue={urlValue}
-                onUrlChange={setUrlValue}
-                onScan={handleScan}
-                scanning={scanState === "scanning"}
-                errorMessage={errorMessage}
-              />
+          {dailyLimit ? <UpgradeProCard /> : null}
 
-              {scanState === "scanning" ? (
-                <div className="mt-6">
-                  <ScanLoader
-                    activeStep={
-                      mode === "seo" ? scanSteps[activeStep] : geoScanSteps[activeStep]
+          {scanState === "scanning" ? (
+            <ScanLoader activeStep={scanSteps[activeStep]} />
+          ) : null}
+
+          {scanPoll.error && !scan ? (
+            <p className="text-sm text-destructive">{scanPoll.error.message}</p>
+          ) : null}
+
+          {scanState === "results" ? (
+            <div id="scan-report" className="mt-14 space-y-4">
+              {cached ? (
+                <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-amber-500/20 bg-amber-500/10 px-4 py-3 text-sm">
+                  <p>Results from the last 24 hours. A rescan uses the same cache until it expires.</p>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      const validation = getValidScanUrl(urlValue || scan?.url || "");
+                      if (validation.valid) void startScan(validation.normalized, true);
+                    }}
+                  >
+                    Rescan
+                  </Button>
+                </div>
+              ) : null}
+
+              {scan && audit ? (
+                <AuditView
+                  report={audit}
+                  scan={scan}
+                  onUnlock={() => {
+                    setEmailError(null);
+                    if (isAuthenticated && user?.email) {
+                      handleUnlockSubmit(user.email);
+                      return;
                     }
-                  />
-                </div>
+                    setShowUnlock(true);
+                  }}
+                  unlockPriceLabel={unlockPriceLabel}
+                  unlocking={isPaying || isFinalizingReport}
+                  pdfButton={reportActions}
+                  isAdmin={user?.role === "admin"}
+                />
+              ) : scan && scan.reportVersion === 1 ? (
+                <V1ReportView
+                  scan={scan}
+                  onReset={() => {
+                    setPublicId("");
+                    setCached(false);
+                  }}
+                  onDownload={() => {
+                    if (publicId) void pdf.download(publicId, scan.url, audit);
+                  }}
+                  onUnlock={() => {
+                    if (isAuthenticated && user?.email) {
+                      handleUnlockSubmit(user.email);
+                      return;
+                    }
+                    setShowUnlock(true);
+                  }}
+                  unlockPriceLabel={unlockPriceLabel}
+                  unlocking={isPaying}
+                  unlockingLabel={
+                    isFinalizingReport
+                      ? "Writing your AI report…"
+                      : "Processing payment..."
+                  }
+                  downloading={pdf.isDownloading}
+                />
               ) : null}
 
-              {scanState === "results" ? (
-                <div id="scan-report" className="mt-14">
-                  {mode === "seo" && reportData ? (
-                    <div className="space-y-10">
-                      <ResultsHeader
-                        url={reportData.url}
-                        overall={reportData.preview.overall}
-                        verdict={reportData.preview.verdict}
-                        totalIssues={reportData.preview.totalIssuesFound}
-                        onReset={handleReset}
-                        unlocked={!locked}
-                        onDownload={handleDownload}
-                        onUnlock={handleUnlock}
-                        unlockPriceLabel={unlockPriceLabel}
-                        unlocking={isPaying}
-                        unlockingLabel={unlockingLabel}
-                        downloading={isDownloading}
-                      />
-                      {!locked ? (
-                        <FullReportSection
-                          report={fullReport}
-                          pending={!hasFullReportContent}
-                        />
-                      ) : null}
-                      <div className="grid gap-6 lg:grid-cols-2">
-                        <ScoreOverview
-                          overall={reportData.preview.overall}
-                          categories={reportData.preview.categories}
-                          indexing={reportData.preview.indexing}
-                          social={reportData.preview.social}
-                        />
-                        <MetricsCard
-                          metrics={reportData.preview.metrics}
-                          improvements={reportData.preview.improvements}
-                          seoMeta={reportData.preview.seoMeta}
-                        />
-                      </div>
-                      <IssuesList
-                        issues={previewIssues}
-                        totalIssues={reportData.preview.totalIssuesFound}
-                        locked={locked}
-                        lockedCount={lockedIssuesCount}
-                        onUnlock={handleUnlock}
-                        unlockPriceLabel={unlockPriceLabel}
-                        unlocking={isPaying}
-                        unlockingLabel={unlockingLabel}
-                      />
-                      <AiSuggestions
-                        title="AI suggestions"
-                        suggestions={aiSuggestions}
-                        locked={locked}
-                        onUnlock={handleUnlock}
-                        unlockPriceLabel={unlockPriceLabel}
-                        unlocking={isPaying}
-                        unlockingLabel={unlockingLabel}
-                        description="Paid report includes actionable AI recommendations."
-                      />
-                    </div>
-                  ) : mode === "geo" && geoScanData ? (
-                    <GeoReportSection
-                      report={geoScanData}
-                      onReset={handleReset}
-                    />
-                  ) : null}
-                </div>
+              {scan && scan.reportVersion === 1 && publicId ? (
+                <ShareReportButton publicId={publicId} />
               ) : null}
-            </motion.div>
-          </AnimatePresence>
+
+              {pdf.error ? (
+                <p className="text-sm text-muted-foreground" role="status">
+                  {pdf.error}
+                </p>
+              ) : null}
+            </div>
+          ) : null}
         </div>
       </section>
     </motion.div>

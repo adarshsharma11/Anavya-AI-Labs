@@ -1,16 +1,43 @@
-import type { ScanReport, ScanResultResponse } from "@/lib/api/scan";
+import type { ScanReport } from "@/lib/api/scan";
+import type { ScanRecord } from "@/types/api";
 
-type ScanData = ScanResultResponse["data"];
+type ScanData = ScanRecord;
 
-function asLines(values: string[] | undefined) {
+function previewFields(preview: ScanRecord["preview"]) {
+  if (!preview) {
+    return {
+      overall: 0,
+      verdict: "—",
+      totalIssuesFound: 0,
+      categories: { performance: 0, seo: 0, accessibility: 0, security: 0 },
+      topIssues: [] as { title: string; severity: string }[],
+      quickWins: [] as string[],
+    };
+  }
+  const categories = preview.categories as Record<string, number | null>;
+  return {
+    overall: preview.overall,
+    verdict: preview.verdict,
+    totalIssuesFound: "totalIssuesFound" in preview ? preview.totalIssuesFound ?? 0 : 0,
+    categories: {
+      performance: categories.performance ?? categories.speed ?? 0,
+      seo: categories.seo ?? categories.aeo ?? 0,
+      accessibility: categories.accessibility ?? categories.content ?? 0,
+      security: categories.security ?? categories.technical ?? 0,
+    },
+    topIssues: "topIssues" in preview ? [...(preview.topIssues ?? [])] : [],
+    quickWins: "quickWins" in preview ? [...(preview.quickWins ?? [])] : [],
+  };
+}
+
+function asLines(values: readonly string[] | string[] | undefined) {
   return (values ?? []).filter(Boolean);
 }
 
 export async function generateScanReportPdf(scan: ScanData) {
   const { jsPDF } = await import("jspdf");
 
-  const report: ScanReport | null =
-    scan.fullReport ?? scan.aiReport ?? scan.report ?? null;
+  const report: ScanReport | null = scan.fullReport;
   const doc = new jsPDF({ unit: "pt", format: "a4" });
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
@@ -72,17 +99,18 @@ export async function generateScanReportPdf(scan: ScanData) {
 
   y = 142;
 
+  const preview = previewFields(scan.preview);
   writeSectionTitle("Report Summary", [16, 185, 129]);
-  writeParagraph(`Overall Score: ${scan.preview.overall}/100`);
-  writeParagraph(`Verdict: ${scan.preview.verdict}`);
-  writeParagraph(`Total Issues Found: ${scan.preview.totalIssuesFound}`);
+  writeParagraph(`Overall Score: ${preview.overall}/100`);
+  writeParagraph(`Verdict: ${preview.verdict}`);
+  writeParagraph(`Total Issues Found: ${preview.totalIssuesFound}`);
   writeParagraph(
-    `Category Scores - Performance: ${scan.preview.categories.performance}, SEO: ${scan.preview.categories.seo}, Accessibility: ${scan.preview.categories.accessibility}, Security: ${scan.preview.categories.security}`
+    `Category Scores - Performance: ${preview.categories.performance}, SEO: ${preview.categories.seo}, Accessibility: ${preview.categories.accessibility}, Security: ${preview.categories.security}`
   );
 
   writeSectionTitle("Top Issues", [244, 114, 22]);
-  if (scan.preview.topIssues.length) {
-    scan.preview.topIssues.forEach((issue, index) => {
+  if (preview.topIssues.length) {
+    preview.topIssues.forEach((issue, index) => {
       writeParagraph(`${index + 1}. ${issue.title} (${issue.severity})`);
     });
   } else {
@@ -90,7 +118,7 @@ export async function generateScanReportPdf(scan: ScanData) {
   }
 
   writeSectionTitle("Quick Wins", [124, 58, 237]);
-  writeList(scan.preview.quickWins);
+  writeList(preview.quickWins);
 
   if (report) {
     writeSectionTitle("Executive Summary", [2, 132, 199]);
@@ -161,7 +189,7 @@ export async function generateCompetitorReportPdf(scan: ScanData) {
     y += 36;
   };
 
-  const writeList = (items: string[] | undefined) => {
+  const writeList = (items: readonly string[] | undefined) => {
     const safeItems = (items ?? []).filter(Boolean);
     if (!safeItems.length) {
       writeParagraph("No additional insights available.");
@@ -188,27 +216,29 @@ export async function generateCompetitorReportPdf(scan: ScanData) {
 
   y = 142;
 
+  const preview = previewFields(scan.preview);
   writeSectionTitle("Primary Website Score", [16, 185, 129]);
-  writeParagraph(`Overall: ${scan.preview.overall}/100`);
-  writeParagraph(`Verdict: ${scan.preview.verdict}`);
+  writeParagraph(`Overall: ${preview.overall}/100`);
+  writeParagraph(`Verdict: ${preview.verdict}`);
   writeParagraph(
-    `Performance: ${scan.preview.categories.performance}, SEO: ${scan.preview.categories.seo}, Accessibility: ${scan.preview.categories.accessibility}, Security: ${scan.preview.categories.security}`
+    `Performance: ${preview.categories.performance}, SEO: ${preview.categories.seo}, Accessibility: ${preview.categories.accessibility}, Security: ${preview.categories.security}`
   );
 
+  const competitorFields = previewFields(competitor);
   if (competitor) {
     writeSectionTitle("Competitor Score", [245, 158, 11]);
-    writeParagraph(`Overall: ${competitor.overall}/100`);
-    writeParagraph(`Verdict: ${competitor.verdict}`);
+    writeParagraph(`Overall: ${competitorFields.overall}/100`);
+    writeParagraph(`Verdict: ${competitorFields.verdict}`);
     writeParagraph(
-      `Performance: ${competitor.categories.performance}, SEO: ${competitor.categories.seo}, Accessibility: ${competitor.categories.accessibility}, Security: ${competitor.categories.security}`
+      `Performance: ${competitorFields.categories.performance}, SEO: ${competitorFields.categories.seo}, Accessibility: ${competitorFields.categories.accessibility}, Security: ${competitorFields.categories.security}`
     );
   }
 
   writeSectionTitle("Your Quick Wins", [2, 132, 199]);
-  writeList(scan.preview.quickWins);
+  writeList(preview.quickWins);
 
   writeSectionTitle("Competitor Quick Wins", [217, 119, 6]);
-  writeList(competitor?.quickWins);
+  writeList(competitorFields.quickWins);
 
   if (analysis) {
     writeSectionTitle("AI Comparison Summary", [147, 51, 234]);

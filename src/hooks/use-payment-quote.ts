@@ -2,12 +2,9 @@
 
 import { useEffect, useState } from "react";
 
-import {
-  fetchPaymentQuote,
-  formatPaymentPriceLabel,
-  type PaymentQuote,
-} from "@/lib/payments/razorpay";
+import { fetchPaymentQuote, formatQuoteLabel } from "@/lib/api/payment";
 import { detectClientRegion } from "@/lib/payments/payment-region";
+import type { PaymentQuote } from "@/types/api";
 
 export function usePaymentQuote() {
   const [quote, setQuote] = useState<PaymentQuote | null>(null);
@@ -18,11 +15,10 @@ export function usePaymentQuote() {
 
     void (async () => {
       try {
-        const region = detectClientRegion();
-        const nextQuote = await fetchPaymentQuote(region);
+        const nextQuote = await fetchPaymentQuote(detectClientRegion());
         if (cancelled) return;
         setQuote(nextQuote);
-        setPriceLabel(formatPaymentPriceLabel(nextQuote));
+        setPriceLabel(formatQuoteLabel(nextQuote));
       } catch {
         if (cancelled) return;
         setPriceLabel("");

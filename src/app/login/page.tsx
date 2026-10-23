@@ -40,7 +40,9 @@ export default function LoginPage() {
       const response = await loginApi(values);
       if (response && response.success) {
         toast({ title: "Welcome back!", description: "Successfully logged in." });
-        login({ accessToken: response.accessToken, refreshToken: response.refreshToken });
+        if (response.accessToken && response.refreshToken) {
+          login({ accessToken: response.accessToken, refreshToken: response.refreshToken });
+        }
       } else {
         toast({ variant: "destructive", title: "Login failed", description: response?.message || "Invalid credentials." });
       }

@@ -11,6 +11,7 @@ import { Separator } from "@/components/ui/separator";
 const PRODUCT_LINKS = [
   { title: "Website Scanner", href: "/scanner" },
   { title: "Competitor Scanner", href: "/competitor-scanner" },
+  { title: "Pricing", href: "/pricing" },
   { title: "Services", href: "/services" },
   { title: "Blog", href: "/blog" },
 ] as const;

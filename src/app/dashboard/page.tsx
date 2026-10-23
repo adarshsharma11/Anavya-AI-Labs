@@ -12,8 +12,11 @@ import { Skeleton } from "@/components/ui/skeleton";
 interface DashboardAnalytics {
   totalUsers?: number;
   totalScans: number;
+  avgOverallScore?: number;
   avgPerformanceScore: number;
   avgSeoScore: number;
+  avgAeoScore?: number;
+  avgGeoScore?: number;
   avgAccessibilityScore?: number;
   avgSecurityScore?: number;
   totalIssuesFound: number;
@@ -196,6 +199,36 @@ export default function DashboardOverviewPage() {
                 <CardContent>
                   {loading ? <Skeleton className="h-8 w-16" /> : <div className="text-3xl font-bold text-foreground">{analytics?.totalIssuesFound || 0}</div>}
                   <p className="text-xs text-muted-foreground mt-1">Identified across all scans</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <Card className="border-border/60 bg-background/80 shadow-lg backdrop-blur h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-semibold text-muted-foreground">Avg AEO</CardTitle>
+                  <div className="rounded-full bg-violet-500/10 p-2 text-violet-600">
+                    <CheckCircle className="h-4 w-4" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loading ? <Skeleton className="h-8 w-16" /> : <div className="text-3xl font-bold text-foreground">{Math.round(analytics?.avgAeoScore ?? 0) || "—"}</div>}
+                  <p className="text-xs text-muted-foreground mt-1">Answer engine readiness</p>
+                </CardContent>
+              </Card>
+            </motion.div>
+
+            <motion.div variants={itemVariants}>
+              <Card className="border-border/60 bg-background/80 shadow-lg backdrop-blur h-full">
+                <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                  <CardTitle className="text-sm font-semibold text-muted-foreground">Avg GEO</CardTitle>
+                  <div className="rounded-full bg-teal-500/10 p-2 text-teal-600">
+                    <CheckCircle className="h-4 w-4" />
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  {loading ? <Skeleton className="h-8 w-16" /> : <div className="text-3xl font-bold text-foreground">{Math.round(analytics?.avgGeoScore ?? 0) || "—"}</div>}
+                  <p className="text-xs text-muted-foreground mt-1">Generative engine visibility</p>
                 </CardContent>
               </Card>
             </motion.div>

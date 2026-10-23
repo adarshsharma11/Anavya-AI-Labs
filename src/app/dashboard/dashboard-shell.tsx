@@ -9,6 +9,7 @@ import {
   LayoutDashboard,
   FileSearch,
   Settings,
+  Activity,
   Menu,
   X,
   LogOut,
@@ -34,6 +35,11 @@ const sidebarNavItems = [
     title: "My Scans",
     href: "/dashboard/scans",
     icon: FileSearch,
+  },
+  {
+    title: "Monitoring",
+    href: "/dashboard/monitors",
+    icon: Activity,
   },
   {
     title: "Profile & Branding",
@@ -77,6 +83,21 @@ const adminSidebarNavItems = [
     title: "Users & Scans",
     href: "/dashboard/admin/users",
     icon: Users,
+  },
+  {
+    title: "Revenue",
+    href: "/dashboard/admin/revenue",
+    icon: Activity,
+  },
+  {
+    title: "GEO Leads",
+    href: "/dashboard/admin/geo-leads",
+    icon: Mail,
+  },
+  {
+    title: "Site Settings",
+    href: "/dashboard/admin/settings",
+    icon: Settings,
   },
 ];
 

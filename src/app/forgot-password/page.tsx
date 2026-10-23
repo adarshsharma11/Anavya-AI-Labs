@@ -35,18 +35,24 @@ export default function ForgotPasswordPage() {
     try {
       const response = await forgotPasswordApi(values.email);
       if (response && response.success) {
-        toast({ 
-          title: "OTP Sent", 
-          description: response.mockEmailDelivery 
-            ? `(Dev Mode) Your OTP is: ${response.otp}` 
-            : "Check your email for the password reset OTP." 
+        const isDev = process.env.NODE_ENV === "development";
+        toast({
+          title: "Check your email",
+          description:
+            isDev && response.otp
+              ? `(Dev) Your OTP is: ${response.otp}`
+              : "If that email exists, a reset link was sent.",
         });
-        // Wait a short moment then redirect to reset-password
-        setTimeout(() => {
+        if (isDev) {
+          setTimeout(() => {
             router.push(`/reset-password?email=${encodeURIComponent(values.email)}`);
-        }, 2000);
+          }, 2000);
+        }
       } else {
-        toast({ variant: "destructive", title: "Failed", description: response?.message || "Could not process request." });
+        toast({
+          title: "Check your email",
+          description: "If that email exists, a reset link was sent.",
+        });
       }
     } catch (error: any) {
       toast({ variant: "destructive", title: "Error", description: error.message || "Failed to request password reset." });
@@ -61,7 +67,7 @@ export default function ForgotPasswordPage() {
         <CardHeader className="space-y-2 text-center">
           <CardTitle className="text-3xl font-bold tracking-tight">Forgot Password</CardTitle>
           <CardDescription className="text-base">
-            Enter your email to receive a password reset OTP
+            Enter your email. If that account exists, we will send a reset link.
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -73,7 +79,7 @@ export default function ForgotPasswordPage() {
             </div>
             
             <Button type="submit" className="w-full text-md h-12" disabled={isLoading}>
-              {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <>Send Reset OTP <ArrowRight className="ml-2 h-5 w-5" /></>}
+              {isLoading ? <Loader2 className="mr-2 h-5 w-5 animate-spin" /> : <>Send reset link <ArrowRight className="ml-2 h-5 w-5" /></>}
             </Button>
           </form>
         </CardContent>

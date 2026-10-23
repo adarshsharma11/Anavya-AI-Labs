@@ -16,7 +16,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 
-export function SuggestionList({ items }: { items: string[] }) {
+export function SuggestionList({ items }: { items: readonly string[] }) {
   return (
     <ul className="mt-4 space-y-3 text-sm text-muted-foreground">
       {items.map((item) => (
@@ -71,7 +71,7 @@ export function AiSuggestions({
   unlockingLabel,
 }: {
   title: string;
-  suggestions: string[];
+  suggestions: readonly string[];
   locked: boolean;
   onUnlock: () => void;
   description?: string;
@@ -125,7 +125,7 @@ export function QuickWinsCard({
   unlockingLabel,
 }: {
   title: string;
-  wins: string[];
+  wins: readonly string[];
   locked: boolean;
   onUnlock: () => void;
   unlockPriceLabel: string;
@@ -176,7 +176,7 @@ export function CompetitorAnalysisCard({
 }: {
   scoreGap: number;
   summary: string;
-  actionItems: string[];
+  actionItems: readonly string[];
   locked: boolean;
   onUnlock: () => void;
   unlockPriceLabel: string;

@@ -1,4 +1,10 @@
 import { apiFetch } from "./client";
+import type {
+  AdminRevenue,
+  ApiEnvelope,
+  BlogPost,
+  GeoLead,
+} from "@/types/api";
 
 // Global analytics & user management
 export const getAdminAnalyticsApi = async () => {
@@ -105,6 +111,37 @@ export const deletePortfolioApi = async (slug: string) => {
 // About Page Customization
 export const updateAboutApi = async (body: any) => {
   return await apiFetch<any>("/about", {
+    method: "POST",
+    body: JSON.stringify(body),
+  });
+};
+
+export const getAdminRevenueApi = async () => {
+  return apiFetch<ApiEnvelope<AdminRevenue>>("/admin/revenue");
+};
+
+export const getAdminScansApi = async () => {
+  return apiFetch<ApiEnvelope<unknown[]>>("/admin/scans");
+};
+
+export const regenerateAdminScanApi = async (id: number) => {
+  return apiFetch<ApiEnvelope<unknown>>(`/admin/scans/${id}/regenerate`, {
+    method: "POST",
+  });
+};
+
+export const getAdminGeoLeadsApi = async (limit = 100) => {
+  return apiFetch<ApiEnvelope<readonly GeoLead[]>>(
+    `/admin/geo-leads?limit=${limit}`
+  );
+};
+
+export const getAdminBlogsApi = async () => {
+  return apiFetch<ApiEnvelope<readonly BlogPost[]>>("/admin/blogs");
+};
+
+export const updateSiteSettingsApi = async (body: Record<string, string>) => {
+  return apiFetch<ApiEnvelope<Record<string, string>>>("/settings", {
     method: "POST",
     body: JSON.stringify(body),
   });

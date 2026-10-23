@@ -1,14 +1,19 @@
 import { env } from "@/env";
 
-export const API_PREFIX = env.apiBaseUrl;
+export class ApiError extends Error {
+  readonly status: number;
+  readonly code?: string;
 
-export function buildApiUrl(path: string) {
-  if (!API_PREFIX) {
-    console.warn(" API base URL not set. Falling back to relative path.");
-    return path;
+  constructor(status: number, message: string, code?: string) {
+    super(message);
+    this.name = "ApiError";
+    this.status = status;
+    this.code = code;
   }
+}
 
-  return `${API_PREFIX}${path.startsWith("/") ? path : `/${path}`}`;
+export function isApiError(error: unknown): error is ApiError {
+  return error instanceof ApiError;
 }
 
 export type ApiFetchInit = RequestInit & {
@@ -16,12 +21,36 @@ export type ApiFetchInit = RequestInit & {
     revalidate?: number;
   };
   skipAuthInterceptor?: boolean;
+  parseJson?: boolean;
 };
+
+function resolveApiPrefix(): string {
+  const origin = (process.env.NEXT_PUBLIC_API_URL ?? "").replace(/\/$/, "");
+  if (origin) {
+    return `${origin}/api/v1`;
+  }
+  return env.apiBaseUrl;
+}
+
+export const API_PREFIX = resolveApiPrefix();
+
+export function buildApiUrl(path: string) {
+  if (!API_PREFIX) {
+    return path.startsWith("/") ? path : `/${path}`;
+  }
+  return `${API_PREFIX}${path.startsWith("/") ? path : `/${path}`}`;
+}
+
+function readAccessToken(): string | null {
+  if (typeof window === "undefined") return null;
+  return localStorage.getItem("accessToken");
+}
 
 let refreshPromise: Promise<string | null> | null = null;
 
 async function performRefresh(): Promise<string | null> {
   try {
+    if (typeof window === "undefined") return null;
     const refreshToken = localStorage.getItem("refreshToken");
     if (!refreshToken) return null;
 
@@ -31,23 +60,66 @@ async function performRefresh(): Promise<string | null> {
       body: JSON.stringify({ refreshToken }),
     });
 
-    if (!res.ok) throw new Error("Refresh failed");
+    if (!res.ok) return null;
 
-    const data = await res.json();
+    const data = (await res.json()) as {
+      accessToken?: string;
+      refreshToken?: string;
+    };
     if (data.accessToken && data.refreshToken) {
       localStorage.setItem("accessToken", data.accessToken);
       localStorage.setItem("refreshToken", data.refreshToken);
       return data.accessToken;
     }
     return null;
-  } catch (error) {
-    console.error(" [Auth] Token refresh failed:", error);
+  } catch {
     return null;
   } finally {
     refreshPromise = null;
   }
 }
 
+function parseEnvelope(rawBody: string): {
+  success?: boolean;
+  message?: string;
+  code?: string;
+  parsed: unknown;
+} {
+  if (!rawBody) {
+    return { parsed: null };
+  }
+  try {
+    const parsed = JSON.parse(rawBody) as {
+      success?: boolean;
+      message?: string;
+      error?: string;
+      code?: string;
+    };
+    return {
+      success: parsed.success,
+      message: parsed.message ?? parsed.error,
+      code: parsed.code,
+      parsed,
+    };
+  } catch {
+    return { parsed: rawBody };
+  }
+}
+
+function throwIfFailed(
+  response: Response,
+  envelope: ReturnType<typeof parseEnvelope>,
+  rawBody: string
+): void {
+  const failedByFlag = envelope.success === false;
+  if (response.ok && !failedByFlag) return;
+
+  throw new ApiError(
+    response.ok ? 400 : response.status,
+    envelope.message || rawBody || "Request failed.",
+    envelope.code
+  );
+}
 
 export async function apiFetch<T>(
   path: string,
@@ -57,77 +129,74 @@ export async function apiFetch<T>(
   const hasBody = Boolean(init?.body);
   const headers = new Headers(init?.headers ?? {});
 
-  if (hasBody && !headers.has("content-type")) {
+  if (hasBody && !headers.has("content-type") && !(init?.body instanceof FormData)) {
     headers.set("content-type", "application/json");
   }
 
-  // Inject JWT from localStorage organically
-  if (typeof window !== "undefined") {
-    const token = localStorage.getItem("accessToken");
-    if (token) {
-      headers.set("Authorization", `Bearer ${token}`);
-    }
+  const token = readAccessToken();
+  if (token && !headers.has("authorization")) {
+    headers.set("Authorization", `Bearer ${token}`);
   }
 
-  const url = buildApiUrl(path);
-
-  const response = await fetch(url, {
+  const response = await fetch(buildApiUrl(path), {
     ...init,
     method,
     headers,
   });
 
-  // Handle 401 Unauthorized globally by attempting refresh
-  if (response.status === 401 && typeof window !== "undefined" && !init?.skipAuthInterceptor) {
-    console.warn(" [Auth] 401 Detected. Attempting refresh...");
-    
+  if (
+    response.status === 401 &&
+    typeof window !== "undefined" &&
+    !init?.skipAuthInterceptor
+  ) {
     if (!refreshPromise) {
       refreshPromise = performRefresh();
     }
-
     const newToken = await refreshPromise;
 
     if (newToken) {
-       console.log(" [Auth] Token refreshed successfully. Retrying request...");
-       // Retry with new token
-       const newHeaders = new Headers(headers);
-       newHeaders.set("Authorization", `Bearer ${newToken}`);
-       
-       return apiFetch<T>(path, {
-         ...init,
-         headers: newHeaders,
-       });
-    } else {
-      console.error(" [Auth] Session expired. Logging out.");
-      localStorage.removeItem("accessToken");
-      localStorage.removeItem("refreshToken");
-      // Check if we should redirect to login
-      if (window.location.pathname !== "/login" && window.location.pathname !== "/") {
-          window.location.href = "/login";
-      }
+      const retryHeaders = new Headers(headers);
+      retryHeaders.set("Authorization", `Bearer ${newToken}`);
+      return apiFetch<T>(path, {
+        ...init,
+        headers: retryHeaders,
+        skipAuthInterceptor: true,
+      });
     }
+
+    localStorage.removeItem("accessToken");
+    localStorage.removeItem("refreshToken");
+    if (
+      window.location.pathname !== "/login" &&
+      window.location.pathname !== "/"
+    ) {
+      window.location.href = "/login";
+    }
+  }
+
+  if (init?.parseJson === false) {
+    if (!response.ok) {
+      const rawBody = await response.text();
+      const envelope = parseEnvelope(rawBody);
+      throwIfFailed(response, envelope, rawBody);
+    }
+    return response as unknown as T;
   }
 
   const rawBody = await response.text();
-  const parseJson = () => {
-    if (!rawBody) return null;
-    try {
-      return JSON.parse(rawBody) as unknown;
-    } catch {
-      return null;
-    }
-  };
+  const envelope = parseEnvelope(rawBody);
+  throwIfFailed(response, envelope, rawBody);
 
-  if (!response.ok) {
-    const parsed = parseJson() as { error?: string; message?: string } | null;
-    const message =
-      parsed?.error ?? parsed?.message ?? rawBody ?? "Request failed.";
-    throw new Error(message);
-  }
+  return envelope.parsed as T;
+}
 
-  const parsed = parseJson();
-  if (parsed !== null) {
-    return parsed as T;
-  }
-  return rawBody as T;
+export async function apiFetchBlob(
+  path: string,
+  init?: ApiFetchInit
+): Promise<Blob> {
+  const response = await apiFetch<Response>(path, {
+    ...init,
+    parseJson: false,
+  });
+  return response.blob();
 }

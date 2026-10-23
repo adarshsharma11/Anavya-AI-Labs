@@ -13,11 +13,14 @@ import { useToast } from "@/hooks/use-toast";
 import {
   createScanRequest,
   fetchScanResult,
-  type ScanResultResponse,
+  getLegacyPreview,
 } from "@/lib/api/scan";
+import type { ScanRecord } from "@/types/api";
+import { isApiError } from "@/lib/api/client";
+import { useAuth } from "@/components/providers/auth-provider";
 import { usePaymentQuote } from "@/hooks/use-payment-quote";
 import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
-import { generateCompetitorReportPdf } from "@/lib/pdf/scan-report-pdf";
+import { downloadScanPdf } from "@/lib/api/scan";
 import { competitorSteps } from "./scanner-constants";
 import {
   clearReportUnlock,
@@ -54,13 +57,14 @@ export function CompetitorScanner({
   const [competitorUrl, setCompetitorUrl] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [activeStep, setActiveStep] = useState(0);
-  const [scanId, setScanId] = useState<number | null>(null);
+  const [scanId, setScanId] = useState<string | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
   const [isDownloading, setIsDownloading] = useState(false);
   const [isUrlStateReady, setIsUrlStateReady] = useState(false);
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [capturedEmail, setCapturedEmail] = useState("");
-  const [pendingUnlockScanId, setPendingUnlockScanId] = useState<number | null>(null);
+  const [pendingUnlockScanId, setPendingUnlockScanId] = useState<string | null>(null);
+  const { user, isAuthenticated } = useAuth();
   const [emailPromptShownBeforeUnlock, setEmailPromptShownBeforeUnlock] = useState(false);
   const { isPaying, isFinalizingReport, startPayment } = useRazorpayPayment();
   const { priceLabel: unlockPriceLabel } = usePaymentQuote();
@@ -89,9 +93,8 @@ export function CompetitorScanner({
       const tab = params.get("tab");
       if (standalone || tab === "competitor") {
         const idParam = params.get("id") ?? params.get("scanId");
-        const parsedId = idParam ? Number(idParam) : NaN;
-        if (Number.isFinite(parsedId) && parsedId > 0) {
-          setScanId(parsedId);
+        if (idParam) {
+          setScanId(idParam);
         }
       }
     }
@@ -105,8 +108,8 @@ export function CompetitorScanner({
     if (!standalone) {
       url.searchParams.set("tab", "competitor");
     }
-    if (scanId && scanId > 0) {
-      url.searchParams.set("id", String(scanId));
+    if (scanId) {
+      url.searchParams.set("id", scanId);
     } else {
       url.searchParams.delete("id");
     }
@@ -122,7 +125,7 @@ export function CompetitorScanner({
     mutationFn: (input: { url: string; competitorUrl: string }) =>
       createScanRequest(input.url, input.competitorUrl),
     onSuccess: (data) => {
-      setScanId(data.scanId);
+      setScanId(data.publicId);
     },
     onError: (err: Error) => {
       setErrorMessage(err.message ?? "Unable to start competitor scan.");
@@ -131,8 +134,8 @@ export function CompetitorScanner({
 
   const scanQuery = useQuery({
     queryKey: ["competitor-scan-result", scanId],
-    queryFn: () => fetchScanResult(scanId as number),
-    enabled: typeof scanId === "number",
+    queryFn: () => fetchScanResult(scanId as string),
+    enabled: Boolean(scanId),
     retry: 12,
     retryDelay: 1200,
   });
@@ -192,62 +195,62 @@ export function CompetitorScanner({
     createScan.mutate({ url: normalizedPrimary, competitorUrl: normalizedCompetitor });
   };
 
-  const runUnlockPayment = (currentScanId: number) => {
+  const runUnlockPayment = (currentScanId: string, email: string) => {
     startPayment({
       scanId: currentScanId,
-      onSuccess: (updatedScan) => {
-        queryClient.setQueryData(
-          ["competitor-scan-result", currentScanId],
-          updatedScan
-        );
+      email,
+      onSuccess: () => {
         void queryClient.invalidateQueries({
           queryKey: ["competitor-scan-result", currentScanId],
         });
-        setReportUnlock();
         setIsUnlocked(true);
-        if (!hasReportUnlockEmail() && !emailPromptShownBeforeUnlock) {
-          setShowEmailCapture(true);
-        }
         setEmailPromptShownBeforeUnlock(false);
         setErrorMessage(null);
       },
-      onError: (message) => {
+      onError: (error) => {
         setEmailPromptShownBeforeUnlock(false);
-        setErrorMessage(message);
+        setErrorMessage(isApiError(error) ? error.message : "Payment failed.");
       },
     });
   };
 
   const handleUnlock = () => {
-    const currentScanId = scanQuery.data?.data?.id ?? scanId;
+    const currentScanId = scanQuery.data?.publicId ?? scanId;
     if (!currentScanId) {
       setErrorMessage("Run a scan before unlocking the full report.");
       return;
     }
 
     setErrorMessage(null);
-    if (!hasReportUnlockEmail()) {
+    const email = capturedEmail || user?.email || "";
+    if (!email) {
       setEmailPromptShownBeforeUnlock(true);
       setPendingUnlockScanId(currentScanId);
       setShowEmailCapture(true);
       return;
     }
 
-    runUnlockPayment(currentScanId);
+    runUnlockPayment(currentScanId, email);
   };
 
   const continuePendingUnlock = () => {
     if (!pendingUnlockScanId) return;
     const nextScanId = pendingUnlockScanId;
     setPendingUnlockScanId(null);
-    runUnlockPayment(nextScanId);
+    runUnlockPayment(nextScanId, capturedEmail || user?.email || "");
   };
 
   const handleDownload = async () => {
-    if (!reportData || locked) return;
+    if (!reportData || !scanId) return;
     setIsDownloading(true);
     try {
-      await generateCompetitorReportPdf(reportData);
+      const blob = await downloadScanPdf(scanId);
+      const objectUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      link.download = `aeo-geo-report-${formatDomain(reportData.url)}.pdf`;
+      link.click();
+      window.URL.revokeObjectURL(objectUrl);
     } catch {
       setErrorMessage("Failed to download competitor PDF report.");
     } finally {
@@ -262,22 +265,23 @@ export function CompetitorScanner({
     ? formatDomain(normalizedCompetitor)
     : "competitor.com";
 
-  const reportData: ScanResultResponse["data"] | null = scanQuery.data?.data ?? null;
-  const competitorPreview = reportData?.competitorPreview ?? null;
+  const reportData: ScanRecord | null = scanQuery.data ?? null;
+  const preview = getLegacyPreview(reportData);
+  const competitorPreview = getLegacyPreview(
+    reportData
+      ? { ...reportData, preview: reportData.competitorPreview }
+      : null
+  );
   const competitorAnalysis = reportData?.competitorAnalysis ?? null;
-  const fullReport =
-    reportData?.fullReport ?? reportData?.aiReport ?? reportData?.report ?? null;
+  const fullReport = reportData?.fullReport ?? null;
   const hasFullReportContent = hasReportContent(fullReport);
   const aiSuggestions = competitorAnalysis?.actionItems ?? [];
   const otherSuggestions = Array.from(
-    new Set([...(reportData?.preview.quickWins ?? []), ...(competitorPreview?.quickWins ?? [])])
+    new Set([...(preview?.quickWins ?? []), ...(competitorPreview?.quickWins ?? [])])
   );
 
   const locked = reportData
-    ? (reportData.locked ||
-        reportData.preview.locked ||
-        (competitorPreview?.locked ?? true)) &&
-      !isUnlocked
+    ? (reportData.locked || !reportData.isUnlocked) && !isUnlocked
     : true;
 
   useEffect(() => {
@@ -318,8 +322,8 @@ export function CompetitorScanner({
   }, [scanId, isUnlocked, hasFullReportContent, queryClient]);
 
   const winner =
-    reportData && competitorPreview
-      ? reportData.preview.overall >= competitorPreview.overall
+    preview && competitorPreview
+      ? preview.overall >= competitorPreview.overall
         ? "primary"
         : "competitor"
       : "competitor";
@@ -420,7 +424,7 @@ export function CompetitorScanner({
         <CompetitorLoader activeStep={competitorSteps[activeStep]} />
       ) : null}
 
-      {scanState === "results" && reportData && competitorPreview ? (
+      {scanState === "results" && reportData && preview && competitorPreview ? (
         <motion.div
           initial={{ opacity: 0, y: 18 }}
           animate={{ opacity: 1, y: 0 }}
@@ -465,7 +469,7 @@ export function CompetitorScanner({
             <CompetitorScoreCard
               title="Your site"
               highlight={winner === "primary"}
-              preview={reportData.preview}
+              preview={preview}
               locked={locked}
               onUnlock={handleUnlock}
               unlockPriceLabel={unlockPriceLabel}
@@ -487,7 +491,7 @@ export function CompetitorScanner({
           <div className="grid gap-6 lg:grid-cols-2">
             <QuickWinsCard
               title="Your quick wins"
-              wins={reportData.preview.quickWins}
+              wins={preview.quickWins ?? []}
               locked={locked}
               onUnlock={handleUnlock}
               unlockPriceLabel={unlockPriceLabel}
@@ -496,7 +500,7 @@ export function CompetitorScanner({
             />
             <QuickWinsCard
               title="Competitor quick wins"
-              wins={competitorPreview.quickWins}
+              wins={competitorPreview.quickWins ?? []}
               locked={locked}
               onUnlock={handleUnlock}
               unlockPriceLabel={unlockPriceLabel}
@@ -513,22 +517,22 @@ export function CompetitorScanner({
               rows={[
                 {
                   label: "Performance",
-                  primary: reportData.preview.categories.performance,
+                  primary: preview.categories.performance,
                   competitor: competitorPreview.categories.performance,
                 },
                 {
                   label: "SEO",
-                  primary: reportData.preview.categories.seo,
+                  primary: preview.categories.seo,
                   competitor: competitorPreview.categories.seo,
                 },
                 {
                   label: "Accessibility",
-                  primary: reportData.preview.categories.accessibility,
+                  primary: preview.categories.accessibility,
                   competitor: competitorPreview.categories.accessibility,
                 },
                 {
                   label: "Security",
-                  primary: reportData.preview.categories.security,
+                  primary: preview.categories.security,
                   competitor: competitorPreview.categories.security,
                 },
               ]}

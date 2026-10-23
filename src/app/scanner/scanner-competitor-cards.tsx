@@ -34,7 +34,7 @@ export function CompetitorScoreCard({
 }) {
   const hiddenIssueCount = Math.max(
     0,
-    (preview.lockedIssues ?? 0) - preview.topIssues.length
+    (preview.lockedIssues ?? 0) - (preview.topIssues?.length ?? 0)
   );
   const verdictTone = preview.verdict.toLowerCase().includes("good")
     ? "border-emerald-500/40 bg-emerald-500/10 text-emerald-600"
@@ -151,13 +151,13 @@ export function CompetitorScoreCard({
             <>
               <StatusRow
                 label="Robots.txt"
-                value={preview.indexing.robots}
+                value={Boolean(preview.indexing.robots)}
                 positiveLabel="Detected"
                 negativeLabel="Missing"
               />
               <StatusRow
                 label="Sitemap"
-                value={preview.indexing.sitemap}
+                value={Boolean(preview.indexing.sitemap)}
                 positiveLabel="Detected"
                 negativeLabel="Missing"
               />
@@ -167,7 +167,7 @@ export function CompetitorScoreCard({
             <>
               <StatusRow
                 label="OpenGraph tags"
-                value={preview.social.ogTags}
+                value={Boolean(preview.social.ogTags)}
                 positiveLabel="Configured"
                 negativeLabel="Missing"
               />
@@ -179,7 +179,7 @@ export function CompetitorScoreCard({
               />
               <StatusRow
                 label="Twitter cards"
-                value={preview.social.twitterTags}
+                value={Boolean(preview.social.twitterTags)}
                 positiveLabel="Configured"
                 negativeLabel="Missing"
               />
@@ -193,15 +193,15 @@ export function CompetitorScoreCard({
           <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
             Top issues
           </div>
-          <Badge variant="secondary">{preview.topIssues.length} shown</Badge>
+          <Badge variant="secondary">{preview.topIssues?.length ?? 0} shown</Badge>
         </div>
         <div className="mt-4 space-y-3">
-          {preview.topIssues.length === 0 ? (
+          {(preview.topIssues?.length ?? 0) === 0 ? (
             <div className="rounded-xl border border-border/60 bg-background/60 px-3 py-2 text-sm text-muted-foreground">
               No issues in preview.
             </div>
           ) : (
-            preview.topIssues.map((issue, index) => (
+            preview.topIssues?.map((issue, index) => (
               <div
                 key={`${issue.title}-${index}`}
                 className="flex items-start justify-between gap-3 rounded-xl border border-border/60 bg-background/60 px-3 py-2"

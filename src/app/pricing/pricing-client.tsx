@@ -1,157 +1,160 @@
-// "use client";
+"use client";
 
-// import { motion } from "framer-motion";
-// import { Check } from "lucide-react";
-// import { useQuery } from "@tanstack/react-query";
+import { useEffect, useState } from "react";
+import Link from "next/link";
+import { Check, Loader2 } from "lucide-react";
 
-// import { Badge } from "@/components/ui/badge";
-// import { Button } from "@/components/ui/button";
-// import {
-//   Card,
-//   CardContent,
-//   CardDescription,
-//   CardFooter,
-//   CardHeader,
-//   CardTitle,
-// } from "@/components/ui/card";
-// import { cn } from "@/lib/utils";
-// import { fetchPricingPlans, type PricingPlan } from "@/lib/api/pricing";
+import { Button } from "@/components/ui/button";
+import { Card } from "@/components/ui/card";
+import { useAuth } from "@/components/providers/auth-provider";
+import { useToast } from "@/hooks/use-toast";
+import { isApiError } from "@/lib/api/client";
+import { cancelSubscription, fetchSubscription } from "@/lib/api/subscription";
+import { usePaymentQuote } from "@/hooks/use-payment-quote";
+import { startRazorpaySubscription } from "@/lib/payments/razorpay";
+import type { SubscriptionState } from "@/types/api";
 
-// export default function PricingClient({
-//   initialPlans = [],
-// }: {
-//   initialPlans?: PricingPlan[];
-// }) {
-//   const checkoutLink = process.env.NEXT_PUBLIC_STRIPE_REPORT_LINK;
-//   const { data, isLoading, error } = useQuery({
-//     queryKey: ["pricing-plans"],
-//     queryFn: () => fetchPricingPlans(),
-//     initialData: initialPlans,
-//     staleTime: 60_000,
-//     refetchOnMount: true,
-//   });
-
-//   const plans = data ?? initialPlans ?? [];
-
-//   const activePlans = plans
-//     .filter((plan) => plan.active)
-//     .sort((a, b) => a.id - b.id);
-
-//   const formatPrice = (price: number) =>
-//     Number.isInteger(price) ? price.toString() : price.toFixed(2);
-
-//   const cardVariants = {
-//     hidden: { y: 24, opacity: 0 },
-//     visible: {
-//       y: 0,
-//       opacity: 1,
-//       transition: { duration: 0.5, ease: "easeOut" },
-//     },
-//   };
-
-//   return (
-//     <motion.div
-//       initial={{ opacity: 0, y: 20 }}
-//       animate={{ opacity: 1, y: 0 }}
-//       transition={{ duration: 0.5 }}
-//       className="container py-12 md:py-24"
-//     >
-//       <div className="mx-auto max-w-2xl text-center">
-//         <h1 className="font-headline text-4xl font-bold tracking-tight sm:text-5xl">
-//           Pricing that matches how you scan.
-//         </h1>
-//         <p className="mt-4 text-lg text-muted-foreground">
-//           Choose a one-time report or go unlimited when you need it.
-//         </p>
-//       </div>
-
-//       <motion.div
-//         className="mt-16 grid grid-cols-1 gap-8 md:grid-cols-3"
-//         initial="hidden"
-//         whileInView="visible"
-//         viewport={{ once: true, amount: 0.3 }}
-//       >
-//         {isLoading &&
-//           Array.from({ length: 3 }).map((_, index) => (
-//             <Card
-//               key={`pricing-skeleton-${index}`}
-//               className="h-[420px] animate-pulse border-border/60 bg-background/60"
-//             />
-//           ))}
-
-//         {!isLoading && error && plans.length === 0 && (
-//           <Card className="col-span-full border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
-//             {(error as Error).message ?? "Unable to load pricing."}
-//           </Card>
-//         )}
-
-//         {!isLoading &&
-//           !error &&
-//           activePlans.map((plan) => (
-//             <motion.div
-//               key={plan.id}
-//               variants={cardVariants}
-//               whileHover={{ y: -6, transition: { duration: 0.2 } }}
-//             >
-//               <Card
-//                 className={cn(
-//                   "flex h-full flex-col border-border/60 bg-background/80 shadow-sm",
-//                   plan.isHighlighted && "border-primary ring-2 ring-primary"
-//                 )}
-//               >
-//                 <CardHeader className="space-y-3">
-//                   {plan.badge && (
-//                     <Badge className="w-fit rounded-full">{plan.badge}</Badge>
-//                   )}
-//                   <CardTitle className="font-headline">{plan.name}</CardTitle>
-//                   <CardDescription>{plan.description}</CardDescription>
-//                 </CardHeader>
-//                 <CardContent className="flex-1">
-//                   <div className="mb-6">
-//                     <div className="flex flex-wrap items-baseline gap-3">
-//                       <span className="text-4xl font-bold">
-//                         ${formatPrice(plan.price)}
-//                       </span>
-//                       <span className="text-muted-foreground">/{plan.cadence}</span>
-//                       {plan.compareAtPrice && (
-//                         <span className="text-sm text-muted-foreground line-through">
-//                           ${formatPrice(plan.compareAtPrice)}
-//                         </span>
-//                       )}
-//                     </div>
-//                   </div>
-//                   <ul className="space-y-3 text-sm">
-//                     {plan.features.map((feature) => (
-//                       <li key={feature} className="flex items-center">
-//                         <Check className="mr-2 h-4 w-4 text-primary" />
-//                         <span className="text-muted-foreground">{feature}</span>
-//                       </li>
-//                     ))}
-//                   </ul>
-//                 </CardContent>
-//                 <CardFooter>
-//                   <Button
-//                     className="w-full"
-//                     variant={plan.isHighlighted ? "default" : "outline"}
-//                     asChild={plan.type === "one_time" && !!checkoutLink}
-//                   >
-//                     {plan.type === "one_time" && checkoutLink ? (
-//                       <a href={checkoutLink} rel="noreferrer">
-//                         {plan.cta}
-//                       </a>
-//                     ) : (
-//                       plan.cta
-//                     )}
-//                   </Button>
-//                 </CardFooter>
-//               </Card>
-//             </motion.div>
-//           ))}
-//       </motion.div>
-//     </motion.div>
-//   );
-// }
+function formatPeriodEnd(value: string | null) {
+  if (!value) return "";
+  return new Date(value).toLocaleDateString();
+}
 
 export default function PricingClient() {
-  return null;
+  const { isAuthenticated } = useAuth();
+  const { toast } = useToast();
+  const { priceLabel } = usePaymentQuote();
+  const [subscription, setSubscription] = useState<SubscriptionState | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    setLoading(true);
+    void fetchSubscription()
+      .then(setSubscription)
+      .catch(() => setSubscription(null))
+      .finally(() => setLoading(false));
+  }, [isAuthenticated]);
+
+  const handleSubscribe = async () => {
+    if (!isAuthenticated) {
+      window.location.href = "/login?next=/pricing";
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await startRazorpaySubscription();
+      setSubscription((current) => ({
+        isPro: true,
+        dailyScanLimit: current?.dailyScanLimit ?? null,
+        status: result.status,
+        currentPeriodEnd: result.currentPeriodEnd,
+      }));
+      toast({ title: "Pro is active", description: "New scans will include the AI report." });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Subscription failed",
+        description: isApiError(error) ? error.message : error instanceof Error ? error.message : "Unable to subscribe.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const handleCancel = async () => {
+    setBusy(true);
+    try {
+      const result = await cancelSubscription();
+      setSubscription((current) => ({
+        isPro: current?.isPro ?? true,
+        dailyScanLimit: current?.dailyScanLimit ?? null,
+        status: result.status,
+        currentPeriodEnd: result.currentPeriodEnd,
+      }));
+      toast({
+        title: "Cancellation scheduled",
+        description: result.currentPeriodEnd
+          ? `Pro until ${formatPeriodEnd(result.currentPeriodEnd)}`
+          : "Pro remains active until the period ends.",
+      });
+    } catch (error) {
+      toast({
+        variant: "destructive",
+        title: "Unable to cancel",
+        description: isApiError(error) ? error.message : error instanceof Error ? error.message : "Try again.",
+      });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <section className="container py-16 md:py-24">
+      <div className="mx-auto max-w-2xl text-center">
+        <h1 className="font-headline text-4xl font-bold tracking-tight sm:text-5xl">
+          Free full audit + PDF. Pay when you want the AI plan.
+        </h1>
+        <p className="mt-4 text-lg text-muted-foreground">
+          Free full audit + PDF; one-time AI report; or Pro monthly.
+        </p>
+      </div>
+
+      <div className="mx-auto mt-14 grid max-w-5xl gap-6 md:grid-cols-3">
+        <Card className="flex flex-col border-border/60 p-6">
+          <h2 className="text-xl font-semibold">Free audit</h2>
+          <p className="mt-2 text-3xl font-bold">$0</p>
+          <ul className="mt-6 flex-1 space-y-3 text-sm text-muted-foreground">
+            <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Multi-page AEO/GEO audit</li>
+            <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Recommendations and checks</li>
+            <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Free PDF download</li>
+          </ul>
+          <Button asChild className="mt-6" variant="outline">
+            <Link href="/scanner">Run a free scan</Link>
+          </Button>
+        </Card>
+
+        <Card className="flex flex-col border-border/60 p-6">
+          <h2 className="text-xl font-semibold">AI report</h2>
+          <p className="mt-2 text-3xl font-bold">{priceLabel || "One-time"}</p>
+          <ul className="mt-6 flex-1 space-y-3 text-sm text-muted-foreground">
+            <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> AI-written action plan</li>
+            <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Competitor strategy</li>
+            <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Traffic impact notes</li>
+          </ul>
+          <Button asChild className="mt-6">
+            <Link href="/scanner">Unlock from a scan</Link>
+          </Button>
+        </Card>
+
+        <Card className="flex flex-col border-primary p-6 ring-2 ring-primary">
+          <h2 className="text-xl font-semibold">Pro</h2>
+          <p className="mt-2 text-3xl font-bold">Monthly</p>
+          <ul className="mt-6 flex-1 space-y-3 text-sm text-muted-foreground">
+            <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Higher or unlimited daily scans</li>
+            <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Every new scan auto-unlocked</li>
+            <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> PDF branding from your profile</li>
+            <li className="flex gap-2"><Check className="h-4 w-4 text-primary" /> Weekly monitoring</li>
+          </ul>
+          {loading ? (
+            <div className="mt-6 flex h-10 items-center justify-center">
+              <Loader2 className="h-5 w-5 animate-spin" />
+            </div>
+          ) : subscription?.status === "cancel_scheduled" ? (
+            <p className="mt-6 text-sm text-muted-foreground">
+              Pro until {formatPeriodEnd(subscription.currentPeriodEnd)}
+            </p>
+          ) : subscription?.isPro ? (
+            <Button className="mt-6" variant="outline" onClick={handleCancel} disabled={busy}>
+              {busy ? "Working…" : "Cancel Pro"}
+            </Button>
+          ) : (
+            <Button className="mt-6" onClick={handleSubscribe} disabled={busy} aria-busy={busy}>
+              {busy ? "Opening checkout…" : isAuthenticated ? "Subscribe to Pro" : "Sign in to subscribe"}
+            </Button>
+          )}
+        </Card>
+      </div>
+    </section>
+  );
 }

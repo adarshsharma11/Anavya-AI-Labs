@@ -28,14 +28,15 @@ export function Hero() {
     <div className="mx-auto max-w-4xl text-center">
       <div className="inline-flex items-center gap-2 rounded-full border border-border/60 bg-background/70 px-4 py-1 text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground shadow-sm backdrop-blur">
         <Sparkles className="h-4 w-4 text-emerald-500" />
-        AI Tool
+        Free AEO & GEO audit
       </div>
       <h1 className="mt-6 font-headline text-4xl font-bold tracking-tight sm:text-5xl lg:text-6xl">
-        AI Website Scanner Tool
+        See if ChatGPT can recommend your website
       </h1>
       <p className="mt-5 text-lg text-muted-foreground">
-        Scan your website and get an AI-powered report for performance, SEO,
-        accessibility, and security.
+        Free AEO and GEO scores in seconds. We show how ChatGPT, Perplexity,
+        Gemini, Claude, and Bing read your pages — and the first fixes that
+        help them cite you.
       </p>
       <motion.p
         initial={{ opacity: 0, x: -18 }}
@@ -43,12 +44,12 @@ export function Hero() {
         transition={{ duration: 0.55, delay: 0.28, ease: [0.22, 1, 0.36, 1] }}
         className="mt-5 text-sm text-muted-foreground sm:text-[15px]"
       >
-        Want to compare against a competitor?{" "}
+        Need a side-by-side benchmark?{" "}
         <Link
           href="/competitor-scanner"
           className="group inline-flex items-center gap-1.5 font-medium text-foreground transition-colors hover:text-primary"
         >
-          Try the Competitor Scanner
+          Compare a competitor
           <ArrowRight className="h-3.5 w-3.5 transition-transform duration-300 ease-out group-hover:translate-x-1" />
         </Link>
       </motion.p>
@@ -207,15 +208,16 @@ export function ResultsHeader({
           <Badge className="rounded-full px-4 py-2">
             Overall score {overall}
           </Badge>
-          {unlocked ? (
-            <Button variant="outline" onClick={onDownload} disabled={downloading}>
-              {downloading ? "Generating..." : "Download PDF"}
-            </Button>
-          ) : (
+          <Button variant="outline" onClick={onDownload} disabled={downloading}>
+            {downloading ? "Preparing your report…" : "Download PDF"}
+          </Button>
+          {!unlocked ? (
             <Button onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
-              {unlocking ? unlockingLabel : "Unlock Full Report $2.99"}
+              {unlocking
+                ? unlockingLabel
+                : `Unlock AI report${unlockPriceLabel ? ` · ${unlockPriceLabel}` : ""}`}
             </Button>
-          )}
+          ) : null}
           <Button variant="outline" onClick={onReset}>
             Scan another
           </Button>
@@ -728,7 +730,7 @@ function ListBlock({
   tone,
 }: {
   title: string;
-  items: string[];
+  items: readonly string[];
   tone: "violet" | "amber" | "rose" | "indigo";
 }) {
   const toneClass = {

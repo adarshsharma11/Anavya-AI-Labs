@@ -80,9 +80,9 @@ export default function SettingsPage() {
 
       <Card className="border-border/60 bg-background/80 shadow-lg backdrop-blur overflow-hidden">
         <CardHeader className="bg-muted/30 border-b border-border/60 pb-6">
-          <CardTitle className="text-lg">White-label PDF Configuration</CardTitle>
+          <CardTitle className="text-lg">PDF branding (Pro)</CardTitle>
           <CardDescription>
-            These details will appear across your generated PDF audit reports to showcase your brand.
+            Company name and logo are used on Pro PDFs. Free and one-time unlock PDFs use Anavya branding.
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">

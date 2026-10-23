@@ -1,25 +1,11 @@
-// import type { Metadata } from "next";
-// import { pageMetadata } from "@/config/site";
-// import { MetaHead } from "@/components/seo/meta-head";
-// import PricingClient from './pricing-client';
-// import { fetchPricingPlans, type PricingPlan } from "@/lib/api/pricing";
+import type { Metadata } from "next";
 
-// export const metadata: Metadata = MetaHead(pageMetadata.pricing);
-// export const dynamic = "force-dynamic";
+import { pageMetadata } from "@/config/site";
+import { MetaHead } from "@/components/seo/meta-head";
+import PricingClient from "./pricing-client";
 
-// export default async function PricingPage() {
-//   let initialPlans: PricingPlan[] = [];
-//   try {
-//     initialPlans = await fetchPricingPlans({ cache: "no-store" });
-//   } catch {
-//     initialPlans = [];
-//   }
-
-//   return <PricingClient initialPlans={initialPlans} />;
-// }
-
-import { notFound } from "next/navigation";
+export const metadata: Metadata = MetaHead(pageMetadata.pricing);
 
 export default function PricingPage() {
-  notFound();
+  return <PricingClient />;
 }

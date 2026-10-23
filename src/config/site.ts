@@ -104,9 +104,9 @@ export const pageMetadata = {
     canonical: '/',
   },
   scanner: {
-    title: 'Free AI Website Scanner & SEO Audit Tool',
+    title: 'Free AEO & GEO Checker for AI Search',
     description:
-      'Scan your website for SEO, performance, accessibility, and security issues. Get a free AI-powered website audit with instant fixes and competitor insights.',
+      'Get free AEO and GEO scores in seconds. See how ChatGPT, Perplexity, Gemini, Claude, and Bing read your site — and what to fix first.',
     canonical: '/scanner',
   },
   competitorScanner: {
@@ -127,12 +127,12 @@ export const pageMetadata = {
       'See recent projects and examples of high-performing websites and UI/UX work delivered by anavyaailabs.com.',
     canonical: '/portfolio',
   },
-  // pricing: {
-  //   title: 'Pricing',
-  //   description:
-  //     'Compare plans and unlock Pro checks, detailed reports, and continuous monitoring for your website.',
-  //   canonical: '/pricing',
-  // },
+  pricing: {
+    title: 'Pricing',
+    description:
+      'Free full AEO/GEO audit and PDF. Unlock a one-time AI report, or subscribe to Pro for auto-unlocks and weekly monitoring.',
+    canonical: '/pricing',
+  },
   about: {
     title: 'About',
     description:
