@@ -309,11 +309,11 @@ export default function BlogClient({
           <div className="flex flex-col gap-6 md:flex-row md:items-center md:justify-between">
             <div className="max-w-xl">
               <h2 className="text-3xl font-bold tracking-tight">
-                Ready for sharper insights every week?
+                See what search and AI cannot see on your site
               </h2>
               <p className="mt-3 text-muted-foreground">
-                Join the monthly field report. We share product teardown notes,
-                AI experiments, and the performance wins that matter most.
+                Paste a public URL and get a ranked fix list for SEO, speed, and
+                AI visibility. Free, no signup.
               </p>
             </div>
             <Button asChild size="lg" className="w-fit">

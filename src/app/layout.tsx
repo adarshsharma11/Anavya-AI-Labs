@@ -60,11 +60,7 @@ export const metadata: Metadata = {
     images: ['/og-image.png'],
   },
   other: {
-    'author': 'Anavya AI Labs',
-    'publish-date': '2026-01-01',
-    'last-modified': '2026-08-10',
-    'article:published_time': '2026-01-01T00:00:00Z',
-    'article:modified_time': '2026-08-10T00:00:00Z',
+    author: 'Anavya AI Labs',
   },
 };
 

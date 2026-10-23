@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useMemo, useRef, useState } from "react";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
@@ -52,10 +52,12 @@ import {
 
 export default function ScannerClient({
   initialUrl = "",
+  initialMode = "seo",
 }: {
   initialUrl?: string;
+  initialMode?: "seo" | "geo";
 }) {
-  const [mode, setMode] = useState<"seo" | "geo">("seo");
+  const [mode, setMode] = useState<"seo" | "geo">(initialMode);
   const [geoScanData, setGeoScanData] = useState<GeoCheckResponse | null>(null);
   const [geoScanning, setGeoScanning] = useState<boolean>(false);
 
@@ -110,10 +112,15 @@ export default function ScannerClient({
     } else {
       url.searchParams.delete("id");
     }
+    if (mode === "geo") {
+      url.searchParams.set("mode", "geo");
+    } else {
+      url.searchParams.delete("mode");
+    }
     url.searchParams.delete("tab");
     url.searchParams.delete("competitorReportTab");
     window.history.replaceState({}, "", url.toString());
-  }, [scanId, isUrlStateReady]);
+  }, [scanId, mode, isUrlStateReady]);
 
   const createScan = useMutation({
     mutationFn: (url: string) => createScanRequest(url),
@@ -146,8 +153,6 @@ export default function ScannerClient({
     queryFn: () => fetchScanResult(scanId as number),
     enabled: typeof scanId === "number" && mode === "seo",
   });
-
-  console.log("scanQuery", scanQuery);
 
   useEffect(() => {
     if (!scanQuery.error) return;
@@ -407,105 +412,137 @@ export default function ScannerClient({
 
         <div className="mx-auto mt-12 max-w-5xl space-y-6">
           <div className="flex justify-center">
-            <Tabs value={mode} onValueChange={(val: string) => setMode(val as "seo" | "geo")} className="w-80">
-              <TabsList className="grid w-full grid-cols-2">
-                <TabsTrigger value="seo">SEO Checker</TabsTrigger>
-                <TabsTrigger value="geo">GEO Checker</TabsTrigger>
+            <Tabs
+              value={mode}
+              onValueChange={(val: string) => setMode(val as "seo" | "geo")}
+              className="w-80"
+            >
+              <TabsList className="relative grid w-full grid-cols-2">
+                <TabsTrigger
+                  value="seo"
+                  className="relative data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  {mode === "seo" ? (
+                    <motion.span
+                      layoutId="scanner-mode-pill"
+                      className="absolute inset-0 z-0 rounded-sm bg-background shadow-sm"
+                      transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                    />
+                  ) : null}
+                  <span className="relative z-10">SEO Checker</span>
+                </TabsTrigger>
+                <TabsTrigger
+                  value="geo"
+                  className="relative data-[state=active]:bg-transparent data-[state=active]:shadow-none"
+                >
+                  {mode === "geo" ? (
+                    <motion.span
+                      layoutId="scanner-mode-pill"
+                      className="absolute inset-0 z-0 rounded-sm bg-background shadow-sm"
+                      transition={{ type: "spring", stiffness: 380, damping: 32 }}
+                    />
+                  ) : null}
+                  <span className="relative z-10">GEO Checker</span>
+                </TabsTrigger>
               </TabsList>
             </Tabs>
           </div>
 
-          <ScanInput
-            urlValue={urlValue}
-            onUrlChange={setUrlValue}
-            onScan={handleScan}
-            scanning={scanState === "scanning"}
-            errorMessage={errorMessage}
-          />
-
-          {scanState === "scanning" ? (
+          <AnimatePresence mode="wait">
             <motion.div
-              initial={{ opacity: 0, y: 16 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.4 }}
-              className="mt-6"
+              key={mode}
+              initial={{ opacity: 0, x: mode === "geo" ? 28 : -28 }}
+              animate={{ opacity: 1, x: 0 }}
+              exit={{ opacity: 0, x: mode === "geo" ? -28 : 28 }}
+              transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
+              className="space-y-6"
             >
-              <ScanLoader activeStep={mode === "seo" ? scanSteps[activeStep] : geoScanSteps[activeStep]} />
-            </motion.div>
-          ) : null}
+              <ScanInput
+                urlValue={urlValue}
+                onUrlChange={setUrlValue}
+                onScan={handleScan}
+                scanning={scanState === "scanning"}
+                errorMessage={errorMessage}
+              />
 
-          {scanState === "results" ? (
-            <motion.div
-              id="scan-report"
-              initial={{ opacity: 0, y: 18 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.5 }}
-              className="mt-14"
-            >
-              {mode === "seo" && reportData ? (
-                <div className="space-y-10">
-                  <ResultsHeader
-                    url={reportData.url}
-                    overall={reportData.preview.overall}
-                    verdict={reportData.preview.verdict}
-                    totalIssues={reportData.preview.totalIssuesFound}
-                    onReset={handleReset}
-                    unlocked={!locked}
-                    onDownload={handleDownload}
-                    onUnlock={handleUnlock}
-                    unlockPriceLabel={unlockPriceLabel}
-                    unlocking={isPaying}
-                    unlockingLabel={unlockingLabel}
-                    downloading={isDownloading}
-                  />
-                  {!locked ? (
-                    <FullReportSection
-                      report={fullReport}
-                      pending={!hasFullReportContent}
-                    />
-                  ) : null}
-                  <div className="grid gap-6 lg:grid-cols-2">
-                    <ScoreOverview
-                      overall={reportData.preview.overall}
-                      categories={reportData.preview.categories}
-                      indexing={reportData.preview.indexing}
-                      social={reportData.preview.social}
-                    />
-                    <MetricsCard
-                      metrics={reportData.preview.metrics}
-                      improvements={reportData.preview.improvements}
-                      seoMeta={reportData.preview.seoMeta}
-                    />
-                  </div>
-                  <IssuesList
-                    issues={previewIssues}
-                    totalIssues={reportData.preview.totalIssuesFound}
-                    locked={locked}
-                    lockedCount={lockedIssuesCount}
-                    onUnlock={handleUnlock}
-                    unlockPriceLabel={unlockPriceLabel}
-                    unlocking={isPaying}
-                    unlockingLabel={unlockingLabel}
-                  />
-                  <AiSuggestions
-                    title="AI suggestions"
-                    suggestions={aiSuggestions}
-                    locked={locked}
-                    onUnlock={handleUnlock}
-                    unlockPriceLabel={unlockPriceLabel}
-                    unlocking={isPaying}
-                    unlockingLabel={unlockingLabel}
-                    description="Paid report includes actionable AI recommendations."
+              {scanState === "scanning" ? (
+                <div className="mt-6">
+                  <ScanLoader
+                    activeStep={
+                      mode === "seo" ? scanSteps[activeStep] : geoScanSteps[activeStep]
+                    }
                   />
                 </div>
-              ) : mode === "geo" && geoScanData ? (
-                <GeoReportSection
-                  report={geoScanData}
-                  onReset={handleReset}
-                />
+              ) : null}
+
+              {scanState === "results" ? (
+                <div id="scan-report" className="mt-14">
+                  {mode === "seo" && reportData ? (
+                    <div className="space-y-10">
+                      <ResultsHeader
+                        url={reportData.url}
+                        overall={reportData.preview.overall}
+                        verdict={reportData.preview.verdict}
+                        totalIssues={reportData.preview.totalIssuesFound}
+                        onReset={handleReset}
+                        unlocked={!locked}
+                        onDownload={handleDownload}
+                        onUnlock={handleUnlock}
+                        unlockPriceLabel={unlockPriceLabel}
+                        unlocking={isPaying}
+                        unlockingLabel={unlockingLabel}
+                        downloading={isDownloading}
+                      />
+                      {!locked ? (
+                        <FullReportSection
+                          report={fullReport}
+                          pending={!hasFullReportContent}
+                        />
+                      ) : null}
+                      <div className="grid gap-6 lg:grid-cols-2">
+                        <ScoreOverview
+                          overall={reportData.preview.overall}
+                          categories={reportData.preview.categories}
+                          indexing={reportData.preview.indexing}
+                          social={reportData.preview.social}
+                        />
+                        <MetricsCard
+                          metrics={reportData.preview.metrics}
+                          improvements={reportData.preview.improvements}
+                          seoMeta={reportData.preview.seoMeta}
+                        />
+                      </div>
+                      <IssuesList
+                        issues={previewIssues}
+                        totalIssues={reportData.preview.totalIssuesFound}
+                        locked={locked}
+                        lockedCount={lockedIssuesCount}
+                        onUnlock={handleUnlock}
+                        unlockPriceLabel={unlockPriceLabel}
+                        unlocking={isPaying}
+                        unlockingLabel={unlockingLabel}
+                      />
+                      <AiSuggestions
+                        title="AI suggestions"
+                        suggestions={aiSuggestions}
+                        locked={locked}
+                        onUnlock={handleUnlock}
+                        unlockPriceLabel={unlockPriceLabel}
+                        unlocking={isPaying}
+                        unlockingLabel={unlockingLabel}
+                        description="Paid report includes actionable AI recommendations."
+                      />
+                    </div>
+                  ) : mode === "geo" && geoScanData ? (
+                    <GeoReportSection
+                      report={geoScanData}
+                      onReset={handleReset}
+                    />
+                  ) : null}
+                </div>
               ) : null}
             </motion.div>
-          ) : null}
+          </AnimatePresence>
         </div>
       </section>
     </motion.div>

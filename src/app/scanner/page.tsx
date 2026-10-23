@@ -37,11 +37,12 @@ export default async function ScannerPage({
   }
 
   const initialUrl = typeof params.url === "string" ? params.url : "";
+  const initialMode = params.mode === "geo" ? "geo" : "seo";
 
   return (
     <>
       <ScannerStructuredData variant="website" />
-      <ScannerClient initialUrl={initialUrl} />
+      <ScannerClient initialUrl={initialUrl} initialMode={initialMode} />
       <section className="container pb-16 md:pb-24">
         <ScannerSeoSections variant="website" />
       </section>

@@ -24,12 +24,28 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     }
 
     const post = res.data;
-    return MetaHead({
-      title: post.title,
-      description: post.excerpt,
-      canonical: `/blog/${post.slug}`,
-      image: post.image,
-    });
+    const publishedAt = new Date(post.date || post.createdAt || "");
+    const publishedIso = Number.isNaN(publishedAt.getTime())
+      ? undefined
+      : publishedAt.toISOString();
+
+    return {
+      ...MetaHead({
+        title: post.title,
+        description: post.excerpt,
+        canonical: `/blog/${post.slug}`,
+        image: post.image,
+      }),
+      other: {
+        author: post.authorName || "Anavya AI Labs",
+        ...(publishedIso
+          ? {
+              "article:published_time": publishedIso,
+              "publish-date": publishedIso.slice(0, 10),
+            }
+          : {}),
+      },
+    };
   } catch {
     return { title: "Blog Post" };
   }
