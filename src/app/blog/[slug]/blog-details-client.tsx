@@ -245,7 +245,12 @@ export default function BlogDetailsClient({ post, relatedPosts = [], children }:
                   <span>{item.readTime}</span>
                 </div>
                 <h3 className="line-clamp-2 min-h-[2.75em] text-lg font-semibold leading-snug">
-                  {item.title}
+                  <Link
+                    href={`/blog/${item.slug}`}
+                    className="hover:text-primary"
+                  >
+                    {item.title}
+                  </Link>
                 </h3>
                 <p className="line-clamp-3 min-h-[3.75em] text-sm text-muted-foreground">
                   {item.excerpt}

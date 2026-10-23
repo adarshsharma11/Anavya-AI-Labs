@@ -189,7 +189,12 @@ export default function BlogClient({
                         <span>{featured.readTime}</span>
                       </div>
                       <h2 className="line-clamp-2 min-h-[2.5em] text-2xl font-semibold leading-snug tracking-tight md:text-3xl">
-                        {featured.title}
+                        <Link
+                          href={`/blog/${featured.slug}`}
+                          className="hover:text-primary"
+                        >
+                          {featured.title}
+                        </Link>
                       </h2>
                       <p className="line-clamp-3 text-base text-muted-foreground">
                         {featured.excerpt}
@@ -237,7 +242,7 @@ export default function BlogClient({
                         </div>
                         <div className="flex-1">
                           <h3 className="line-clamp-2 min-h-[2.75em] text-lg font-semibold leading-snug group-hover:text-primary">
-                            {post.title}
+                            <Link href={`/blog/${post.slug}`}>{post.title}</Link>
                           </h3>
                           <p className="mt-2 line-clamp-3 min-h-[3.75em] text-sm text-muted-foreground">
                             {post.excerpt}
@@ -278,7 +283,7 @@ export default function BlogClient({
                             <span>{post.readTime}</span>
                           </div>
                           <h3 className="line-clamp-2 min-h-[2.75em] text-xl font-semibold leading-snug tracking-tight group-hover:text-primary">
-                            {post.title}
+                            <Link href={`/blog/${post.slug}`}>{post.title}</Link>
                           </h3>
                           <p className="line-clamp-3 min-h-[4.875em] text-sm leading-relaxed text-muted-foreground">
                             {post.excerpt}
