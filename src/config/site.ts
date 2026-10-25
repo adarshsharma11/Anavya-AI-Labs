@@ -118,7 +118,7 @@ export const pageMetadata = {
     canonical: '/competitor-scanner',
   },
   services: {
-    title: 'AI Services',
+    title: 'AI Services for Agents and MCP Servers',
     description:
       'Explore AI-powered website analysis services: performance, SEO, and accessibility improvements to boost conversions.',
     canonical: '/services',
