@@ -1,34 +1,24 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 
 import { fetchPaymentQuote, formatQuoteLabel } from "@/lib/api/payment";
-import { detectClientRegion } from "@/lib/payments/payment-region";
-import type { PaymentQuote } from "@/types/api";
+import { detectRegion } from "@/lib/pricing";
+import type { PaymentRegion } from "@/types/pricing";
 
-export function usePaymentQuote() {
-  const [quote, setQuote] = useState<PaymentQuote | null>(null);
-  const [priceLabel, setPriceLabel] = useState("");
+export function usePaymentQuote(region?: PaymentRegion) {
+  const resolved = region ?? detectRegion();
+  const query = useQuery({
+    queryKey: ["payment-quote", resolved],
+    queryFn: () => fetchPaymentQuote(resolved),
+    staleTime: 10 * 60 * 1000,
+  });
 
-  useEffect(() => {
-    let cancelled = false;
+  const quote = query.data ?? null;
 
-    void (async () => {
-      try {
-        const nextQuote = await fetchPaymentQuote(detectClientRegion());
-        if (cancelled) return;
-        setQuote(nextQuote);
-        setPriceLabel(formatQuoteLabel(nextQuote));
-      } catch {
-        if (cancelled) return;
-        setPriceLabel("");
-      }
-    })();
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  return { quote, priceLabel };
+  return {
+    quote,
+    priceLabel: quote ? formatQuoteLabel(quote) : "",
+    isLoading: query.isLoading,
+  };
 }

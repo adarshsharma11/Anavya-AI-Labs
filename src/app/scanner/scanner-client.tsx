@@ -12,27 +12,18 @@ import { usePaymentQuote } from "@/hooks/use-payment-quote";
 import { usePdfDownload } from "@/hooks/use-pdf-download";
 import { usePolling } from "@/hooks/use-polling";
 import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
+import { shouldStopScanPolling } from "@/lib/scan/polling";
 import { ShareExperienceCta } from "@/components/reviews/share-experience-cta";
 import { AuditView } from "@/components/report/audit-view";
 import { ShareReportButton } from "@/components/report/share-report-button";
 import { UnlockEmailModal } from "@/components/report/unlock-modal";
 import { UpgradeProCard } from "@/components/report/upgrade-pro-card";
-import type { ScanRecord } from "@/types/api";
 
 import { scanSteps } from "./scanner-constants";
 import type { ScanState } from "./scanner-types";
 import { getValidScanUrl } from "./scanner-utils";
 import { Hero, ScanInput, ScanLoader } from "./scanner-website-components";
 import { V1ReportView } from "./v1-report-view";
-
-function stopPolling(scan: ScanRecord | undefined) {
-  if (!scan) return false;
-  if (!scan.auditComplete) return false;
-  if (scan.processing && !scan.fullReport && scan.status !== "report_failed") {
-    return false;
-  }
-  return true;
-}
 
 export default function ScannerClient({
   initialUrl = "",
@@ -58,12 +49,7 @@ export default function ScannerClient({
 
   const pollingEnabled = Boolean(publicId);
   const fetchScan = useCallback(
-    (signal: AbortSignal) => {
-      return fetchScanResult(publicId).then((record) => {
-        if (signal.aborted) return record;
-        return record;
-      });
-    },
+    (signal: AbortSignal) => fetchScanResult(publicId, { signal }),
     [publicId]
   );
 
@@ -72,7 +58,7 @@ export default function ScannerClient({
     interval: 1500,
     maxInterval: 5000,
     backoffAfterMs: 30_000,
-    stopWhen: stopPolling,
+    stopWhen: shouldStopScanPolling,
   });
 
   const scan = scanPoll.data ?? null;
@@ -192,7 +178,7 @@ export default function ScannerClient({
   };
 
   const reportActions = useMemo(() => {
-    const ready = Boolean(scan?.auditComplete && audit);
+    const ready = Boolean(audit || scan?.preview);
     const label = pdf.isPreparing
       ? "Preparing your report…"
       : pdf.exhausted

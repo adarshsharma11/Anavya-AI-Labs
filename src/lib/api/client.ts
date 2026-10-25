@@ -21,6 +21,7 @@ export function isApiError(error: unknown): error is ApiError {
 export type ApiFetchInit = RequestInit & {
   next?: {
     revalidate?: number;
+    tags?: string[];
   };
   skipAuthInterceptor?: boolean;
   parseJson?: boolean;

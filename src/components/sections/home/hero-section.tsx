@@ -1,8 +1,8 @@
 "use client";
 
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
 
 import { getValidScanUrl } from "@/app/scanner/scanner-utils";
@@ -12,8 +12,16 @@ import { ScanReportFrame } from "./scan-report-frame";
 
 export function HeroSection() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [urlValue, setUrlValue] = useState("");
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
+  useEffect(() => {
+    const intent = searchParams.get("intent");
+    if (intent === "scan" || intent === "unlock") {
+      document.getElementById("hero-scan-url")?.focus();
+    }
+  }, [searchParams]);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();

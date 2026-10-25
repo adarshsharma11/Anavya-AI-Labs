@@ -2,6 +2,7 @@
 
 import React, { createContext, useContext, useEffect, useState } from "react";
 import { getProfileApi } from "@/lib/api/dashboard";
+import { resolvePostAuthPath } from "@/lib/auth/post-auth-path";
 import { useRouter, usePathname } from "next/navigation";
 
 interface UserProfile {
@@ -87,8 +88,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     } else if (user && pathname.startsWith("/admin") && user.role !== "admin") {
       router.replace("/login");
     } else if (user && isAuthPage) {
-      console.log(" [Auth Guard] Authenticated on auth page. Redirecting to /dashboard");
-      router.replace("/dashboard");
+      const nextPath = resolvePostAuthPath(window.location.search);
+      console.log(" [Auth Guard] Authenticated on auth page. Redirecting to", nextPath);
+      router.replace(nextPath);
     }
   }, [isLoading, user, pathname, router]);
 
@@ -99,8 +101,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     
     await fetchProfile();
     
-    console.log(" [Auth] Profile fetched, navigating to dashboard.");
-    router.replace("/dashboard");
+    const nextPath = resolvePostAuthPath(window.location.search);
+    console.log(" [Auth] Profile fetched, navigating to", nextPath);
+    router.replace(nextPath);
   };
 
   const logout = () => {

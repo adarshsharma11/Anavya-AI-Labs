@@ -53,6 +53,13 @@ export function usePolling<T>(
   }, []);
 
   useEffect(() => {
+    if (enabled) return;
+    setData(undefined);
+    setError(null);
+    setIsLoading(false);
+  }, [enabled]);
+
+  useEffect(() => {
     if (!enabled) return;
 
     const controller = new AbortController();

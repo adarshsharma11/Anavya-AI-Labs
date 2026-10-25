@@ -8,6 +8,8 @@ export type ScanStatus =
   | "completed"
   | "report_failed";
 
+export type CompetitorStatus = "pending" | "running" | "completed" | "failed";
+
 export type ReportVersion = 1 | 2;
 
 export type PaymentRegion = "IN" | "INTL";
@@ -129,6 +131,7 @@ export type ScanRecord = {
   readonly auditComplete: boolean;
   readonly preview: AuditReport | LegacyScanPreview | null;
   readonly competitorPreview: AuditReport | LegacyScanPreview | null;
+  readonly competitorStatus: CompetitorStatus | null;
   readonly competitorAnalysis: CompetitorAnalysis | null;
   readonly fullReport: AiReport | LegacyScanReport | null;
   readonly isUnlocked: boolean;

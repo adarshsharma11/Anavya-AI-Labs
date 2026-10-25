@@ -170,6 +170,65 @@ test("scan polls then downloads PDF after REPORT_PENDING retries", async ({ page
   expect(pdfHits).toBeGreaterThanOrEqual(2);
 });
 
+test("competitor scan shows progressive results without retry looping", async ({ page }) => {
+  await mockCommon(page);
+
+  await page.route("**/api/v1/scan/create", async (route) => {
+    await route.fulfill({
+      json: {
+        success: true,
+        scanId: PUBLIC_ID,
+        publicId: PUBLIC_ID,
+        unlocked: false,
+        cached: false,
+      },
+    });
+  });
+
+  let getHits = 0;
+  await page.route(`**/api/v1/scan/${PUBLIC_ID}`, async (route) => {
+    getHits += 1;
+    await route.fulfill({
+      json: scanPayload({
+        competitorUrl: "https://competitor.example",
+        status: "processing",
+        auditComplete: false,
+        competitorStatus: "running",
+        preview: auditPreview(false),
+        competitorPreview: {
+          ...auditPreview(false),
+          url: "https://competitor.example",
+          origin: "https://competitor.example",
+          overall: 37,
+          verdict: "Poor",
+          summary: "Competitor pages are still being analysed.",
+          progress: { pages: "running", speed: "unavailable" },
+        },
+        competitorAnalysis: {
+          scoreGap: -35,
+          summary: "You are ahead of this competitor",
+          categoryGaps: [],
+          actionItems: [],
+        },
+      }),
+    });
+  });
+
+  await page.goto("/competitor-scanner");
+  await page.getByPlaceholder("yourwebsite.com").fill("example.com");
+  await page.getByPlaceholder("competitor.com").fill("competitor.example");
+  await page.getByRole("button", { name: "Compare now" }).click();
+
+  await expect(page.getByText("The homepage is crawlable")).toBeVisible();
+  await expect(page.getByText("Updating comparison…")).toBeVisible();
+  await expect(page.getByText("You are ahead of this competitor")).toBeVisible();
+
+  const hitsAfterResults = getHits;
+  await page.waitForTimeout(3200);
+  expect(getHits - hitsAfterResults).toBeLessThanOrEqual(3);
+  expect(getHits).toBeGreaterThanOrEqual(1);
+});
+
 test("DAILY_LIMIT shows the Pro upsell card", async ({ page }) => {
   await mockCommon(page);
   await page.route("**/api/v1/scan/create", async (route) => {

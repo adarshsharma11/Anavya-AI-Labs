@@ -240,8 +240,8 @@ export function ComparisonCard({
   competitorLabel: string;
   rows: Array<{
     label: string;
-    primary: number;
-    competitor: number;
+    primary: number | null;
+    competitor: number | null;
   }>;
 }) {
   return (
@@ -256,7 +256,7 @@ export function ComparisonCard({
             <div className="flex items-center justify-between text-xs uppercase tracking-[0.2em] text-muted-foreground">
               <span>{row.label}</span>
               <span>
-                {row.primary} vs {row.competitor}
+                {row.primary ?? "—"} vs {row.competitor ?? "—"}
               </span>
             </div>
             <ComparisonBar label={primaryLabel} value={row.primary} tone="emerald" />
@@ -274,7 +274,7 @@ function ComparisonBar({
   tone,
 }: {
   label: string;
-  value: number;
+  value: number | null;
   tone: "emerald" | "violet";
 }) {
   const toneMap = {
@@ -286,12 +286,14 @@ function ComparisonBar({
     <div className="space-y-2">
       <div className="flex items-center justify-between text-xs text-muted-foreground">
         <span>{label}</span>
-        <span className="font-semibold text-foreground">{value}/100</span>
+        <span className="font-semibold text-foreground">
+          {value === null ? "—" : `${value}/100`}
+        </span>
       </div>
       <div className="h-2 w-full rounded-full bg-muted">
         <div
           className={`h-2 rounded-full bg-gradient-to-r ${toneMap}`}
-          style={{ width: `${value}%` }}
+          style={{ width: `${value ?? 0}%` }}
         />
       </div>
     </div>

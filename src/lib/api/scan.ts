@@ -1,5 +1,6 @@
 import { apiFetch, apiFetchBlob, ApiError } from "@/lib/api/client";
 import type {
+  CompetitorStatus,
   CreateScanResponse,
   LegacyScanPreview,
   LegacyScanReport,
@@ -54,8 +55,21 @@ export type CreateScanInput = {
   readonly email?: string;
 };
 
+const COMPETITOR_STATUSES = new Set<CompetitorStatus>([
+  "pending",
+  "running",
+  "completed",
+  "failed",
+]);
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
+}
+
+function asCompetitorStatus(value: unknown): CompetitorStatus | null {
+  return typeof value === "string" && COMPETITOR_STATUSES.has(value as CompetitorStatus)
+    ? (value as CompetitorStatus)
+    : null;
 }
 
 function normalizeScanRecord(raw: unknown): ScanRecord {
@@ -85,6 +99,7 @@ function normalizeScanRecord(raw: unknown): ScanRecord {
     preview,
     competitorPreview:
       (payload.competitorPreview as ScanRecord["competitorPreview"]) ?? null,
+    competitorStatus: asCompetitorStatus(payload.competitorStatus),
     competitorAnalysis:
       (payload.competitorAnalysis as ScanRecord["competitorAnalysis"]) ?? null,
     fullReport: (payload.fullReport as ScanRecord["fullReport"]) ??
@@ -130,10 +145,14 @@ export async function createScanRequest(
   };
 }
 
-export async function fetchScanResult(publicId: string): Promise<ScanRecord> {
+export async function fetchScanResult(
+  publicId: string,
+  init?: Pick<RequestInit, "signal">
+): Promise<ScanRecord> {
   const data = await apiFetch<unknown>(`/scan/${publicId}`, {
     method: "GET",
     skipAuthInterceptor: true,
+    signal: init?.signal,
   });
   return normalizeScanRecord(data);
 }
@@ -176,7 +195,21 @@ export function getAuditPreview(scan: ScanRecord | null): AuditReport | null {
   return isAuditReport(scan.preview) ? scan.preview : null;
 }
 
+export function getCompetitorAuditPreview(
+  scan: ScanRecord | null
+): AuditReport | null {
+  if (!scan?.competitorPreview) return null;
+  return isAuditReport(scan.competitorPreview) ? scan.competitorPreview : null;
+}
+
 export function getLegacyPreview(scan: ScanRecord | null): LegacyScanPreview | null {
   if (!scan?.preview) return null;
   return isAuditReport(scan.preview) ? null : scan.preview;
+}
+
+export function getLegacyCompetitorPreview(
+  scan: ScanRecord | null
+): LegacyScanPreview | null {
+  if (!scan?.competitorPreview) return null;
+  return isAuditReport(scan.competitorPreview) ? null : scan.competitorPreview;
 }

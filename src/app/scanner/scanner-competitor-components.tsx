@@ -1,26 +1,29 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { motion } from "framer-motion";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { ArrowRight, Crown, ShieldCheck } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { useMutation } from "@tanstack/react-query";
+import { ArrowRight, ShieldCheck } from "lucide-react";
 
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { usePolling } from "@/hooks/use-polling";
 import {
   createScanRequest,
   fetchScanResult,
+  getAuditPreview,
+  getCompetitorAuditPreview,
+  getLegacyCompetitorPreview,
   getLegacyPreview,
 } from "@/lib/api/scan";
-import type { ScanRecord } from "@/types/api";
+import { shouldStopScanPolling } from "@/lib/scan/polling";
 import { isApiError } from "@/lib/api/client";
 import { useAuth } from "@/components/providers/auth-provider";
 import { usePaymentQuote } from "@/hooks/use-payment-quote";
+import { usePdfDownload } from "@/hooks/use-pdf-download";
 import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
-import { downloadScanPdf } from "@/lib/api/scan";
 import { competitorSteps } from "./scanner-constants";
 import {
   clearReportUnlock,
@@ -28,25 +31,17 @@ import {
   getValidScanUrl,
   getComparableSiteKey,
   hasReportContent,
-  hasReportUnlockEmail,
   readReportUnlockEmail,
   readReportUnlockState,
-  setReportUnlock,
   setReportUnlockEmail,
 } from "./scanner-utils";
 import type { ScanState } from "./scanner-types";
+import { UnlockEmailCaptureDialog } from "./scanner-shared-components";
+import { CompetitorLoader } from "./scanner-competitor-cards";
 import {
-  AiSuggestions,
-  CompetitorAnalysisCard,
-  QuickWinsCard,
-  UnlockEmailCaptureDialog,
-} from "./scanner-shared-components";
-import {
-  ComparisonCard,
-  CompetitorLoader,
-  CompetitorScoreCard,
-} from "./scanner-competitor-cards";
-import { FullReportSection } from "./scanner-website-components";
+  CompetitorLegacyResults,
+  CompetitorV2Results,
+} from "./scanner-competitor-results";
 
 export function CompetitorScanner({
   standalone = false,
@@ -59,20 +54,19 @@ export function CompetitorScanner({
   const [activeStep, setActiveStep] = useState(0);
   const [scanId, setScanId] = useState<string | null>(null);
   const [isUnlocked, setIsUnlocked] = useState(false);
-  const [isDownloading, setIsDownloading] = useState(false);
   const [isUrlStateReady, setIsUrlStateReady] = useState(false);
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [capturedEmail, setCapturedEmail] = useState("");
   const [pendingUnlockScanId, setPendingUnlockScanId] = useState<string | null>(null);
-  const { user, isAuthenticated } = useAuth();
+  const { user } = useAuth();
   const [emailPromptShownBeforeUnlock, setEmailPromptShownBeforeUnlock] = useState(false);
   const { isPaying, isFinalizingReport, startPayment } = useRazorpayPayment();
   const { priceLabel: unlockPriceLabel } = usePaymentQuote();
+  const pdf = usePdfDownload();
   const { toast } = useToast();
   const unlockingLabel = isFinalizingReport
     ? "Finalizing unlocked report..."
     : "Processing payment...";
-  const queryClient = useQueryClient();
 
   const primaryValidation = useMemo(() => getValidScanUrl(primaryUrl), [primaryUrl]);
   const competitorValidation = useMemo(
@@ -99,7 +93,7 @@ export function CompetitorScanner({
       }
     }
     setIsUrlStateReady(true);
-  }, []);
+  }, [standalone]);
 
   useEffect(() => {
     if (typeof window === "undefined" || !isUrlStateReady) return;
@@ -132,29 +126,49 @@ export function CompetitorScanner({
     },
   });
 
-  const scanQuery = useQuery({
-    queryKey: ["competitor-scan-result", scanId],
-    queryFn: () => fetchScanResult(scanId as string),
+  const fetchScan = useCallback(
+    (signal: AbortSignal) => fetchScanResult(scanId as string, { signal }),
+    [scanId]
+  );
+
+  const scanPoll = usePolling(fetchScan, {
     enabled: Boolean(scanId),
-    retry: 12,
-    retryDelay: 1200,
+    interval: 1500,
+    maxInterval: 5000,
+    backoffAfterMs: 30_000,
+    stopWhen: shouldStopScanPolling,
   });
 
   useEffect(() => {
-    if (!scanQuery.error) return;
-    setErrorMessage((scanQuery.error as Error).message ?? "Competitor scan failed.");
-  }, [scanQuery.error]);
+    if (!scanPoll.error) return;
+    setErrorMessage(scanPoll.error.message ?? "Competitor scan failed.");
+  }, [scanPoll.error]);
 
   useEffect(() => {
-    if (!scanQuery.data) return;
+    if (!scanPoll.data) return;
     setErrorMessage(null);
-  }, [scanQuery.data]);
+  }, [scanPoll.data]);
 
-  const scanState: ScanState = scanQuery.data
+  const reportData = scanPoll.data ?? null;
+  const primaryAudit = getAuditPreview(reportData);
+  const competitorAudit = getCompetitorAuditPreview(reportData);
+  const preview = getLegacyPreview(reportData);
+  const competitorPreview = getLegacyCompetitorPreview(reportData);
+  const hasResults = Boolean(primaryAudit || competitorAudit || preview);
+  const scanState: ScanState = hasResults
     ? "results"
-    : createScan.isPending || scanQuery.isFetching
+    : createScan.isPending || Boolean(scanId)
       ? "scanning"
       : "idle";
+  const stillUpdating = Boolean(reportData) && !shouldStopScanPolling(reportData ?? undefined);
+
+  useEffect(() => {
+    if (!reportData) return;
+    if (!primaryUrl && reportData.url) setPrimaryUrl(reportData.url);
+    if (!competitorUrl && reportData.competitorUrl) {
+      setCompetitorUrl(reportData.competitorUrl);
+    }
+  }, [competitorUrl, primaryUrl, reportData]);
 
   useEffect(() => {
     if (scanState !== "scanning") return;
@@ -200,9 +214,7 @@ export function CompetitorScanner({
       scanId: currentScanId,
       email,
       onSuccess: () => {
-        void queryClient.invalidateQueries({
-          queryKey: ["competitor-scan-result", currentScanId],
-        });
+        void scanPoll.refetch();
         setIsUnlocked(true);
         setEmailPromptShownBeforeUnlock(false);
         setErrorMessage(null);
@@ -215,7 +227,7 @@ export function CompetitorScanner({
   };
 
   const handleUnlock = () => {
-    const currentScanId = scanQuery.data?.publicId ?? scanId;
+    const currentScanId = reportData?.publicId ?? scanId;
     if (!currentScanId) {
       setErrorMessage("Run a scan before unlocking the full report.");
       return;
@@ -240,93 +252,22 @@ export function CompetitorScanner({
     runUnlockPayment(nextScanId, capturedEmail || user?.email || "");
   };
 
-  const handleDownload = async () => {
+  const handleDownload = () => {
     if (!reportData || !scanId) return;
-    setIsDownloading(true);
-    try {
-      const blob = await downloadScanPdf(scanId);
-      const objectUrl = window.URL.createObjectURL(blob);
-      const link = document.createElement("a");
-      link.href = objectUrl;
-      link.download = `aeo-geo-report-${formatDomain(reportData.url)}.pdf`;
-      link.click();
-      window.URL.revokeObjectURL(objectUrl);
-    } catch {
-      setErrorMessage("Failed to download competitor PDF report.");
-    } finally {
-      setIsDownloading(false);
-    }
+    void pdf.download(scanId, reportData.url, primaryAudit);
   };
 
-  const primaryLabel = normalizedPrimary
-    ? formatDomain(normalizedPrimary)
-    : "your-site.com";
-  const competitorLabel = normalizedCompetitor
-    ? formatDomain(normalizedCompetitor)
-    : "competitor.com";
-
-  const reportData: ScanRecord | null = scanQuery.data ?? null;
-  const preview = getLegacyPreview(reportData);
-  const competitorPreview = getLegacyPreview(
-    reportData
-      ? { ...reportData, preview: reportData.competitorPreview }
-      : null
+  const primaryLabel = formatDomain(
+    reportData?.url || normalizedPrimary || "your-site.com"
   );
-  const competitorAnalysis = reportData?.competitorAnalysis ?? null;
+  const competitorLabel = formatDomain(
+    reportData?.competitorUrl || normalizedCompetitor || "competitor.com"
+  );
   const fullReport = reportData?.fullReport ?? null;
   const hasFullReportContent = hasReportContent(fullReport);
-  const aiSuggestions = competitorAnalysis?.actionItems ?? [];
-  const otherSuggestions = Array.from(
-    new Set([...(preview?.quickWins ?? []), ...(competitorPreview?.quickWins ?? [])])
-  );
-
   const locked = reportData
     ? (reportData.locked || !reportData.isUnlocked) && !isUnlocked
     : true;
-
-  useEffect(() => {
-    if (!scanId) return;
-    if (!scanQuery.data) return;
-    if (competitorPreview) return;
-
-    let attempts = 0;
-    const maxAttempts = 20;
-    const interval = window.setInterval(() => {
-      attempts += 1;
-      void queryClient.invalidateQueries({
-        queryKey: ["competitor-scan-result", scanId],
-      });
-      if (attempts >= maxAttempts) {
-        window.clearInterval(interval);
-      }
-    }, 1500);
-
-    return () => window.clearInterval(interval);
-  }, [scanId, scanQuery.data, competitorPreview, queryClient]);
-
-  useEffect(() => {
-    if (!scanId || !isUnlocked || hasFullReportContent) return;
-    let attempts = 0;
-    const maxAttempts = 20;
-    const interval = window.setInterval(() => {
-      attempts += 1;
-      void queryClient.invalidateQueries({
-        queryKey: ["competitor-scan-result", scanId],
-      });
-      if (attempts >= maxAttempts) {
-        window.clearInterval(interval);
-      }
-    }, 1500);
-
-    return () => window.clearInterval(interval);
-  }, [scanId, isUnlocked, hasFullReportContent, queryClient]);
-
-  const winner =
-    preview && competitorPreview
-      ? preview.overall >= competitorPreview.overall
-        ? "primary"
-        : "competitor"
-      : "competitor";
 
   return (
     <div className="space-y-10">
@@ -424,157 +365,49 @@ export function CompetitorScanner({
         <CompetitorLoader activeStep={competitorSteps[activeStep]} />
       ) : null}
 
-      {scanState === "results" && reportData && preview && competitorPreview ? (
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="space-y-6"
-        >
-          <Card className="border-border/60 bg-background/80 p-6 shadow-lg backdrop-blur">
-            <div className="flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <div className="text-xs font-semibold uppercase tracking-[0.2em] text-muted-foreground">
-                  Comparison report
-                </div>
-                <h4 className="mt-2 text-xl font-semibold">
-                  {primaryLabel} vs {competitorLabel}
-                </h4>
-                <p className="mt-2 text-sm text-muted-foreground">
-                  AI benchmark report highlighting performance, SEO, and growth
-                  gaps.
-                </p>
-              </div>
-              <div className="flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-2 text-sm font-semibold text-primary">
-                <Crown className="h-4 w-4" />
-                {winner === "primary" ? primaryLabel : competitorLabel} leads
-              </div>
-              {!locked ? (
-                <Button
-                  variant="outline"
-                  onClick={handleDownload}
-                  disabled={isDownloading}
-                >
-                  {isDownloading ? "Generating..." : "Download PDF"}
-                </Button>
-              ) : null}
-            </div>
-          </Card>
-
-          {!locked ? (
-            <FullReportSection report={fullReport} pending={!hasFullReportContent} />
-          ) : null}
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <CompetitorScoreCard
-              title="Your site"
-              highlight={winner === "primary"}
-              preview={preview}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlockPriceLabel={unlockPriceLabel}
-              unlocking={isPaying}
-              unlockingLabel={unlockingLabel}
-            />
-            <CompetitorScoreCard
-              title="Competitor"
-              highlight={winner === "competitor"}
-              preview={competitorPreview}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlockPriceLabel={unlockPriceLabel}
-              unlocking={isPaying}
-              unlockingLabel={unlockingLabel}
-            />
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <QuickWinsCard
-              title="Your quick wins"
-              wins={preview.quickWins ?? []}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlockPriceLabel={unlockPriceLabel}
-              unlocking={isPaying}
-              unlockingLabel={unlockingLabel}
-            />
-            <QuickWinsCard
-              title="Competitor quick wins"
-              wins={competitorPreview.quickWins ?? []}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlockPriceLabel={unlockPriceLabel}
-              unlocking={isPaying}
-              unlockingLabel={unlockingLabel}
-            />
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <ComparisonCard
-              title="Category comparison"
-              primaryLabel={primaryLabel}
-              competitorLabel={competitorLabel}
-              rows={[
-                {
-                  label: "Performance",
-                  primary: preview.categories.performance,
-                  competitor: competitorPreview.categories.performance,
-                },
-                {
-                  label: "SEO",
-                  primary: preview.categories.seo,
-                  competitor: competitorPreview.categories.seo,
-                },
-                {
-                  label: "Accessibility",
-                  primary: preview.categories.accessibility,
-                  competitor: competitorPreview.categories.accessibility,
-                },
-                {
-                  label: "Security",
-                  primary: preview.categories.security,
-                  competitor: competitorPreview.categories.security,
-                },
-              ]}
-            />
-            <CompetitorAnalysisCard
-              scoreGap={competitorAnalysis?.scoreGap ?? 0}
-              summary={competitorAnalysis?.summary ?? ""}
-              actionItems={competitorAnalysis?.actionItems ?? []}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlockPriceLabel={unlockPriceLabel}
-              unlocking={isPaying}
-              unlockingLabel={unlockingLabel}
-            />
-          </div>
-
-          <div className="grid gap-6 lg:grid-cols-2">
-            <AiSuggestions
-              title="AI suggestions"
-              suggestions={aiSuggestions}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlockPriceLabel={unlockPriceLabel}
-              unlocking={isPaying}
-              unlockingLabel={unlockingLabel}
-              description="AI-generated opportunities from your competitor comparison report."
-            />
-            <AiSuggestions
-              title="Other suggestions"
-              suggestions={otherSuggestions}
-              locked={locked}
-              onUnlock={handleUnlock}
-              unlockPriceLabel={unlockPriceLabel}
-              unlocking={isPaying}
-              unlockingLabel={unlockingLabel}
-              description="Combined improvement suggestions from both websites."
-            />
-          </div>
-        </motion.div>
+      {scanState === "results" && reportData && primaryAudit ? (
+        <CompetitorV2Results
+          scan={reportData}
+          primary={primaryAudit}
+          competitor={competitorAudit}
+          primaryLabel={primaryLabel}
+          competitorLabel={competitorLabel}
+          stillUpdating={stillUpdating}
+          locked={locked}
+          onUnlock={handleUnlock}
+          unlockPriceLabel={unlockPriceLabel}
+          unlocking={isPaying}
+          unlockingLabel={unlockingLabel}
+          onDownload={handleDownload}
+          isDownloading={pdf.isDownloading || pdf.isPreparing}
+        />
       ) : null}
 
-      {scanState === "results" && reportData && !competitorPreview ? (
+      {pdf.error && scanState === "results" ? (
+        <p className="text-sm text-muted-foreground" role="status">
+          {pdf.error}
+        </p>
+      ) : null}
+
+      {scanState === "results" && reportData && preview && competitorPreview ? (
+        <CompetitorLegacyResults
+          reportData={reportData}
+          preview={preview}
+          competitorPreview={competitorPreview}
+          primaryLabel={primaryLabel}
+          competitorLabel={competitorLabel}
+          locked={locked}
+          onUnlock={handleUnlock}
+          unlockPriceLabel={unlockPriceLabel}
+          unlocking={isPaying}
+          unlockingLabel={unlockingLabel}
+          onDownload={handleDownload}
+          isDownloading={pdf.isDownloading || pdf.isPreparing}
+          hasFullReportContent={hasFullReportContent}
+        />
+      ) : null}
+
+      {scanState === "results" && reportData && !primaryAudit && !competitorPreview ? (
         <CompetitorLoader activeStep="Finalizing competitor preview..." />
       ) : null}
     </div>

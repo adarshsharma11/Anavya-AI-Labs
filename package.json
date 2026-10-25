@@ -10,7 +10,7 @@
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "test": "tsx --test src/lib/reviews/*.test.ts src/lib/dashboard/*.test.ts",
+    "test": "tsx --test src/lib/reviews/*.test.ts src/lib/dashboard/*.test.ts src/lib/pricing.test.ts src/lib/scan/*.test.ts",
     "test:e2e": "playwright test"
   },
   "dependencies": {

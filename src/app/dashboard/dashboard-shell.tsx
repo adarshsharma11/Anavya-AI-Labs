@@ -9,6 +9,7 @@ import {
   Activity,
   ArrowLeft,
   Briefcase,
+  CreditCard,
   FileSearch,
   FileText,
   Info,
@@ -56,6 +57,7 @@ const userNavItems: NavItem[] = [
   { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
   { title: "My Scans", href: "/dashboard/scans", icon: FileSearch },
   { title: "Monitoring", href: "/dashboard/monitors", icon: Activity },
+  { title: "Billing", href: "/dashboard/billing", icon: CreditCard },
   { title: "Profile & Branding", href: "/dashboard/settings", icon: Settings },
 ];
 

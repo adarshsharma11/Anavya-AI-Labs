@@ -1,6 +1,5 @@
 "use client";
 
-import { Button } from "@/components/ui/button";
 import type { ScanRecord } from "@/types/api";
 import type { AiReport, AuditReport, CompetitorAnalysis } from "@/types/audit";
 import {
@@ -33,6 +32,7 @@ export function AuditView({
   isAdmin?: boolean;
   onRegenerate?: () => void;
 }) {
+  const showDeepReport = false;
   const locked = Boolean(scan?.locked ?? !scan?.isUnlocked);
   const processing = Boolean(scan?.processing);
   const failed = scan?.status === "report_failed";
@@ -72,7 +72,7 @@ export function AuditView({
           <CompetitorSection analysis={competitor} />
         </section>
       ) : null}
-      {onUnlock ? (
+      {showDeepReport && onUnlock ? (
         <AiDeepReportSection
           locked={locked}
           processing={processing}
@@ -84,15 +84,7 @@ export function AuditView({
           isAdmin={isAdmin}
           onRegenerate={onRegenerate}
         />
-      ) : (
-        <div className="flex justify-end">
-          <Button variant="outline" asChild>
-            <a href={`/scanner?url=${encodeURIComponent(report.url)}`}>
-              Run the full multi-page audit
-            </a>
-          </Button>
-        </div>
-      )}
+      ) : null}
     </div>
   );
 }
