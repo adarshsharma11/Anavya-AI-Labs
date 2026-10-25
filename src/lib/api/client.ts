@@ -3,12 +3,14 @@ import { env } from "@/env";
 export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
+  readonly field?: string;
 
-  constructor(status: number, message: string, code?: string) {
+  constructor(status: number, message: string, code?: string, field?: string) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
+    this.field = field;
   }
 }
 
@@ -83,6 +85,7 @@ function parseEnvelope(rawBody: string): {
   success?: boolean;
   message?: string;
   code?: string;
+  field?: string;
   parsed: unknown;
 } {
   if (!rawBody) {
@@ -94,11 +97,13 @@ function parseEnvelope(rawBody: string): {
       message?: string;
       error?: string;
       code?: string;
+      field?: string;
     };
     return {
       success: parsed.success,
       message: parsed.message ?? parsed.error,
       code: parsed.code,
+      field: parsed.field,
       parsed,
     };
   } catch {
@@ -117,7 +122,8 @@ function throwIfFailed(
   throw new ApiError(
     response.ok ? 400 : response.status,
     envelope.message || rawBody || "Request failed.",
-    envelope.code
+    envelope.code,
+    envelope.field
   );
 }
 

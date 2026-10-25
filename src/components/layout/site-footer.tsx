@@ -30,7 +30,7 @@ const LEGAL_LINKS = [
 export function SiteFooter() {
   const pathname = usePathname();
 
-  if (pathname.startsWith("/dashboard")) {
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
     return null;
   }
 

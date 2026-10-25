@@ -1,227 +1,254 @@
 "use client";
 
-import React, { useState } from "react";
+import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { motion, AnimatePresence } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { AnimatePresence, motion } from "framer-motion";
+import type { LucideIcon } from "lucide-react";
 import {
-  LayoutDashboard,
-  FileSearch,
-  Settings,
   Activity,
-  Menu,
-  X,
+  ArrowLeft,
+  Briefcase,
+  FileSearch,
+  FileText,
+  Info,
+  LayoutDashboard,
   LogOut,
   Mail,
-  FileText,
-  Briefcase,
-  Info,
-  Wrench,
+  MessageSquareQuote,
+  Settings,
   Users,
-  ArrowLeft,
+  Wrench,
 } from "lucide-react";
+
 import { useAuth } from "@/components/providers/auth-provider";
-import { Button } from "@/components/ui/button";
+import { AdminPendingReviewsBadge } from "@/components/reviews/admin-pending-badge";
+import {
+  Sidebar,
+  SidebarContent,
+  SidebarFooter,
+  SidebarGroup,
+  SidebarGroupContent,
+  SidebarGroupLabel,
+  SidebarHeader,
+  SidebarInset,
+  SidebarMenu,
+  SidebarMenuButton,
+  SidebarMenuItem,
+  SidebarProvider,
+  SidebarRail,
+  SidebarSeparator,
+  SidebarTrigger,
+  useSidebar,
+} from "@/components/ui/sidebar";
 import { ThemeToggle } from "@/components/ui/theme-toggle";
+import { siteConfig } from "@/config/site";
+import { getAppShellBackLink, isAdminSection, isNavActive } from "@/lib/dashboard/shell-nav";
 
-const sidebarNavItems = [
-  {
-    title: "Overview",
-    href: "/dashboard",
-    icon: LayoutDashboard,
-  },
-  {
-    title: "My Scans",
-    href: "/dashboard/scans",
-    icon: FileSearch,
-  },
-  {
-    title: "Monitoring",
-    href: "/dashboard/monitors",
-    icon: Activity,
-  },
-  {
-    title: "Profile & Branding",
-    href: "/dashboard/settings",
-    icon: Settings,
-  },
+type NavItem = {
+  title: string;
+  href: string;
+  icon: LucideIcon;
+  badge?: "pending-reviews";
+};
+
+const userNavItems: NavItem[] = [
+  { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { title: "My Scans", href: "/dashboard/scans", icon: FileSearch },
+  { title: "Monitoring", href: "/dashboard/monitors", icon: Activity },
+  { title: "Profile & Branding", href: "/dashboard/settings", icon: Settings },
 ];
 
-const adminSidebarNavItems = [
+const adminNavItems: NavItem[] = [
+  { title: "Overview", href: "/dashboard", icon: LayoutDashboard },
+  { title: "Contact Requests", href: "/dashboard/admin/contacts", icon: Mail },
   {
-    title: "Overview",
-    href: "/dashboard",
-    icon: LayoutDashboard,
+    title: "Reviews",
+    href: "/admin/reviews",
+    icon: MessageSquareQuote,
+    badge: "pending-reviews",
   },
-  {
-    title: "Contact Requests",
-    href: "/dashboard/admin/contacts",
-    icon: Mail,
-  },
-  {
-    title: "Manage Blogs",
-    href: "/dashboard/admin/blogs",
-    icon: FileText,
-  },
-  {
-    title: "Manage Services",
-    href: "/dashboard/admin/services",
-    icon: Wrench,
-  },
-  {
-    title: "Manage Portfolio",
-    href: "/dashboard/admin/portfolio",
-    icon: Briefcase,
-  },
-  {
-    title: "Manage About",
-    href: "/dashboard/admin/about",
-    icon: Info,
-  },
-  {
-    title: "Users & Scans",
-    href: "/dashboard/admin/users",
-    icon: Users,
-  },
-  {
-    title: "Revenue",
-    href: "/dashboard/admin/revenue",
-    icon: Activity,
-  },
-  {
-    title: "GEO Leads",
-    href: "/dashboard/admin/geo-leads",
-    icon: Mail,
-  },
-  {
-    title: "Site Settings",
-    href: "/dashboard/admin/settings",
-    icon: Settings,
-  },
+  { title: "Manage Blogs", href: "/dashboard/admin/blogs", icon: FileText },
+  { title: "Manage Services", href: "/dashboard/admin/services", icon: Wrench },
+  { title: "Manage Portfolio", href: "/dashboard/admin/portfolio", icon: Briefcase },
+  { title: "Manage About", href: "/dashboard/admin/about", icon: Info },
+  { title: "Users & Scans", href: "/dashboard/admin/users", icon: Users },
+  { title: "Revenue", href: "/dashboard/admin/revenue", icon: Activity },
+  { title: "GEO Leads", href: "/dashboard/admin/geo-leads", icon: Mail },
+  { title: "Site Settings", href: "/dashboard/admin/settings", icon: Settings },
 ];
 
-export function DashboardShell({ children }: { children: React.ReactNode }) {
-  const pathname = usePathname();
-  const { user, logout } = useAuth();
-  const [mobileOpen, setMobileOpen] = useState(false);
-
-  const navItems = user?.role === "admin" ? adminSidebarNavItems : sidebarNavItems;
+function SidebarBrand({ isAdmin }: { isAdmin: boolean }) {
+  const logoSrc = siteConfig.logo?.src ?? "/logo.svg";
 
   return (
-    <div className="relative flex min-h-screen w-full overflow-hidden">
-      <div className="absolute inset-0 -z-10 pointer-events-none">
-        <div className="absolute left-0 top-0 h-96 w-96 rounded-full bg-emerald-400/10 blur-3xl" />
-        <div className="absolute right-0 top-32 h-[30rem] w-[30rem] rounded-full bg-sky-400/10 blur-3xl" />
-        <div className="absolute bottom-0 left-1/4 h-80 w-80 rounded-full bg-amber-300/10 blur-3xl" />
-      </div>
+    <Link
+      href="/"
+      className="flex min-w-0 items-center gap-2.5 rounded-lg px-1.5 py-1 outline-none ring-sidebar-ring focus-visible:ring-2"
+    >
+      <img
+        src={logoSrc}
+        alt=""
+        width={28}
+        height={28}
+        className="size-7 shrink-0 object-contain"
+      />
+      <span className="min-w-0 truncate text-sm font-semibold tracking-tight group-data-[collapsible=icon]:hidden">
+        {isAdmin ? "Admin" : "Dashboard"}
+      </span>
+    </Link>
+  );
+}
 
-      <div className="md:hidden absolute top-4 left-4 right-4 flex items-center justify-between z-50 pointer-events-none">
-        <Button variant="outline" size="icon" onClick={() => setMobileOpen(!mobileOpen)} className="bg-background/80 backdrop-blur pointer-events-auto">
-          {mobileOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-        </Button>
-        <Link
-          href="/"
-          className="inline-flex items-center gap-1.5 rounded-full border border-border/60 bg-background/80 backdrop-blur px-3 py-1.5 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors shadow-sm pointer-events-auto"
-        >
-          <ArrowLeft className="h-3.5 w-3.5" />
-          Back to Home
-        </Link>
-      </div>
+function SidebarBackLink({ href, label }: { href: string; label: string }) {
+  return (
+    <SidebarMenu>
+      <SidebarMenuItem>
+        <SidebarMenuButton asChild tooltip={label}>
+          <Link href={href}>
+            <ArrowLeft />
+            <span>{label}</span>
+          </Link>
+        </SidebarMenuButton>
+      </SidebarMenuItem>
+    </SidebarMenu>
+  );
+}
 
-      <aside
-        className={cn(
-          "fixed inset-y-0 left-0 z-40 w-64 transform border-r border-border/60 bg-background/80 backdrop-blur shadow-xl transition-transform duration-300 ease-in-out md:static md:translate-x-0",
-          mobileOpen ? "translate-x-0" : "-translate-x-full"
-        )}
-      >
-        <div className="flex h-full flex-col px-4 py-8 md:py-12">
-          <div className="mb-8 px-4">
-            <h2 className="text-xl font-bold tracking-tight text-foreground">
-              {user?.role === "admin" ? "Admin Panel" : "Dashboard"}
-            </h2>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Welcome back, <span className="font-semibold text-foreground/90">{user?.name?.split(" ")[0] || "User"}</span>.
-            </p>
-            <div className="mt-4 pt-4 border-t border-border/40">
-              <Link
-                href="/"
-                className="inline-flex w-full items-center gap-2 rounded-xl border border-border/60 bg-muted/20 px-3 py-2 text-xs font-semibold text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors shadow-sm"
-              >
-                <ArrowLeft className="h-4 w-4" />
-                Back to Home
-              </Link>
-            </div>
-          </div>
-          <nav className="flex-1 space-y-2 px-2">
-            {navItems.map((item) => {
-              const isActive = pathname === item.href;
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  onClick={() => setMobileOpen(false)}
-                  className="relative flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition-colors"
-                >
-                  {isActive && (
-                    <motion.div
-                      layoutId="dashboard-sidebar-active"
-                      className="absolute inset-0 z-0 rounded-xl border border-primary/20 bg-primary/10"
-                      initial={false}
-                      transition={{ type: "spring", stiffness: 320, damping: 30 }}
-                    />
-                  )}
-                  <item.icon
-                    className={cn(
-                      "relative z-10 h-5 w-5 transition-colors",
-                      isActive ? "text-primary" : "text-muted-foreground"
-                    )}
+function SidebarNav({ items, pathname }: { items: NavItem[]; pathname: string }) {
+  const { setOpenMobile } = useSidebar();
+
+  React.useEffect(() => {
+    setOpenMobile(false);
+  }, [pathname, setOpenMobile]);
+
+  return (
+    <SidebarGroup>
+      <SidebarGroupLabel>Menu</SidebarGroupLabel>
+      <SidebarGroupContent>
+        <SidebarMenu>
+          {items.map((item) => {
+            const active = isNavActive(pathname, item.href);
+            return (
+              <SidebarMenuItem key={item.href}>
+                <SidebarMenuButton asChild isActive={active} tooltip={item.title}>
+                  <Link href={item.href}>
+                    <item.icon />
+                    <span>{item.title}</span>
+                    {item.badge === "pending-reviews" ? (
+                      <AdminPendingReviewsBadge className="ml-auto group-data-[collapsible=icon]:hidden" />
+                    ) : null}
+                  </Link>
+                </SidebarMenuButton>
+                {item.badge === "pending-reviews" ? (
+                  <AdminPendingReviewsBadge
+                    variant="dot"
+                    className="absolute right-1 top-1 hidden group-data-[collapsible=icon]:block"
                   />
-                  <span
-                    className={cn(
-                      "relative z-10 transition-colors",
-                      isActive ? "text-foreground font-semibold" : "text-muted-foreground hover:text-foreground"
-                    )}
-                  >
-                    {item.title}
-                  </span>
-                </Link>
-              );
-            })}
-          </nav>
+                ) : null}
+              </SidebarMenuItem>
+            );
+          })}
+        </SidebarMenu>
+      </SidebarGroupContent>
+    </SidebarGroup>
+  );
+}
 
-          <div className="mt-auto border-t border-border/60 pt-6 pb-2 px-2 space-y-4">
-            <div className="flex items-center justify-between px-3">
-              <span className="text-sm font-medium text-muted-foreground">Theme</span>
-              <ThemeToggle />
-            </div>
-            <Button
-              variant="ghost"
-              className="w-full justify-start text-muted-foreground hover:text-foreground hover:bg-destructive/10 hover:text-destructive transition-colors"
-              onClick={() => logout()}
-            >
-              <LogOut className="mr-3 h-5 w-5" />
-              Log Out
-            </Button>
+export function DashboardShell({
+  children,
+  defaultOpen = true,
+}: {
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const pathname = usePathname();
+  const { user, logout } = useAuth();
+  const isAdmin = user?.role === "admin";
+  const navItems = isAdmin ? adminNavItems : userNavItems;
+  const back = getAppShellBackLink(pathname);
+  const firstName = user?.name?.split(" ")[0] || "there";
+
+  return (
+    <SidebarProvider
+      defaultOpen={defaultOpen}
+      className="h-dvh min-h-0 overflow-hidden"
+      data-app-shell="true"
+    >
+      <Sidebar collapsible="icon">
+        <SidebarHeader className="gap-1 border-b border-sidebar-border/70">
+          <SidebarBrand isAdmin={isAdmin} />
+          <p className="truncate px-2 text-xs text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">
+            Welcome back, {firstName}
+          </p>
+        </SidebarHeader>
+
+        <SidebarContent>
+          <div className="px-2 pt-1">
+            <SidebarBackLink href={back.href} label={back.label} />
+          </div>
+          <SidebarSeparator />
+          <SidebarNav items={navItems} pathname={pathname} />
+        </SidebarContent>
+
+        <SidebarFooter className="border-t border-sidebar-border/70">
+          <div className="flex items-center justify-between px-2 group-data-[collapsible=icon]:justify-center">
+            <span className="text-xs font-medium text-sidebar-foreground/60 group-data-[collapsible=icon]:hidden">
+              Theme
+            </span>
+            <ThemeToggle />
+          </div>
+          <SidebarMenu>
+            <SidebarMenuItem>
+              <SidebarMenuButton tooltip="Log out" onClick={() => logout()}>
+                <LogOut />
+                <span>Log out</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          </SidebarMenu>
+        </SidebarFooter>
+        <SidebarRail />
+      </Sidebar>
+
+      <SidebarInset className="h-full min-h-0 overflow-hidden bg-background">
+        <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center gap-2 border-b border-border/70 bg-background/80 px-3 backdrop-blur-md md:px-5">
+          <SidebarTrigger className="-ml-1" />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-medium">
+              {isAdminSection(pathname) ? "Admin" : "Dashboard"}
+            </p>
+          </div>
+          <Link
+            href={back.href}
+            aria-label={back.label}
+            className="inline-flex shrink-0 items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-medium text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+          >
+            <ArrowLeft className="size-3.5" />
+            <span className="hidden sm:inline">{back.label}</span>
+          </Link>
+        </header>
+
+        <div className="relative min-h-0 flex-1 overflow-y-auto">
+          <div className="pointer-events-none absolute inset-0 -z-10">
+            <div className="absolute left-0 top-0 h-96 w-96 rounded-full bg-emerald-400/10 blur-3xl" />
+            <div className="absolute right-0 top-32 h-[30rem] w-[30rem] rounded-full bg-sky-400/10 blur-3xl" />
+            <div className="absolute bottom-0 left-1/4 h-80 w-80 rounded-full bg-amber-300/10 blur-3xl" />
+          </div>
+          <div className="mx-auto w-full max-w-5xl px-4 py-6 md:px-8 md:py-8 lg:px-12">
+            <AnimatePresence mode="wait">
+              <motion.div
+                key={pathname}
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                transition={{ duration: 0.22 }}
+              >
+                {children}
+              </motion.div>
+            </AnimatePresence>
           </div>
         </div>
-      </aside>
-
-      <main className="flex-1 w-full overflow-y-auto px-4 py-16 md:px-8 md:py-12 lg:px-12">
-        <div className="mx-auto max-w-5xl">
-          <AnimatePresence mode="wait">
-            <motion.div
-              key={pathname}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0, y: -10 }}
-              transition={{ duration: 0.3 }}
-            >
-              {children}
-            </motion.div>
-          </AnimatePresence>
-        </div>
-      </main>
-    </div>
+      </SidebarInset>
+    </SidebarProvider>
   );
 }

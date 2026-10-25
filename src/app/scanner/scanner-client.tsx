@@ -12,6 +12,7 @@ import { usePaymentQuote } from "@/hooks/use-payment-quote";
 import { usePdfDownload } from "@/hooks/use-pdf-download";
 import { usePolling } from "@/hooks/use-polling";
 import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
+import { ShareExperienceCta } from "@/components/reviews/share-experience-cta";
 import { AuditView } from "@/components/report/audit-view";
 import { ShareReportButton } from "@/components/report/share-report-button";
 import { UnlockEmailModal } from "@/components/report/unlock-modal";
@@ -335,6 +336,8 @@ export default function ScannerClient({
                   {pdf.error}
                 </p>
               ) : null}
+
+              <ShareExperienceCta />
             </div>
           ) : null}
         </div>

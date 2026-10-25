@@ -5,8 +5,7 @@ import './globals.css';
 import { cn } from '@/lib/utils';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
-import { SiteHeader } from '@/components/layout/site-header';
-import { SiteFooter } from '@/components/layout/site-footer';
+import { AppChrome } from '@/components/layout/app-chrome';
 import { env } from '@/env';
 import { siteConfig, pageMetadata, toCanonicalUrl } from '@/config/site';
 import { QueryProvider } from '@/components/providers/query-provider';
@@ -134,11 +133,7 @@ gtag('config', '${googleAnalyticsId}');`}
         >
           <AuthProvider>
             <QueryProvider>
-              <div className="relative flex min-h-dvh flex-col">
-                <SiteHeader />
-                <main className="flex-1">{children}</main>
-                <SiteFooter />
-              </div>
+              <AppChrome>{children}</AppChrome>
               <Toaster />
               <script
                 type="application/ld+json"

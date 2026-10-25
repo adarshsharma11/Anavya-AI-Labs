@@ -17,6 +17,7 @@ interface UserProfile {
 
 const PROTECTED_ROUTES = [
   "/dashboard",
+  "/admin",
 ];
 
 interface AuthContextType {
@@ -83,6 +84,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     if (!user && isProtected) {
       console.log(" [Auth Guard] Unauthenticated on protected route. Redirecting to /login");
       router.replace("/login");
+    } else if (user && pathname.startsWith("/admin") && user.role !== "admin") {
+      router.replace("/login");
     } else if (user && isAuthPage) {
       console.log(" [Auth Guard] Authenticated on auth page. Redirecting to /dashboard");
       router.replace("/dashboard");
@@ -113,7 +116,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
   // If we're on a protected route and don't have a user yet, don't render children
   // This prevents the "flash" of protected content
-  const shouldHideContent = isProtected && (isLoading || !user);
+  const shouldHideContent =
+    isProtected &&
+    (isLoading || !user || (pathname.startsWith("/admin") && user.role !== "admin"));
 
   return (
     <AuthContext.Provider

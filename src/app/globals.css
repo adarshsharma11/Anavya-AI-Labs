@@ -24,6 +24,14 @@
     --input: 220 13% 91%;
     --ring: 262.1 83.3% 57.8%;
     --radius: 1rem;
+    --sidebar: 210 40% 100%;
+    --sidebar-foreground: 224 71.4% 4.1%;
+    --sidebar-primary: 262.1 83.3% 57.8%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 220 14.3% 95.9%;
+    --sidebar-accent-foreground: 224 71.4% 4.1%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 262.1 83.3% 57.8%;
   }
 
   .dark {
@@ -46,6 +54,14 @@
     --border: 222.9 21.2% 18.9%;
     --input: 222.9 21.2% 18.9%;
     --ring: 262.1 83.3% 57.8%;
+    --sidebar: 222.9 21.2% 15.9%;
+    --sidebar-foreground: 210 20% 98%;
+    --sidebar-primary: 262.1 83.3% 57.8%;
+    --sidebar-primary-foreground: 210 20% 98%;
+    --sidebar-accent: 222.9 21.2% 18.9%;
+    --sidebar-accent-foreground: 210 20% 98%;
+    --sidebar-border: 222.9 21.2% 18.9%;
+    --sidebar-ring: 262.1 83.3% 57.8%;
   }
 }
 
@@ -84,6 +100,21 @@
     }
     to {
       transform: translateX(-50%);
+    }
+  }
+
+  .animate-marquee {
+    animation: marquee var(--marquee-duration, 36s) linear infinite;
+  }
+
+  .group\/marquee:hover .animate-marquee,
+  .group\/marquee:focus-within .animate-marquee {
+    animation-play-state: paused;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .animate-marquee {
+      animation: none;
     }
   }
 

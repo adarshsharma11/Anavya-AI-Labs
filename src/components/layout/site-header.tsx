@@ -30,7 +30,7 @@ export function SiteHeader() {
   const [isOpen, setIsOpen] = React.useState(false);
   const { isAuthenticated, user, logout } = useAuth();
 
-  if (pathname.startsWith("/dashboard")) {
+  if (pathname.startsWith("/dashboard") || pathname.startsWith("/admin")) {
     return null;
   }
 

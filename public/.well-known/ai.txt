@@ -1,0 +1,36 @@
+# AI Usage Policy for Anavya AI Labs
+# File location: https://anavyaailabs.com/.well-known/ai.txt
+# Format: Proposed ai.txt Internet-Draft
+# Review this policy before publishing.
+
+Spec-Version: 1.0
+Site-Name: Anavya AI Labs
+Site-URL: https://anavyaailabs.com
+Contact: support@anavyaailabs.com
+
+# AI usage preferences
+# These are proposed policy choices and should reflect the owner's intentions.
+Training: deny
+Scraping: allow
+Indexing: allow
+Caching: conditional
+
+# Website information
+Description: Anavya AI Labs provides AI-powered website SEO audits, technical website analysis, and generative engine optimization (GEO) checks.
+Primary-Content: https://anavyaailabs.com/
+Privacy-Policy: https://anavyaailabs.com/privacy
+
+# Content usage
+# Public pages may be accessed subject to the applicable website policies.
+# Do not access private reports, account data, or payment-related information.
+# Do not treat automated access as authorization to bypass access controls.
+
+# Attribution
+Attribution: requested
+Attribution-URL: https://anavyaailabs.com/
+
+# Policy notes
+# This file expresses the website owner's stated preferences.
+# It does not replace robots.txt, authentication, or access controls.
+# It does not guarantee compliance by AI crawlers or services.
+# Update this file when the website's policies change.
