@@ -123,8 +123,8 @@ export default function BlogDetailsClient({ post, relatedPosts = [], children }:
           <span>{post.readTime}</span>
         </div>
 
-        <div className="mt-6 grid gap-10 lg:grid-cols-[1.6fr_0.9fr] lg:items-start">
-          <div>
+        <div className="mt-6 grid gap-10 lg:grid-cols-[minmax(0,1.6fr)_minmax(0,0.9fr)] lg:items-start">
+          <div className="min-w-0">
             <h1 className="font-headline text-3xl font-bold tracking-tight sm:text-4xl lg:text-5xl">
               {post.title}
             </h1>
@@ -197,8 +197,8 @@ export default function BlogDetailsClient({ post, relatedPosts = [], children }:
           </ul>
         </div>
 
-        <div className="mt-12 max-w-6xl mx-auto w-full">
-          <article className="prose prose-neutral dark:prose-invert max-w-none text-base leading-relaxed text-muted-foreground prose-img:mx-auto prose-img:max-w-2xl prose-img:w-auto prose-img:rounded-2xl">
+        <div className="mt-12 mx-auto w-full min-w-0 max-w-6xl">
+          <article className="prose prose-neutral dark:prose-invert max-w-none text-base leading-relaxed text-muted-foreground prose-img:mx-auto prose-img:h-auto prose-img:w-full prose-img:max-w-full prose-img:rounded-2xl [&_pre]:max-w-full [&_pre]:overflow-x-auto [&_table]:block [&_table]:max-w-full [&_table]:overflow-x-auto">
             {articleContent}
           </article>
         </div>
