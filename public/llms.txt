@@ -80,5 +80,6 @@ Start at https://anavyaailabs.com/scanner. Use https://anavyaailabs.com/competit
 - Sitemap: https://anavyaailabs.com/sitemap.xml
 - Robots: https://anavyaailabs.com/robots.txt
 - Ads: https://anavyaailabs.com/ads.txt
+- Compact index: https://anavyaailabs.com/llms-small.txt
 - This file: https://anavyaailabs.com/llms.txt
 - Expanded copy: https://anavyaailabs.com/llms-full.txt

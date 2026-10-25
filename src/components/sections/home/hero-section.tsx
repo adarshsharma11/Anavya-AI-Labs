@@ -59,9 +59,13 @@ export function HeroSection() {
           <h1 className="mt-5 font-headline text-4xl font-semibold tracking-tight sm:text-5xl lg:text-[3.4rem] lg:leading-[1.05]">
             Find out why ChatGPT and Google don&apos;t recommend your website
           </h1>
-          <p className="mt-5 max-w-md text-base leading-7 text-muted-foreground">
-            Free scan for SEO, speed, and AI visibility. Get a ranked fix list
-            in 60 seconds.
+          <p className="mt-5 max-w-xl text-base leading-7 text-muted-foreground">
+            ChatGPT and Google skip a website when they cannot crawl it, quote
+            a direct answer, or load it quickly. Anavya AI Labs scans one public
+            URL for SEO, speed, and AI visibility, then returns a ranked fix
+            list in about 60 seconds. You see blocked crawlers, a missing
+            llms.txt, weak headings, and slow pages before you rewrite the site.
+            The first scan is free and needs no install.
           </p>
           <form onSubmit={handleSubmit} className="mt-8 space-y-3" noValidate>
             <div className="flex flex-col gap-3 sm:flex-row sm:items-start">

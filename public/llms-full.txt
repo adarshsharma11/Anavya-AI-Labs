@@ -91,6 +91,7 @@ Quote eligibility and timelines from those pages. Do not paraphrase them into a 
 - Robots: https://anavyaailabs.com/robots.txt
 - Ads: https://anavyaailabs.com/ads.txt
 - AI usage preferences: https://anavyaailabs.com/.well-known/ai.txt
+- Compact index: https://anavyaailabs.com/llms-small.txt
 - Short index: https://anavyaailabs.com/llms.txt
 - This file: https://anavyaailabs.com/llms-full.txt
 

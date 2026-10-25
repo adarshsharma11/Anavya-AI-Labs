@@ -5,7 +5,7 @@ export function CtaSection() {
     <section className="w-full border-t border-border bg-foreground text-background">
       <div className="mx-auto flex min-h-[50vh] max-w-[1400px] flex-col justify-end px-6 py-20 lg:px-12">
         <h2 className="max-w-3xl font-headline text-4xl font-semibold tracking-tight sm:text-5xl">
-          Scan the site. Fix what search and AI cannot see.
+          How do you fix what search and AI cannot see?
         </h2>
         <div className="mt-10">
           <Link

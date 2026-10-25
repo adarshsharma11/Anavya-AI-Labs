@@ -88,7 +88,7 @@ export function ShareExperienceCard() {
             Share Your Feedback · Takes &lt; 1 min
           </div>
           <h2 className="mt-5 text-2xl font-semibold tracking-tight sm:text-[1.7rem]">
-            Have you used Website AEO GEO Checker?
+            What was your experience with the scanner?
           </h2>
           <p className="mt-3 max-w-md text-sm leading-6 text-muted-foreground">
             Your review helps website owners and SEO creators optimize their sites for

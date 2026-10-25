@@ -13,19 +13,19 @@ import { ScanReportFrame, type ReportStage } from "./scan-report-frame";
 
 const SCENES = [
   {
-    title: "A site that looks finished",
+    title: "Why does a finished site still fail?",
     body: "Most teams ship a polished homepage and assume search will follow. The public page is only the first layer.",
   },
   {
-    title: "The crawl and GEO gaps show up",
+    title: "What crawl and GEO gaps show up?",
     body: "Missing llms.txt, blocked AI bots, weak schema, and slow INP are the issues that keep pages out of results.",
   },
   {
-    title: "That is where sales leak",
+    title: "Why do those gaps cost sales?",
     body: "If Google and ChatGPT cannot cite you, the pages built to convert never get the visit. The report makes that visible.",
   },
   {
-    title: "Then you get a ranked fix list",
+    title: "How do you get a ranked fix list?",
     body: "One scan. Priority order. Ship the work that restores crawl, AI citations, and conversion.",
   },
 ] as const;

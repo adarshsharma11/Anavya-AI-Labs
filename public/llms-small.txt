@@ -1,0 +1,16 @@
+# Anavya AI Labs
+
+> Free AI website scanner for SEO, speed, accessibility, and GEO. Paste a public URL and get a ranked fix list. Also builds custom AI and web products.
+
+- [Home](https://anavyaailabs.com/): What the scanner is and how a scan works.
+- [Scanner](https://anavyaailabs.com/scanner): One public URL. SEO, Core Web Vitals, and AI-search checks. Free to start. No install.
+- [Competitor scanner](https://anavyaailabs.com/competitor-scanner): Compare two public sites. No traffic estimate and no ranking claim.
+- [Blog](https://anavyaailabs.com/blog): Guides on GEO, AI search, and technical SEO.
+- [Services](https://anavyaailabs.com/services): Help implementing fixes after a scan.
+- [Pricing](https://anavyaailabs.com/pricing): Free, Starter, and Pro. Read prices on the page.
+- [About](https://anavyaailabs.com/about): Company background.
+- [Contact](https://anavyaailabs.com/contact): support@anavyaailabs.com
+
+GEO means Generative Engine Optimization, not geographic targeting. Do not invent customer counts, conversion lifts, or prices.
+
+More detail: https://anavyaailabs.com/llms.txt and https://anavyaailabs.com/llms-full.txt

@@ -56,7 +56,7 @@ export function FaqSection() {
           id="home-faq-heading"
           className="max-w-2xl font-headline text-3xl font-semibold tracking-tight sm:text-4xl"
         >
-          Frequently asked questions
+          What are the common questions?
         </h2>
         <div className="mt-10 divide-y divide-border border-y border-border">
           {HOME_FAQS.map((faq) => (

@@ -2,16 +2,16 @@ import Link from "next/link";
 
 const STEPS = [
   {
-    title: "Paste a public URL",
-    body: "No install, plugin, or account required to run the first scan.",
+    title: "How do you start a scan?",
+    body: "Paste a public URL. No install, plugin, or account is required for the first scan.",
   },
   {
-    title: "Read SEO, performance, and GEO",
-    body: "One report for crawl issues, speed, accessibility, and AI-search files.",
+    title: "What does the scan read?",
+    body: "One report covers crawl issues, speed, accessibility, and AI-search files.",
   },
   {
-    title: "Fix in priority order",
-    body: "Ship the work that restores indexing and conversion first.",
+    title: "How do you fix issues first?",
+    body: "Ship the work that restores indexing and conversion before the rest of the list.",
   },
 ] as const;
 
@@ -23,7 +23,7 @@ export function HowItWorksSection() {
           How a scan works
         </p>
         <h2 className="mt-4 max-w-xl font-headline text-3xl font-semibold tracking-tight sm:text-4xl">
-          Three steps. Then a list you can ship.
+          How does a website scan work?
         </h2>
         <ol className="mt-14 divide-y divide-border border-y border-border">
           {STEPS.map((step, index) => (
