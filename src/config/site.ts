@@ -6,28 +6,30 @@ export type NavItem = {
   disabled?: boolean;
 };
 
-const CANONICAL_ORIGIN = "https://anavyaailabs.com";
+  const CANONICAL_ORIGIN = "https://www.anavyaailabs.com";
 
-const TRACKING_PARAM_PATTERN =
-  /^(utm_|utm$)|^(gclid|gbraid|wbraid|fbclid|msclkid|mc_cid|mc_eid|ref|_ga|_gl|yclid|ttclid)$/i;
-
-export function toCanonicalUrl(path: string): string {
-  const url = new URL(path, `${CANONICAL_ORIGIN}/`);
-  url.protocol = "https:";
-  url.hostname = "anavyaailabs.com";
-  url.port = "";
-  url.hash = "";
-
-  for (const key of [...url.searchParams.keys()]) {
-    if (TRACKING_PARAM_PATTERN.test(key)) {
-      url.searchParams.delete(key);
+  export function toCanonicalUrl(path: `/${string}`): string {
+    if (!path.startsWith("/") || path.startsWith("//")) {
+      throw new Error("Canonical path must be an internal site path.");
     }
+  
+    const url = new URL(path, `${CANONICAL_ORIGIN}/`);
+  
+    if (url.origin !== CANONICAL_ORIGIN) {
+      throw new Error("Canonical URL must use the configured site origin.");
+    }
+  
+    // Public SEO pages should not have tracking or arbitrary query variants.
+    url.search = "";
+    url.hash = "";
+  
+    // Normalize trailing slashes except for the homepage.
+    if (url.pathname !== "/") {
+      url.pathname = url.pathname.replace(/\/+$/, "");
+    }
+  
+    return url.toString();
   }
-
-  const pathname = url.pathname === "/" ? "" : url.pathname.replace(/\/+$/, "");
-  const search = url.searchParams.toString();
-  return `${CANONICAL_ORIGIN}${pathname}${search ? `?${search}` : ""}`;
-}
 
 export type SiteConfig = {
   name: string;
@@ -100,55 +102,55 @@ export type PageMetadataConfig = {
 
 export const pageMetadata = {
   home: {
-    title: 'Free AI Website Scanner: SEO, Speed & AI Visibility Audit',
+    title: 'Free AI Website Scanner: SEO, Speed & AI Visibility Audit | Anavya AI Labs',
     description:
       'Scan any URL for SEO, speed, and AI-search issues. Get a ranked fix list in 60 seconds. Free, no signup needed.',
     canonical: '/',
   },
   scanner: {
-    title: 'Free AEO & GEO Checker for AI Search',
+    title: 'Free SEO & GEO Scanner | Anavya AI Labs',
     description:
       'Get free AEO and GEO scores in seconds. See how ChatGPT, Perplexity, Gemini, Claude, and Bing read your site — and what to fix first.',
     canonical: '/scanner',
   },
   competitorScanner: {
-    title: 'Competitor Website Scanner & SEO Comparison Tool',
+    title: 'Competitor Website Scanner & SEO Comparison Tool | Anavya AI Labs',
     description:
       'Compare your website against a competitor to uncover SEO, performance, accessibility, and conversion gaps with an AI-powered competitor website scanner.',
     canonical: '/competitor-scanner',
   },
   services: {
-    title: 'AI Services for Agents and MCP Servers',
+    title: 'Website Audit & AI Optimization Services | Anavya AI Labs',
     description:
       'Explore AI-powered website analysis services: performance, SEO, and accessibility improvements to boost conversions.',
     canonical: '/services',
   },
   portfolio: {
-    title: 'Portfolio',
+    title: 'Portfolio | Anavya AI Labs',
     description:
       'See recent projects and examples of high-performing websites and UI/UX work delivered by anavyaailabs.com.',
     canonical: '/portfolio',
   },
   pricing: {
-    title: 'Pricing',
+    title: 'Pricing | Anavya AI Labs',
     description:
       'Free, Starter, and Pro plans for AI and search readiness audits. Prices and scan limits come from the live pricing API.',
     canonical: '/pricing',
   },
   about: {
-    title: 'About',
+    title: 'About | Anavya AI Labs',
     description:
       'Learn about anavyaailabs.com and our mission to help teams build faster, more accessible websites.',
     canonical: '/about',
   },
   contact: {
-    title: 'Contact Us',
+    title: 'Contact Us | Anavya AI Labs',
     description:
       'Get in touch with Anavya AI Labs for support, feedback, or enterprise inquiries.',
     canonical: '/contact',
   },
   blog: {
-    title: 'Blog',
+    title: 'Blog | Anavya AI Labs',
     description:
       'Insights on AI-powered UX, performance tuning, accessibility, and building high-converting web experiences.',
     canonical: '/blog',
