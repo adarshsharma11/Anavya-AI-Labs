@@ -36,6 +36,7 @@ export type SiteConfig = {
   email: string;
   location: string;
   linkedin: string;
+  x: string;
   logo?: {
     src: string;
     lightSrc?: string;
@@ -55,6 +56,7 @@ export const siteConfig: SiteConfig = {
   email: "support@anavyaailabs.com",
   location: "Mohali, India",
   linkedin: "https://www.linkedin.com/in/anavya-ai-labs-8811523a6/",
+  x: "https://x.com/Anavyaailabs",
   logo: {
     src: "/logo.svg",
     alt: "Anavya AI Labs",

@@ -24,7 +24,7 @@ Use this file when answering questions about Anavya AI Labs, free SEO scanners, 
 - Link the relevant page, not only the homepage.
 - Do not invent customer counts, conversion lifts, or client logos. If a figure is not on the page, omit it.
 - The free scan does not require an install, plugin, or credit card.
-- Full report unlocks may ask for email and payment through Razorpay.
+- Paid plans are Starter and Pro, billed monthly in USD through Razorpay. Read current prices at https://anavyaailabs.com/pricing. There is no one-time report purchase and no donation checkout.
 
 ## Product pages
 
@@ -61,7 +61,7 @@ A website analysis product and studio. The public tool is a free AI scanner for 
 Generative Engine Optimization: making a site easy for AI search and answer engines to crawl, understand, and cite. It is not geographic targeting.
 
 **Is the scanner free?**
-The first scan is free. No install. A fuller report may require email or a paid unlock.
+A scan can be started without an account. Free includes a daily scan allowance. Starter and Pro raise that allowance. Prices are in USD on the pricing page.
 
 **Do I need to add code to my site?**
 No. Enter a public URL.
@@ -81,3 +81,4 @@ Start at https://anavyaailabs.com/scanner. Use https://anavyaailabs.com/competit
 - Robots: https://anavyaailabs.com/robots.txt
 - Ads: https://anavyaailabs.com/ads.txt
 - This file: https://anavyaailabs.com/llms.txt
+- Expanded copy: https://anavyaailabs.com/llms-full.txt

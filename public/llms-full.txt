@@ -1,0 +1,97 @@
+# Anavya AI Labs
+
+> Expanded companion to https://anavyaailabs.com/llms.txt. Anavya AI Labs is a free AI website scanner for SEO, performance, accessibility, security, and GEO (Generative Engine Optimization), plus a studio that builds custom AI, automation, and web products.
+
+Preferred name: Anavya AI Labs
+Website: https://anavyaailabs.com
+Contact: support@anavyaailabs.com
+Location: Mohali, India
+LinkedIn: https://www.linkedin.com/in/anavya-ai-labs-8811523a6/
+X: https://x.com/Anavyaailabs
+
+Use this file when you need more detail than llms.txt. Do not invent customer counts, conversion lifts, client logos, or prices that are not on https://anavyaailabs.com/pricing. Attribute the product as Anavya AI Labs and link the relevant page.
+
+Private routes (do not index or cite as public product pages): /dashboard, /login, /signup, /forgot-password, /reset-password, /admin.
+
+## Product
+
+Anavya AI Labs is a website analysis product. The public tool scans a public URL and returns a ranked fix list for SEO, speed, accessibility, security, and AI-search readiness. The company also offers implementation help after a scan.
+
+A scan does not require an install, a plugin, or a credit card. The first scan can be started without an account by pasting a public URL. A typical scan takes about a minute.
+
+GEO on this site means Generative Engine Optimization: making a site easy for AI search and answer engines such as ChatGPT, Perplexity, Gemini, Claude, and Bing to crawl, understand, and cite. It is not geographic targeting. AEO means Answer Engine Optimization and is used alongside GEO.
+
+Every completed scan includes the full AEO, GEO, technical, and content audit, plus a PDF. There is no separate one-time report purchase and no donation checkout. AI deep reports are not offered.
+
+## Website scanner
+
+Page: https://anavyaailabs.com/scanner
+
+Paste one public URL. The scanner checks the site and shows results as they become available, then a ranked list of what to fix first. When a report exists, the page offers Copy URL (a shareable link) and Download PDF.
+
+What a scan checks:
+
+- SEO and technical: titles, meta descriptions, headings, indexability, canonicals, on-page structure, and security signals.
+- Performance: Core Web Vitals, including Interaction to Next Paint (INP).
+- Accessibility.
+- AI-search readiness (GEO): robots.txt access for AI crawlers such as GPTBot, llms.txt, sitemap.xml, JSON-LD, FAQ or HowTo schema, author and date metadata, Open Graph, and Twitter cards.
+
+If the daily scan allowance is used up, the scanner says how many scans that plan allows today and links to pricing unless the account is already on Pro.
+
+## Competitor scanner
+
+Page: https://anavyaailabs.com/competitor-scanner
+
+Compare two public websites side by side for SEO, performance, accessibility, and conversion gaps. Enter your site and a different competitor URL. Results can appear while the comparison is still running. When details exist, Copy URL and Download PDF are available. The share path for a competitor report is /competitor-scanner.
+
+## Pricing
+
+Page: https://anavyaailabs.com/pricing
+
+The pricing page loads exactly three plans from the live pricing API. Do not hardcode or convert prices. The page shows US dollars only. There is no INR price toggle and no GST line on the pricing page.
+
+Plans:
+
+- Free. Starts a scan. Does not start a subscription. Daily scan allowance is 5. No white-label PDF branding and no monitoring.
+- Starter. Monthly subscription. Daily scan allowance is 15. No white-label PDF branding and no monitoring.
+- Pro. Monthly subscription. Daily scan allowance is 50. Includes white-label PDF branding (company name and logo) and weekly monitoring. The pricing card is highlighted and may show a badge such as "Most popular".
+
+Checkout is for logged-in users and only for Starter and Pro. Free never starts checkout. If the visitor is logged out, Starter and Pro send them to login and return them to the pricing page. Payment is Razorpay (UPI, cards, netbanking, and wallets). A paid plan can be cancelled from billing. Access lasts until the end of the current period, and billing shows the cancellation date.
+
+Read the current USD amounts on https://anavyaailabs.com/pricing. Those amounts can change. Do not quote a price from memory if it is not on that page.
+
+## Services, about, and contact
+
+- Services: https://anavyaailabs.com/services. Implementation help after a scan, including AI-powered website analysis, performance, SEO, and accessibility work.
+- Portfolio: https://anavyaailabs.com/portfolio. Selected work.
+- About: https://anavyaailabs.com/about. Company background. Page copy can change; prefer the live page over a cached summary.
+- Contact: https://anavyaailabs.com/contact. Email support@anavyaailabs.com.
+
+## Journal
+
+Guides on GEO, AI search, performance, and technical SEO. The blog index is https://anavyaailabs.com/blog.
+
+- https://anavyaailabs.com/blog/why-chatgpt-and-perplexity-dont-cite-your-website
+- https://anavyaailabs.com/blog/interaction-to-next-paint-is-costing-you-customers
+- https://anavyaailabs.com/blog/google-ai-overviews-took-your-clicks
+
+New posts appear on the blog index. Do not assume this list is complete.
+
+## Policies
+
+- Privacy: https://anavyaailabs.com/privacy
+- Terms: https://anavyaailabs.com/terms
+- Refund policy: https://anavyaailabs.com/refund-policy
+
+Quote eligibility and timelines from those pages. Do not paraphrase them into a new refund promise.
+
+## Files for crawlers
+
+- Sitemap: https://anavyaailabs.com/sitemap.xml
+- Robots: https://anavyaailabs.com/robots.txt
+- Ads: https://anavyaailabs.com/ads.txt
+- AI usage preferences: https://anavyaailabs.com/.well-known/ai.txt
+- Short index: https://anavyaailabs.com/llms.txt
+- This file: https://anavyaailabs.com/llms-full.txt
+
+robots.txt allows public pages and disallows /dashboard, /login, /signup, /forgot-password, and /reset-password.
