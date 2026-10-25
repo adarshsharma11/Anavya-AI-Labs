@@ -41,146 +41,12 @@ const iconMap = {
 
 type IconKey = keyof typeof iconMap;
 
-const fallbackData: ServicesPayload = {
-  page: {
-    id: 0,
-    title: "AI Services",
-    subtitle:
-      "We offer a wide range of services to help you build and grow your digital product.",
-    createdAt: new Date(0).toISOString(),
-  },
-  services: [
-    {
-      id: 1,
-      slug: "ai-chatbot-development",
-      title: "AI Chatbot Development",
-      description:
-        "We build intelligent, conversational AI chatbots to automate customer support, generate leads, and enhance user engagement.",
-      icon: "Bot",
-      cta: {
-        label: "Get a quote",
-        href: "/scanner",
-      },
-      createdAt: new Date(0).toISOString(),
-    },
-    {
-      id: 2,
-      slug: "custom-ai-solutions",
-      title: "Custom AI Solutions",
-      description:
-        "Leverage the power of machine learning and AI with custom models and solutions tailored to your specific business challenges.",
-      icon: "BrainCircuit",
-      cta: {
-        label: "Talk to us",
-        href: "/about",
-      },
-      createdAt: new Date(0).toISOString(),
-    },
-    {
-      id: 3,
-      slug: "ai-api-integration",
-      title: "AI API Integration",
-      description:
-        "We integrate powerful AI APIs into your existing applications to add features like image recognition, natural language processing, and more.",
-      icon: "Share2",
-      cta: {
-        label: "Explore services",
-        href: "/services",
-      },
-      createdAt: new Date(0).toISOString(),
-    },
-    // {
-    //   id: 4,
-    //   slug: "prompt-optimization",
-    //   title: "Prompt Optimization",
-    //   description:
-    //     "Craft and refine the perfect prompts to get the most accurate and powerful responses from your large language models.",
-    //   icon: "Wand2",
-    //   cta: {
-    //     label: "See pricing",
-    //     href: "/pricing",
-    //   },
-    //   createdAt: new Date(0).toISOString(),
-    // },
-    {
-      id: 5,
-      slug: "web-app-development",
-      title: "Web App Development",
-      description:
-        "We build high-performance, scalable, and secure web applications tailored to your business needs using the latest technologies.",
-      icon: "Code",
-      cta: {
-        label: "Start project",
-        href: "/about",
-      },
-      createdAt: new Date(0).toISOString(),
-    },
-    {
-      id: 6,
-      slug: "mobile-app-development",
-      title: "Mobile App Development",
-      description:
-        "Engage your users on the go with beautiful and intuitive mobile apps for both iOS and Android platforms.",
-      icon: "Smartphone",
-      cta: {
-        label: "Request demo",
-        href: "/about",
-      },
-      createdAt: new Date(0).toISOString(),
-    },
-    {
-      id: 7,
-      slug: "ui-ux-design",
-      title: "UI/UX Design",
-      description:
-        "Our design team creates stunning and user-friendly interfaces that provide an exceptional user experience and drive engagement.",
-      icon: "Palette",
-      cta: {
-        label: "View work",
-        href: "/portfolio",
-      },
-      createdAt: new Date(0).toISOString(),
-    },
-    {
-      id: 8,
-      slug: "performance-optimization",
-      title: "Performance Optimization",
-      description:
-        "We will fine-tune your application to ensure it's lightning-fast, providing a smooth experience for your users.",
-      icon: "Rocket",
-      cta: {
-        label: "Run a scan",
-        href: "/scanner",
-      },
-      createdAt: new Date(0).toISOString(),
-    },
-    {
-      id: 9,
-      slug: "cloud-devops",
-      title: "Cloud & DevOps",
-      description:
-        "Automate your infrastructure and deployments with our DevOps expertise, ensuring reliability and scalability.",
-      icon: "Server",
-      cta: {
-        label: "Talk to us",
-        href: "/about",
-      },
-      createdAt: new Date(0).toISOString(),
-    },
-    // {
-    //   id: 10,
-    //   slug: "security-compliance",
-    //   title: "Security & Compliance",
-    //   description:
-    //     "Protect your application and user data with our comprehensive security audits and implementation of best practices.",
-    //   icon: "ShieldCheck",
-    //   cta: {
-    //     label: "See pricing",
-    //     href: "/pricing",
-    //   },
-    //   createdAt: new Date(0).toISOString(),
-    // },
-  ],
+const fallbackPage = {
+  id: 0,
+  title: "AI Services",
+  subtitle:
+    "We offer a wide range of services to help you build and grow your digital product.",
+  createdAt: new Date(0).toISOString(),
 };
 
 export default function ServicesClient({
@@ -196,9 +62,9 @@ export default function ServicesClient({
     refetchOnMount: true,
   });
 
-  const resolved = data ?? initialData ?? fallbackData;
-  const page = resolved.page ?? fallbackData.page;
-  const services = resolved.services;
+  const resolved = data ?? initialData;
+  const page = resolved?.page ?? fallbackPage;
+  const services = resolved?.services ?? [];
 
   const sortedServices = useMemo(
     () => [...services].sort((a, b) => a.id - b.id),
@@ -260,6 +126,12 @@ export default function ServicesClient({
         {!isLoading && error && sortedServices.length === 0 ? (
           <Card className="col-span-full border-destructive/40 bg-destructive/5 p-6 text-sm text-destructive">
             {(error as Error).message ?? "Unable to load services."}
+          </Card>
+        ) : null}
+
+        {!isLoading && !error && sortedServices.length === 0 ? (
+          <Card className="col-span-full border-border/60 bg-muted/20 p-6 text-center text-sm text-muted-foreground">
+            No services are available yet.
           </Card>
         ) : null}
 
