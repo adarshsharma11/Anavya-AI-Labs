@@ -1,5 +1,3 @@
-import { Suspense } from "react";
-
 import { createPageMetadata, pageMetadata } from "@/config/site";
 import { HomeReviewsSection } from "@/components/reviews/home-reviews-section";
 import { CtaSection } from "@/components/sections/home/cta-section";
@@ -13,9 +11,7 @@ export const metadata = createPageMetadata(pageMetadata.home);
 export default function Home() {
   return (
     <div className="flex flex-col">
-      <Suspense fallback={null}>
-        <HeroSection />
-      </Suspense>
+      <HeroSection />
       <SalesScrollSection />
       <HowItWorksSection />
       <FaqSection />

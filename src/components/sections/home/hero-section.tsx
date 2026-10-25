@@ -1,6 +1,6 @@
 "use client";
 
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, Suspense, useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
 import { motion } from "framer-motion";
@@ -10,11 +10,8 @@ import { Input } from "@/components/ui/input";
 
 import { ScanReportFrame } from "./scan-report-frame";
 
-export function HeroSection() {
-  const router = useRouter();
+function HeroScanIntent() {
   const searchParams = useSearchParams();
-  const [urlValue, setUrlValue] = useState("");
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     const intent = searchParams.get("intent");
@@ -22,6 +19,14 @@ export function HeroSection() {
       document.getElementById("hero-scan-url")?.focus();
     }
   }, [searchParams]);
+
+  return null;
+}
+
+export function HeroSection() {
+  const router = useRouter();
+  const [urlValue, setUrlValue] = useState("");
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleSubmit = (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -45,6 +50,9 @@ export function HeroSection() {
           transition={{ duration: 0.55, ease: "easeOut" }}
           className="max-w-xl"
         >
+          <Suspense fallback={null}>
+            <HeroScanIntent />
+          </Suspense>
           <p className="text-xs font-semibold uppercase tracking-[0.28em] text-muted-foreground">
             Anavya AI Labs
           </p>

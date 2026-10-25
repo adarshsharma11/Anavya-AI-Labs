@@ -8,16 +8,28 @@ const PRIVATE_PATHS = [
   "/signup",
   "/forgot-password",
   "/reset-password",
+  "/admin",
+  "/api/",
+];
+
+const AI_CRAWLERS = [
+  "GPTBot",
+  "ClaudeBot",
+  "PerplexityBot",
+  "Google-Extended",
+  "CCBot",
 ];
 
 export default function robots(): MetadataRoute.Robots {
+  const publicRule = {
+    allow: "/",
+    disallow: PRIVATE_PATHS,
+  };
+
   return {
     rules: [
-      {
-        userAgent: "*",
-        allow: "/",
-        disallow: PRIVATE_PATHS,
-      },
+      { userAgent: "*", ...publicRule },
+      { userAgent: AI_CRAWLERS, ...publicRule },
     ],
     sitemap: `${siteConfig.url}/sitemap.xml`,
     host: siteConfig.url,

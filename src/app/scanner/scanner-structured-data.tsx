@@ -16,13 +16,13 @@ export function ScannerStructuredData({
 
   const pageTitle =
     variant === "website"
-      ? "Free AI Website Scanner & SEO Audit Tool"
+      ? "See if ChatGPT can recommend your website"
       : "Competitor Website Scanner & SEO Comparison Tool";
 
   const pageDescription =
     variant === "website"
-      ? "Scan your website for SEO, performance, accessibility, and security issues. Get a free AI-powered website audit with instant fixes and competitor insights."
-      : "Compare your website against a competitor to uncover SEO, performance, accessibility, and conversion gaps with an AI-powered competitor website scanner.";
+      ? "Free AEO and GEO scores in seconds. We show how ChatGPT, Perplexity, Gemini, Claude, and Bing read your pages — and the first fixes that help them cite you."
+      : "Compare your website against a competitor and uncover SEO, performance, accessibility, and conversion opportunities in one AI-powered comparison report.";
 
   const faqSchema = {
     "@context": "https://schema.org",
@@ -39,21 +39,17 @@ export function ScannerStructuredData({
 
   const pageSchema = {
     "@context": "https://schema.org",
-    "@type": variant === "website" ? "SoftwareApplication" : "WebPage",
+    "@type": "SoftwareApplication",
     name: pageTitle,
     url: pageUrl,
     description: pageDescription,
-    applicationCategory:
-      variant === "website" ? "BusinessApplication" : undefined,
-    operatingSystem: variant === "website" ? "Web" : undefined,
-    offers:
-      variant === "website"
-        ? {
-            "@type": "Offer",
-            price: "0",
-            priceCurrency: "USD",
-          }
-        : undefined,
+    applicationCategory: "BusinessApplication",
+    operatingSystem: "Web",
+    offers: {
+      "@type": "Offer",
+      price: "0",
+      priceCurrency: "USD",
+    },
     publisher: {
       "@type": "Organization",
       name: siteConfig.name,

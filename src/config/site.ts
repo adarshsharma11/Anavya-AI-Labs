@@ -6,30 +6,28 @@ export type NavItem = {
   disabled?: boolean;
 };
 
-  const CANONICAL_ORIGIN = "https://www.anavyaailabs.com";
+const CANONICAL_ORIGIN = "https://anavyaailabs.com";
 
-  export function toCanonicalUrl(path: `/${string}`): string {
-    if (!path.startsWith("/") || path.startsWith("//")) {
-      throw new Error("Canonical path must be an internal site path.");
-    }
-  
-    const url = new URL(path, `${CANONICAL_ORIGIN}/`);
-  
-    if (url.origin !== CANONICAL_ORIGIN) {
-      throw new Error("Canonical URL must use the configured site origin.");
-    }
-  
-    // Public SEO pages should not have tracking or arbitrary query variants.
-    url.search = "";
-    url.hash = "";
-  
-    // Normalize trailing slashes except for the homepage.
-    if (url.pathname !== "/") {
-      url.pathname = url.pathname.replace(/\/+$/, "");
-    }
-  
-    return url.toString();
+export function toCanonicalUrl(path: `/${string}`): string {
+  if (!path.startsWith("/") || path.startsWith("//")) {
+    throw new Error("Canonical path must be an internal site path.");
   }
+
+  const url = new URL(path, `${CANONICAL_ORIGIN}/`);
+
+  if (url.origin !== CANONICAL_ORIGIN) {
+    throw new Error("Canonical URL must use the configured site origin.");
+  }
+
+  url.search = "";
+  url.hash = "";
+
+  if (url.pathname !== "/") {
+    url.pathname = url.pathname.replace(/\/+$/, "");
+  }
+
+  return url.toString();
+}
 
 export type SiteConfig = {
   name: string;
@@ -76,6 +74,10 @@ export const siteConfig: SiteConfig = {
       href: "/scanner",
     },
     {
+      title: "Competitors",
+      href: "/competitor-scanner",
+    },
+    {
       title: "Blog",
       href: "/blog",
     },
@@ -102,57 +104,57 @@ export type PageMetadataConfig = {
 
 export const pageMetadata = {
   home: {
-    title: 'Free AI Website Scanner: SEO, Speed & AI Visibility Audit | Anavya AI Labs',
+    title: 'AI Website Scanner for SEO and GEO | Anavya AI Labs',
     description:
       'Scan any URL for SEO, speed, and AI-search issues. Get a ranked fix list in 60 seconds. Free, no signup needed.',
     canonical: '/',
   },
   scanner: {
-    title: 'Free SEO & GEO Scanner | Anavya AI Labs',
+    title: 'Free SEO, GEO and AEO Website Scanner',
     description:
-      'Get free AEO and GEO scores in seconds. See how ChatGPT, Perplexity, Gemini, Claude, and Bing read your site — and what to fix first.',
+      'Scan one public URL for SEO, Core Web Vitals, and AI-search readiness. Get a ranked fix list. Free to start, no install.',
     canonical: '/scanner',
   },
   competitorScanner: {
-    title: 'Competitor Website Scanner & SEO Comparison Tool | Anavya AI Labs',
+    title: 'Competitor SEO and AI Visibility Scan',
     description:
-      'Compare your website against a competitor to uncover SEO, performance, accessibility, and conversion gaps with an AI-powered competitor website scanner.',
+      'Compare two public websites for SEO, speed, accessibility, and AI-search gaps. Get a ranked list of what to fix first.',
     canonical: '/competitor-scanner',
   },
   services: {
-    title: 'Website Audit & AI Optimization Services | Anavya AI Labs',
+    title: 'Website Audit and AI Optimization',
     description:
-      'Explore AI-powered website analysis services: performance, SEO, and accessibility improvements to boost conversions.',
+      'Implementation help after a scan: AI agents, site fixes, and performance work based on the issues in your report.',
     canonical: '/services',
   },
   portfolio: {
-    title: 'Portfolio | Anavya AI Labs',
+    title: 'Selected Website and Product Work',
     description:
-      'See recent projects and examples of high-performing websites and UI/UX work delivered by anavyaailabs.com.',
+      'Selected website and product work from Anavya AI Labs, including interface and performance projects shown on this page.',
     canonical: '/portfolio',
   },
   pricing: {
-    title: 'Pricing | Anavya AI Labs',
+    title: 'Free, Starter, and Pro Scan Plans',
     description:
-      'Free, Starter, and Pro plans for AI and search readiness audits. Prices and scan limits come from the live pricing API.',
+      'Free, Starter, and Pro plans for website scans. Daily limits and prices are shown on this page from the live pricing API.',
     canonical: '/pricing',
   },
   about: {
-    title: 'About | Anavya AI Labs',
+    title: 'About Our AI Website Scanner Studio',
     description:
-      'Learn about anavyaailabs.com and our mission to help teams build faster, more accessible websites.',
+      'Learn how Anavya AI Labs audits websites for search and AI answers, then helps teams ship the fixes from a scan.',
     canonical: '/about',
   },
   contact: {
-    title: 'Contact Us | Anavya AI Labs',
+    title: 'Talk to Us About Your Website Scan',
     description:
-      'Get in touch with Anavya AI Labs for support, feedback, or enterprise inquiries.',
+      'Contact Anavya AI Labs about a website scan, a competitor comparison, or help putting the report fixes into the site.',
     canonical: '/contact',
   },
   blog: {
-    title: 'Blog | Anavya AI Labs',
+    title: 'Guides for GEO, SEO and AI Search',
     description:
-      'Insights on AI-powered UX, performance tuning, accessibility, and building high-converting web experiences.',
+      'Guides on GEO, AI search, Core Web Vitals, and technical SEO from the team behind the Anavya website scanner.',
     canonical: '/blog',
   },
 } satisfies Record<string, PageMetadataConfig>;
@@ -180,7 +182,7 @@ export function createPageMetadata({
           url: '/og-image.png',
           width: 1200,
           height: 630,
-          alt: `${title} | Anavya AI Labs`,
+          alt: title,
         },
       ],
     },

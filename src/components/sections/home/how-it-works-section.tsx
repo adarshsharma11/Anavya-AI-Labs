@@ -39,7 +39,7 @@ export function HowItWorksSection() {
             </li>
           ))}
         </ol>
-        <p className="mt-8 text-sm text-muted-foreground">
+        <p className="mt-8 text-sm leading-6 text-muted-foreground">
           Use the{" "}
           <Link href="/scanner" className="text-foreground underline-offset-4 hover:underline">
             website scanner
@@ -51,7 +51,23 @@ export function HowItWorksSection() {
           >
             competitor scanner
           </Link>{" "}
-          for a side-by-side report.
+          for a side-by-side report. Read the{" "}
+          <Link href="/blog" className="text-foreground underline-offset-4 hover:underline">
+            blog
+          </Link>
+          , see{" "}
+          <Link href="/services" className="text-foreground underline-offset-4 hover:underline">
+            services
+          </Link>
+          , or visit{" "}
+          <Link href="/about" className="text-foreground underline-offset-4 hover:underline">
+            about
+          </Link>{" "}
+          and{" "}
+          <Link href="/contact" className="text-foreground underline-offset-4 hover:underline">
+            contact
+          </Link>
+          .
         </p>
       </div>
     </section>

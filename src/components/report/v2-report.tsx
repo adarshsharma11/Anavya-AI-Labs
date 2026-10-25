@@ -12,6 +12,12 @@ import {
   XCircle,
 } from "lucide-react";
 
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "@/components/ui/accordion";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -230,8 +236,6 @@ export function RecommendationsList({
 }
 
 export function PagesTable({ report }: { report: AuditReport }) {
-  const [openUrl, setOpenUrl] = useState<string | null>(null);
-
   if (report.pages.length === 0) {
     return (
       <Card className="h-32 border-border/60 p-6 text-sm text-muted-foreground">
@@ -244,61 +248,54 @@ export function PagesTable({ report }: { report: AuditReport }) {
 
   return (
     <div className="overflow-hidden rounded-xl border border-border/60">
-      <table className="w-full text-sm">
-        <thead className="bg-muted/40 text-left text-xs uppercase tracking-wide text-muted-foreground">
-          <tr>
-            <th className="px-4 py-3 font-semibold">Path</th>
-            <th className="px-4 py-3 font-semibold">Type</th>
-            <th className="px-4 py-3 font-semibold">Score</th>
-            <th className="px-4 py-3 font-semibold">Words</th>
-          </tr>
-        </thead>
-        <tbody>
-          {report.pages.map((page) => {
-            const issues = page.checks.filter(
-              (check) => check.status === "fail" || check.status === "partial"
-            );
-            const open = openUrl === page.url;
-            return (
-              <tr key={page.url} className="border-t border-border/50 align-top">
-                <td colSpan={4} className="p-0">
-                  <button
-                    type="button"
-                    className="grid w-full grid-cols-4 px-4 py-3 text-left hover:bg-muted/30"
-                    onClick={() => setOpenUrl(open ? null : page.url)}
-                    aria-expanded={open}
-                  >
-                    <span className="truncate font-medium">{pagePath(page.url)}</span>
-                    <span className="capitalize text-muted-foreground">{page.pageType}</span>
-                    <span>{page.overall}</span>
-                    <span>{page.stats.wordCount}</span>
-                  </button>
-                  {open ? (
-                    <ul className="space-y-2 bg-muted/20 px-4 pb-4">
-                      {issues.length === 0 ? (
-                        <li className="text-xs text-muted-foreground">No failing checks on this page.</li>
-                      ) : (
-                        issues.map((check) => (
-                          <li key={check.id} className="rounded-lg border border-border/50 bg-background p-3">
-                            <div className="flex items-center gap-2 text-sm font-medium">
-                              <StatusIcon status={check.status} />
-                              <span>{check.label}</span>
-                              <span className="sr-only">{statusLabel(check.status)}</span>
-                            </div>
-                            {check.fix ? (
-                              <p className="mt-1 text-xs text-foreground">{check.fix}</p>
-                            ) : null}
-                          </li>
-                        ))
-                      )}
-                    </ul>
-                  ) : null}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
+      <div className="flex items-center bg-muted/40 px-4 py-3 text-left text-xs uppercase tracking-wide text-muted-foreground">
+        <div className="grid min-w-0 flex-1 grid-cols-4 gap-2 font-semibold">
+          <span>Path</span>
+          <span>Type</span>
+          <span>Score</span>
+          <span>Words</span>
+        </div>
+        <span className="ml-2 h-4 w-4 shrink-0" aria-hidden />
+      </div>
+      <Accordion type="single" collapsible>
+        {report.pages.map((page) => {
+          const issues = page.checks.filter(
+            (check) => check.status === "fail" || check.status === "partial"
+          );
+          return (
+            <AccordionItem key={page.url} value={page.url} className="border-border/50">
+              <AccordionTrigger className="gap-2 px-4 py-3 text-sm hover:bg-muted/30 hover:no-underline [&>svg]:text-muted-foreground">
+                <span className="grid min-w-0 flex-1 grid-cols-4 gap-2 text-left font-normal">
+                  <span className="truncate font-medium">{pagePath(page.url)}</span>
+                  <span className="capitalize text-muted-foreground">{page.pageType}</span>
+                  <span>{page.overall}</span>
+                  <span>{page.stats.wordCount}</span>
+                </span>
+              </AccordionTrigger>
+              <AccordionContent className="bg-muted/20 px-4">
+                <ul className="space-y-2">
+                  {issues.length === 0 ? (
+                    <li className="text-xs text-muted-foreground">No failing checks on this page.</li>
+                  ) : (
+                    issues.map((check) => (
+                      <li key={check.id} className="rounded-lg border border-border/50 bg-background p-3">
+                        <div className="flex items-center gap-2 text-sm font-medium">
+                          <StatusIcon status={check.status} />
+                          <span>{check.label}</span>
+                          <span className="sr-only">{statusLabel(check.status)}</span>
+                        </div>
+                        {check.fix ? (
+                          <p className="mt-1 text-xs text-foreground">{check.fix}</p>
+                        ) : null}
+                      </li>
+                    ))
+                  )}
+                </ul>
+              </AccordionContent>
+            </AccordionItem>
+          );
+        })}
+      </Accordion>
     </div>
   );
 }

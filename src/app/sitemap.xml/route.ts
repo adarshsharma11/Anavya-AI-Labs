@@ -13,18 +13,16 @@ type SitemapEntry = {
   priority: number;
 };
 
+const STATIC_LASTMOD = new Date("2026-10-26T00:00:00.000Z");
+
 const STATIC_ROUTES: Array<Omit<SitemapEntry, "lastModified">> = [
   { path: "/", changeFrequency: "daily", priority: 1 },
   { path: "/scanner", changeFrequency: "weekly", priority: 0.9 },
   { path: "/competitor-scanner", changeFrequency: "weekly", priority: 0.9 },
   { path: "/blog", changeFrequency: "daily", priority: 0.8 },
   { path: "/services", changeFrequency: "weekly", priority: 0.6 },
-  { path: "/portfolio", changeFrequency: "monthly", priority: 0.5 },
   { path: "/about", changeFrequency: "monthly", priority: 0.5 },
   { path: "/contact", changeFrequency: "monthly", priority: 0.5 },
-  { path: "/terms", changeFrequency: "yearly", priority: 0.3 },
-  { path: "/privacy", changeFrequency: "yearly", priority: 0.3 },
-  { path: "/refund-policy", changeFrequency: "yearly", priority: 0.3 },
 ];
 
 function getApiBaseUrl() {
@@ -89,10 +87,10 @@ function xmlResponse(entries: SitemapEntry[]) {
   });
 }
 
-function staticEntries(now = new Date()): SitemapEntry[] {
+function staticEntries(): SitemapEntry[] {
   return STATIC_ROUTES.map((route) => ({
     ...route,
-    lastModified: now,
+    lastModified: STATIC_LASTMOD,
   }));
 }
 
@@ -113,7 +111,12 @@ async function getBlogEntries(): Promise<SitemapEntry[]> {
     if (!res.ok) return [];
 
     const json = (await res.json()) as {
-      data?: Array<{ slug?: unknown; createdAt?: unknown; date?: unknown }>;
+      data?: Array<{
+        slug?: unknown;
+        createdAt?: unknown;
+        date?: unknown;
+        updatedAt?: unknown;
+      }>;
     };
     const posts = Array.isArray(json.data) ? json.data : [];
 
@@ -124,7 +127,7 @@ async function getBlogEntries(): Promise<SitemapEntry[]> {
       return [
         {
           path: `/blog/${slug}`,
-          lastModified: parseDate(post.createdAt ?? post.date),
+          lastModified: parseDate(post.updatedAt ?? post.date ?? post.createdAt),
           changeFrequency: "weekly" as const,
           priority: 0.7,
         },
@@ -139,10 +142,9 @@ async function getBlogEntries(): Promise<SitemapEntry[]> {
 
 export async function GET() {
   try {
-    const now = new Date();
     const blogEntries = await getBlogEntries();
     const seen = new Set<string>();
-    const entries = [...staticEntries(now), ...blogEntries].filter((entry) => {
+    const entries = [...staticEntries(), ...blogEntries].filter((entry) => {
       if (seen.has(entry.path)) return false;
       seen.add(entry.path);
       return true;

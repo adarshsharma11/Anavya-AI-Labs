@@ -27,8 +27,10 @@ export const metadata: Metadata = {
   applicationName: siteConfig.name,
   icons: {
     icon: [
-      { url: "/logo.svg", type: "image/svg+xml" },
+      { url: "/favicon.ico", sizes: "32x32" },
+      { url: "/icon.svg", type: "image/svg+xml" },
     ],
+    apple: [{ url: "/apple-icon.svg" }],
   },
   alternates: {
     canonical: toCanonicalUrl('/'),
@@ -68,22 +70,23 @@ const jsonLd = {
   "@graph": [
     {
       "@type": "Organization",
-      "@id": "https://anavyaailabs.com/#organization",
-      "name": "Anavya AI Labs",
-      "url": "https://anavyaailabs.com/",
-      "logo": "https://anavyaailabs.com/logo.svg",
-      "description": "Premium AI-powered website analysis and SEO auditing tools."
+      "@id": `${siteConfig.url}/#organization`,
+      name: siteConfig.name,
+      url: `${siteConfig.url}/`,
+      logo: `${siteConfig.url}/logo.svg`,
+      description: siteConfig.description,
+      sameAs: [siteConfig.linkedin, siteConfig.x],
     },
     {
       "@type": "WebSite",
-      "@id": "https://anavyaailabs.com/#website",
-      "url": "https://anavyaailabs.com/",
-      "name": "Anavya AI Labs",
-      "publisher": {
-        "@id": "https://anavyaailabs.com/#organization"
-      }
-    }
-  ]
+      "@id": `${siteConfig.url}/#website`,
+      url: `${siteConfig.url}/`,
+      name: siteConfig.name,
+      publisher: {
+        "@id": `${siteConfig.url}/#organization`,
+      },
+    },
+  ],
 };
 
 export default function RootLayout({

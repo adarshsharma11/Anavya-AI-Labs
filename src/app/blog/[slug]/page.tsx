@@ -84,16 +84,23 @@ export default async function BlogDetailsPage({ params }: PageProps) {
   }
 
   const postUrl = `${siteConfig.url}/blog/${post.slug}`;
+  const publishedAt = post.date || post.createdAt;
+  const imageUrl = post.image
+    ? post.image.startsWith("http")
+      ? post.image
+      : `${siteConfig.url}${post.image.startsWith("/") ? post.image : `/${post.image}`}`
+    : undefined;
   const jsonLd = {
     "@context": "https://schema.org",
     "@type": "BlogPosting",
     headline: post.title,
     description: post.excerpt,
-    image: post.image,
-    datePublished: post.date,
+    ...(imageUrl ? { image: imageUrl } : {}),
+    datePublished: publishedAt,
+    dateModified: post.createdAt || publishedAt,
     author: {
       "@type": "Person",
-      name: post.authorName,
+      name: post.authorName || "Anavya AI Labs",
       jobTitle: post.authorRole,
     },
     publisher: {
