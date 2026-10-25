@@ -15,9 +15,26 @@ const STEPS = [
   },
 ] as const;
 
+const howToJsonLd = {
+  "@context": "https://schema.org",
+  "@type": "HowTo",
+  name: "How does a website scan work?",
+  totalTime: "PT1M",
+  step: STEPS.map((step, index) => ({
+    "@type": "HowToStep",
+    position: index + 1,
+    name: step.title,
+    text: step.body,
+  })),
+};
+
 export function HowItWorksSection() {
   return (
     <section className="w-full border-t border-border">
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(howToJsonLd) }}
+      />
       <div className="mx-auto max-w-[1400px] px-6 py-20 lg:px-12">
         <p className="text-xs font-semibold uppercase tracking-[0.24em] text-muted-foreground">
           How a scan works

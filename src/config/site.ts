@@ -106,7 +106,7 @@ export const pageMetadata = {
   home: {
     title: 'AI Website Scanner for SEO and GEO | Anavya AI Labs',
     description:
-      'Scan any URL for SEO, speed, and AI-search issues. Get a ranked fix list in 60 seconds. Free, no signup needed.',
+      'See why ChatGPT and Google skip your site. Scan one public URL for SEO, speed, and AI visibility, then get a ranked fix list in about 60 seconds.',
     canonical: '/',
   },
   scanner: {
