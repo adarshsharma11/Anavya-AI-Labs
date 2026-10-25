@@ -21,7 +21,7 @@ const serviceSchema = z.object({
   slug: z.string(),
   title: z.string(),
   description: z.string(),
-  icon: z.string(),
+  icon: z.string().nullable().optional(),
   cta: serviceCtaSchema,
   createdAt: z.string(),
 });
@@ -29,7 +29,7 @@ const serviceSchema = z.object({
 const servicesResponseSchema = z.object({
   success: z.boolean(),
   data: z.object({
-    page: servicesPageSchema,
+    page: servicesPageSchema.nullable(),
     services: z.array(serviceSchema),
   }),
 });
@@ -38,7 +38,7 @@ export type ServicesPage = z.infer<typeof servicesPageSchema>;
 export type ServiceItem = z.infer<typeof serviceSchema>;
 
 export type ServicesPayload = {
-  page: ServicesPage;
+  page: ServicesPage | null;
   services: ServiceItem[];
 };
 

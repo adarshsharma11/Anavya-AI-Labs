@@ -197,7 +197,7 @@ export default function ServicesClient({
   });
 
   const resolved = data ?? initialData ?? fallbackData;
-  const page = resolved.page;
+  const page = resolved.page ?? fallbackData.page;
   const services = resolved.services;
 
   const sortedServices = useMemo(
