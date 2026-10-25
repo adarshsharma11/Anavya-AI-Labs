@@ -155,12 +155,7 @@ export function ResultsHeader({
   verdict,
   totalIssues,
   onReset,
-  unlocked,
   onDownload,
-  onUnlock,
-  unlockPriceLabel,
-  unlocking = false,
-  unlockingLabel = "Processing...",
   downloading = false,
 }: {
   url: string;
@@ -168,10 +163,10 @@ export function ResultsHeader({
   verdict: string;
   totalIssues: number;
   onReset: () => void;
-  unlocked: boolean;
+  unlocked?: boolean;
   onDownload: () => void;
-  onUnlock: () => void;
-  unlockPriceLabel: string;
+  onUnlock?: () => void;
+  unlockPriceLabel?: string;
   unlocking?: boolean;
   unlockingLabel?: string;
   downloading?: boolean;
@@ -210,13 +205,6 @@ export function ResultsHeader({
           <Button variant="outline" onClick={onDownload} disabled={downloading}>
             {downloading ? "Preparing your report…" : "Download PDF"}
           </Button>
-          {!unlocked ? (
-            <Button onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
-              {unlocking
-                ? unlockingLabel
-                : `Unlock AI report${unlockPriceLabel ? ` · ${unlockPriceLabel}` : ""}`}
-            </Button>
-          ) : null}
           <Button variant="outline" onClick={onReset}>
             Scan another
           </Button>

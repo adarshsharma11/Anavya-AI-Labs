@@ -130,7 +130,7 @@ export const pageMetadata = {
   pricing: {
     title: 'Pricing',
     description:
-      'Free full AEO/GEO audit and PDF. Unlock a one-time AI report, or subscribe to Pro for auto-unlocks and weekly monitoring.',
+      'Free, Starter, and Pro plans for AI and search readiness audits. Prices and scan limits come from the live pricing API.',
     canonical: '/pricing',
   },
   about: {

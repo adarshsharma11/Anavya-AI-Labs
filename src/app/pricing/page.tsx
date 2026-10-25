@@ -4,7 +4,6 @@ import { Suspense } from "react";
 import { MetaHead } from "@/components/seo/meta-head";
 import { pageMetadata } from "@/config/site";
 import { fetchPricingPlans } from "@/lib/api/pricing";
-import { withFallbackFreePlan } from "@/lib/pricing";
 import type { Plan } from "@/types/pricing";
 
 import { PricingFaq } from "./pricing-faq";
@@ -24,11 +23,9 @@ export default async function PricingPage() {
     loadError = true;
   }
 
-  const visiblePlans = withFallbackFreePlan(plans);
-
   return (
     <section className="container py-16 md:py-24">
-      <PricingJsonLd plans={visiblePlans} />
+      <PricingJsonLd plans={plans} />
       <div className="mx-auto max-w-2xl text-center">
         <h1 className="font-headline text-4xl font-bold tracking-tight sm:text-5xl">
           Free AI &amp; search readiness audits. Upgrade when you need more.
@@ -51,7 +48,7 @@ export default async function PricingPage() {
         ) : null}
 
         <Suspense fallback={null}>
-          <PricingPlans plans={visiblePlans} />
+          <PricingPlans plans={plans} />
         </Suspense>
         <PricingFaq />
       </div>

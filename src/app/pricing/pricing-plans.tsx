@@ -6,14 +6,11 @@ import Script from "next/script";
 
 import { useAuth } from "@/components/providers/auth-provider";
 import { Card } from "@/components/ui/card";
-import { usePaymentQuote } from "@/hooks/use-payment-quote";
-import { usePricingRegion } from "@/hooks/use-pricing-region";
 import { fetchSubscription } from "@/lib/api/subscription";
 import { cn } from "@/lib/utils";
-import { scanLimitLabel } from "@/lib/pricing";
-import type { Plan, SubscriptionState, SubscriptionStatus } from "@/types/pricing";
+import { normalizeSubscription, scanLimitLabel } from "@/lib/pricing";
+import type { Plan } from "@/types/pricing";
 
-import { CurrencyToggle } from "./currency-toggle";
 import { PlanCta } from "./plan-cta";
 import { PlanPrice } from "./plan-price";
 import { ComparePlans } from "./compare-plans";
@@ -22,35 +19,9 @@ type PricingPlansProps = {
   readonly plans: readonly Plan[];
 };
 
-const PRICING_STATUSES: readonly SubscriptionStatus[] = [
-  "none",
-  "created",
-  "active",
-  "cancel_scheduled",
-  "past_due",
-  "cancelled",
-];
-
-function toPricingSubscription(value: {
-  readonly isPro: boolean;
-  readonly dailyScanLimit: number | null;
-  readonly status: string;
-  readonly currentPeriodEnd: string | null;
-}): SubscriptionState {
-  return {
-    isPro: value.isPro,
-    dailyScanLimit: value.dailyScanLimit,
-    status: PRICING_STATUSES.includes(value.status as SubscriptionStatus)
-      ? (value.status as SubscriptionStatus)
-      : "none",
-    currentPeriodEnd: value.currentPeriodEnd,
-  };
-}
-
 export function PricingPlans({ plans }: PricingPlansProps) {
   const { isAuthenticated } = useAuth();
-  const { region, setRegion } = usePricingRegion();
-  const { quote, isLoading: quoteLoading } = usePaymentQuote(region);
+  const region = "INTL" as const;
   const subscriptionQuery = useQuery({
     queryKey: ["payment-subscription"],
     queryFn: fetchSubscription,
@@ -59,15 +30,12 @@ export function PricingPlans({ plans }: PricingPlansProps) {
   });
 
   const subscription = subscriptionQuery.data
-    ? toPricingSubscription(subscriptionQuery.data)
+    ? normalizeSubscription(subscriptionQuery.data)
     : null;
 
   return (
     <div>
       <Script src="https://checkout.razorpay.com/v1/checkout.js" strategy="lazyOnload" />
-      <div className="mb-6 flex justify-end">
-        <CurrencyToggle region={region} onChange={setRegion} />
-      </div>
       <div
         className={cn(
           "grid gap-6",
@@ -79,7 +47,6 @@ export function PricingPlans({ plans }: PricingPlansProps) {
       >
         {plans.map((plan) => {
           const highlighted = plan.isHighlighted === true;
-          const badge = plan.badge ?? (highlighted ? "Most popular" : null);
           return (
             <article key={String(plan.id)} className="h-full">
               <Card
@@ -88,9 +55,9 @@ export function PricingPlans({ plans }: PricingPlansProps) {
                   highlighted && "border-primary ring-2 ring-primary"
                 )}
               >
-                {badge ? (
+                {plan.badge ? (
                   <p className="mb-3 inline-flex w-fit rounded-full bg-primary/10 px-2.5 py-0.5 text-xs font-semibold text-primary">
-                    {badge}
+                    {plan.badge}
                   </p>
                 ) : null}
                 <h2 className="text-xl font-semibold tracking-tight">{plan.name}</h2>
@@ -98,12 +65,7 @@ export function PricingPlans({ plans }: PricingPlansProps) {
                   <p className="mt-1 text-sm text-muted-foreground">{plan.description}</p>
                 ) : null}
                 <div className="mt-5">
-                  <PlanPrice
-                    plan={plan}
-                    region={region}
-                    quote={quote}
-                    quoteLoading={quoteLoading}
-                  />
+                  <PlanPrice plan={plan} region={region} />
                 </div>
                 <p className="mt-3 text-sm font-medium text-muted-foreground">
                   {scanLimitLabel(plan)}
@@ -123,6 +85,7 @@ export function PricingPlans({ plans }: PricingPlansProps) {
                 <div className="mt-6">
                   <PlanCta
                     plan={plan}
+                    region={region}
                     isAuthenticated={isAuthenticated}
                     subscription={subscription}
                     subscriptionReady={!isAuthenticated || !subscriptionQuery.isLoading}

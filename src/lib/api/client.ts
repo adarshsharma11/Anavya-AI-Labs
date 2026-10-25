@@ -4,13 +4,23 @@ export class ApiError extends Error {
   readonly status: number;
   readonly code?: string;
   readonly field?: string;
+  readonly plan?: string;
+  readonly limit?: number;
 
-  constructor(status: number, message: string, code?: string, field?: string) {
+  constructor(
+    status: number,
+    message: string,
+    code?: string,
+    field?: string,
+    details?: { readonly plan?: string; readonly limit?: number }
+  ) {
     super(message);
     this.name = "ApiError";
     this.status = status;
     this.code = code;
     this.field = field;
+    this.plan = details?.plan;
+    this.limit = details?.limit;
   }
 }
 
@@ -87,6 +97,8 @@ function parseEnvelope(rawBody: string): {
   message?: string;
   code?: string;
   field?: string;
+  plan?: string;
+  limit?: number;
   parsed: unknown;
 } {
   if (!rawBody) {
@@ -99,12 +111,16 @@ function parseEnvelope(rawBody: string): {
       error?: string;
       code?: string;
       field?: string;
+      plan?: unknown;
+      limit?: unknown;
     };
     return {
       success: parsed.success,
       message: parsed.message ?? parsed.error,
       code: parsed.code,
       field: parsed.field,
+      plan: typeof parsed.plan === "string" ? parsed.plan : undefined,
+      limit: typeof parsed.limit === "number" ? parsed.limit : undefined,
       parsed,
     };
   } catch {
@@ -124,7 +140,8 @@ function throwIfFailed(
     response.ok ? 400 : response.status,
     envelope.message || rawBody || "Request failed.",
     envelope.code,
-    envelope.field
+    envelope.field,
+    { plan: envelope.plan, limit: envelope.limit }
   );
 }
 
@@ -177,7 +194,8 @@ export async function apiFetch<T>(
       window.location.pathname !== "/login" &&
       window.location.pathname !== "/"
     ) {
-      window.location.href = "/login";
+      const returnTo = `${window.location.pathname}${window.location.search}`;
+      window.location.href = `/login?next=${encodeURIComponent(returnTo)}`;
     }
   }
 

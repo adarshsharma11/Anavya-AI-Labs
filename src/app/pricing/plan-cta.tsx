@@ -3,16 +3,18 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter, useSearchParams } from "next/navigation";
+import { useQueryClient } from "@tanstack/react-query";
 
 import { Button } from "@/components/ui/button";
 import { useToast } from "@/hooks/use-toast";
 import { isApiError } from "@/lib/api/client";
 import { startRazorpaySubscription } from "@/lib/payments/razorpay";
-import { selectPlanCta } from "@/lib/pricing";
-import type { Plan, SubscriptionState } from "@/types/pricing";
+import { selectPlanCta, subscribeLoginHref } from "@/lib/pricing";
+import type { PaymentRegion, Plan, SubscriptionState } from "@/types/pricing";
 
 type PlanCtaProps = {
   readonly plan: Plan;
+  readonly region: PaymentRegion;
   readonly isAuthenticated: boolean;
   readonly subscription: SubscriptionState | null;
   readonly subscriptionReady: boolean;
@@ -20,12 +22,14 @@ type PlanCtaProps = {
 
 export function PlanCta({
   plan,
+  region,
   isAuthenticated,
   subscription,
   subscriptionReady,
 }: PlanCtaProps) {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
   const { toast } = useToast();
   const [busy, setBusy] = useState(false);
   const startedRef = useRef(false);
@@ -33,30 +37,48 @@ export function PlanCta({
   const view = selectPlanCta({ plan, isAuthenticated, subscription });
 
   const startCheckout = async () => {
+    if (plan.type === "free") return;
     setBusy(true);
     try {
-      const result = await startRazorpaySubscription();
-      toast({
-        title: "Pro is active",
-        description: result.currentPeriodEnd
-          ? `Your plan renews on ${new Date(result.currentPeriodEnd).toLocaleDateString("en-US", { dateStyle: "medium" })}.`
-          : "New scans will include the AI report.",
+      const result = await startRazorpaySubscription({
+        plan: plan.slug,
+        region,
       });
+      toast({
+        title: `You're on ${result.plan.name}`,
+        description: result.replaces
+          ? "Your previous plan will be cancelled."
+          : "Your subscription is active.",
+      });
+      await queryClient.invalidateQueries({ queryKey: ["payment-subscription"] });
       router.refresh();
-      router.replace("/dashboard");
+      router.replace("/pricing");
     } catch (error) {
       const cancelled = error instanceof Error && error.message === "Payment cancelled.";
-      if (!cancelled) {
-        toast({
-          variant: "destructive",
-          title: "Subscription failed",
-          description: isApiError(error)
-            ? error.message
-            : error instanceof Error
-              ? error.message
-              : "Unable to subscribe.",
-        });
+      if (cancelled) return;
+      if (isApiError(error) && error.status === 401) {
+        router.push(subscribeLoginHref(plan.slug));
+        return;
       }
+      if (
+        isApiError(error) &&
+        (error.code === "INVALID_PLAN" || error.code === "ALREADY_SUBSCRIBED")
+      ) {
+        toast({
+          title: error.code === "ALREADY_SUBSCRIBED" ? "Already subscribed" : "Unable to subscribe",
+          description: error.message,
+        });
+        return;
+      }
+      toast({
+        variant: "destructive",
+        title: "Subscription failed",
+        description: isApiError(error)
+          ? error.message
+          : error instanceof Error
+            ? error.message
+            : "Unable to subscribe.",
+      });
     } finally {
       setBusy(false);
     }
@@ -65,11 +87,12 @@ export function PlanCta({
   useEffect(() => {
     if (plan.type !== "subscription") return;
     if (searchParams.get("intent") !== "subscribe") return;
+    if (searchParams.get("plan") !== plan.slug) return;
     if (!isAuthenticated || !subscriptionReady || startedRef.current) return;
     if (view.kind !== "subscribe") return;
     startedRef.current = true;
     void startCheckout();
-  }, [isAuthenticated, plan.type, searchParams, subscriptionReady, view.kind]);
+  }, [isAuthenticated, plan.slug, plan.type, searchParams, subscriptionReady, view.kind]);
 
   if (view.kind === "disabled") {
     return (

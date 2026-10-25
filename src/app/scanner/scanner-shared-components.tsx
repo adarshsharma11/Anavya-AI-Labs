@@ -31,15 +31,11 @@ export function SuggestionList({ items }: { items: readonly string[] }) {
 
 export function UnlockReportNotice({
   message,
-  onUnlock,
-  unlockPriceLabel,
-  unlocking = false,
-  unlockingLabel = "Processing...",
   compact = false,
 }: {
   message: string;
-  onUnlock: () => void;
-  unlockPriceLabel: string;
+  onUnlock?: () => void;
+  unlockPriceLabel?: string;
   unlocking?: boolean;
   unlockingLabel?: string;
   compact?: boolean;
@@ -50,12 +46,7 @@ export function UnlockReportNotice({
         compact ? "p-3 text-xs" : "p-4 text-sm"
       }`}
     >
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <span>{message}</span>
-        <Button size="sm" onClick={onUnlock} disabled={unlocking} aria-busy={unlocking}>
-          {unlocking ? unlockingLabel : "Unlock Full Report $2.99"}
-        </Button>
-      </div>
+      <span>{message}</span>
     </div>
   );
 }

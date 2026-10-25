@@ -175,16 +175,35 @@ export type VerifyPaymentResponse = {
   readonly code?: string;
 };
 
-export type SubscriptionPlan = {
-  readonly id: string;
+export type SubscriptionPlanRef = {
+  readonly id: string | number;
+  readonly slug: string;
   readonly name: string;
-  readonly price: number;
+};
+
+export type SubscribePlan = SubscriptionPlanRef & {
+  readonly priceUsd: number;
   readonly cadence: string;
 };
 
+export type PlanPriceQuote = {
+  readonly region: PaymentRegion;
+  readonly currency: PaymentCurrency;
+  readonly base: number;
+  readonly gstAmount: number;
+  readonly gstRatePercent: number;
+  readonly total: number;
+  readonly amountSubunits: number;
+  readonly usdToInrRate?: number;
+};
+
 export type SubscriptionState = {
+  readonly plan: SubscriptionPlanRef | null;
+  readonly isPaid: boolean;
   readonly isPro: boolean;
   readonly dailyScanLimit: number | null;
+  readonly whiteLabel: boolean;
+  readonly monitoring: boolean;
   readonly status: SubscriptionStatus;
   readonly currentPeriodEnd: string | null;
 };
@@ -192,7 +211,9 @@ export type SubscriptionState = {
 export type SubscribeResponse = {
   readonly subscriptionId: string;
   readonly keyId: string;
-  readonly plan: SubscriptionPlan;
+  readonly plan: SubscribePlan;
+  readonly quote: PlanPriceQuote;
+  readonly replaces: string | null;
   readonly prefill: { readonly email?: string; readonly name?: string };
 };
 

@@ -2,6 +2,7 @@
 
 import { useQuery } from "@tanstack/react-query";
 import Link from "next/link";
+import { useState } from "react";
 
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { isApiError } from "@/lib/api/client";
 import { cancelSubscription, fetchSubscription } from "@/lib/api/subscription";
 import { formatPeriodDate } from "@/lib/pricing";
-import { useState } from "react";
 
 export default function BillingPage() {
   const { toast } = useToast();
@@ -21,17 +21,18 @@ export default function BillingPage() {
 
   const subscription = query.data;
   const period = formatPeriodDate(subscription?.currentPeriodEnd ?? null);
+  const planName = subscription?.plan?.name ?? "Free";
+  const cancelling = subscription?.status === "cancel_scheduled";
 
   const handleCancel = async () => {
     setBusy(true);
     try {
       const result = await cancelSubscription();
       await query.refetch();
+      const ends = formatPeriodDate(result.currentPeriodEnd);
       toast({
         title: "Cancellation scheduled",
-        description: result.currentPeriodEnd
-          ? `Pro until ${formatPeriodDate(result.currentPeriodEnd)}`
-          : "Pro remains active until the period ends.",
+        description: ends ? `Cancels on ${ends}` : "Access lasts until the current period ends.",
       });
     } catch (error) {
       toast({
@@ -49,7 +50,7 @@ export default function BillingPage() {
       <div>
         <h1 className="text-3xl font-bold tracking-tight">Billing</h1>
         <p className="mt-1 text-sm text-muted-foreground">
-          Manage your Pro subscription and payment status.
+          Manage your plan and payment status.
         </p>
       </div>
       <Card className="space-y-4 p-6">
@@ -58,16 +59,22 @@ export default function BillingPage() {
         ) : (
           <>
             <p className="text-sm">
-              Status: <span className="font-medium">{subscription?.status ?? "none"}</span>
+              Plan: <span className="font-medium">{planName}</span>
             </p>
-            {period ? (
-              <p className="text-sm text-muted-foreground">
-                {subscription?.status === "cancel_scheduled" ? `Pro until ${period}` : `Current period ends ${period}`}
-              </p>
+            <p className="text-sm text-muted-foreground">
+              Status: {subscription?.status ?? "none"}
+              {subscription?.dailyScanLimit != null
+                ? ` · ${subscription.dailyScanLimit} scans / day`
+                : ""}
+            </p>
+            {cancelling && period ? (
+              <p className="text-sm font-medium">Cancels on {period}</p>
+            ) : period ? (
+              <p className="text-sm text-muted-foreground">Current period ends {period}</p>
             ) : null}
-            {subscription?.status === "active" ? (
+            {subscription?.isPaid && subscription.status === "active" ? (
               <Button variant="outline" onClick={() => void handleCancel()} disabled={busy}>
-                {busy ? "Working…" : "Cancel Pro"}
+                {busy ? "Working…" : `Cancel ${planName}`}
               </Button>
             ) : null}
             <Button asChild variant="ghost">

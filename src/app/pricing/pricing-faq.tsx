@@ -11,17 +11,16 @@ export const PRICING_FAQ = [
   {
     question: "How do daily scan limits work?",
     answer:
-      "Limits are measured on a rolling 24-hour window. When you hit the free daily cap, the API returns a DAILY_LIMIT error with the exact number. Pro raises or removes that cap, depending on the plan the backend assigns.",
+      "Each plan includes a daily scan allowance. When you reach it, the scanner tells you the plan and the limit.",
   },
   {
-    question: "Is GST included?",
-    answer:
-      "Indian customers pay in INR including 18% GST. International customers pay USD.",
+    question: "Which currency are prices in?",
+    answer: "Plan prices are shown in US dollars.",
   },
   {
     question: "Can I cancel anytime?",
     answer:
-      "Yes. Pro stays active until the current period ends.",
+      "Yes. A paid plan stays active until the current period ends, and the billing page shows the cancellation date.",
   },
   {
     question: "What payment methods do you accept?",

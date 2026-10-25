@@ -238,6 +238,8 @@ test("DAILY_LIMIT shows the Pro upsell card", async ({ page }) => {
         success: false,
         code: "DAILY_LIMIT",
         message: "Daily limit reached",
+        plan: "Free",
+        limit: 5,
       },
     });
   });
@@ -245,31 +247,12 @@ test("DAILY_LIMIT shows the Pro upsell card", async ({ page }) => {
   await page.goto("/scanner");
   await page.getByPlaceholder("example.com").fill("example.com");
   await page.getByRole("button", { name: "Scan Now" }).click();
-  await expect(page.getByText("Daily free scan limit reached")).toBeVisible();
-  await expect(page.getByRole("link", { name: "Upgrade to Pro" })).toBeVisible();
+  await expect(page.getByText("You've used all 5 scans on the Free plan today")).toBeVisible();
+  await expect(page.getByRole("link", { name: "View plans" })).toBeVisible();
 });
 
-test("unlock checkout collects email and resumes after verify", async ({ page }) => {
+test("audit results do not offer a one-time report unlock", async ({ page }) => {
   await mockCommon(page);
-  await page.addInitScript(() => {
-    class FakeRazorpay {
-      options: { handler: (payload: Record<string, string>) => void };
-      constructor(options: { handler: (payload: Record<string, string>) => void }) {
-        this.options = options;
-      }
-      open() {
-        this.options.handler({
-          razorpay_payment_id: "pay_1",
-          razorpay_order_id: "order_1",
-          razorpay_signature: "sig_1",
-        });
-      }
-      on() {}
-    }
-    // @ts-expect-error test mock
-    window.Razorpay = FakeRazorpay;
-  });
-
   await page.route("**/api/v1/scan/create", async (route) => {
     await route.fulfill({
       json: {
@@ -281,59 +264,13 @@ test("unlock checkout collects email and resumes after verify", async ({ page })
       },
     });
   });
-
-  let unlocked = false;
   await page.route(`**/api/v1/scan/${PUBLIC_ID}`, async (route) => {
-    await route.fulfill({
-      json: scanPayload(
-        unlocked
-          ? {
-              isUnlocked: true,
-              locked: false,
-              processing: false,
-              status: "completed",
-              fullReport: {
-                executiveSummary: "Fix FAQ schema first.",
-              },
-            }
-          : {}
-      ),
-    });
-  });
-
-  await page.route("**/api/v1/payment/razorpay/create-order", async (route) => {
-    await route.fulfill({
-      json: {
-        success: true,
-        order: { id: "order_1", amount: 299, currency: "USD" },
-        quote: {
-          region: "INTL",
-          currency: "USD",
-          total: 2.99,
-          amountSubunits: 299,
-          gstInclusive: true,
-          gstRatePercent: 18,
-        },
-        publicId: PUBLIC_ID,
-        prefill: { email: "buyer@example.com" },
-        key_id: "rzp_test_1",
-      },
-    });
-  });
-
-  await page.route("**/api/v1/payment/razorpay/verify", async (route) => {
-    unlocked = true;
-    await route.fulfill({
-      json: { success: true, unlocked: true, publicId: PUBLIC_ID },
-    });
+    await route.fulfill({ json: scanPayload() });
   });
 
   await page.goto("/scanner");
   await page.getByPlaceholder("example.com").fill("example.com");
   await page.getByRole("button", { name: "Scan Now" }).click();
-  await page.getByRole("button", { name: /Unlock/ }).first().click();
-  await page.getByLabel("Email").fill("buyer@example.com");
-  await page.getByRole("button", { name: "Continue to payment" }).click();
-  await expect(page.getByText("Fix FAQ schema first.")).toBeVisible();
-  await expect(page.getByText("We'll also email you when")).toBeVisible({ timeout: 8_000 }).catch(() => undefined);
+  await expect(page.getByText("The homepage is crawlable")).toBeVisible();
+  await expect(page.getByRole("button", { name: /Unlock/ })).toHaveCount(0);
 });

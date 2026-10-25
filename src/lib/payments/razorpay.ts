@@ -1,17 +1,14 @@
-import { env } from "@/env";
 import {
-  createUnlockOrder,
   fetchPaymentQuote as fetchQuoteFromApi,
   formatQuoteLabel,
-  verifyUnlockPayment,
 } from "@/lib/api/payment";
 import {
   createSubscription,
   verifySubscription,
 } from "@/lib/api/subscription";
-import { ApiError, isApiError } from "@/lib/api/client";
+import { isApiError } from "@/lib/api/client";
 import { detectClientRegion } from "@/lib/payments/payment-region";
-import type { PaymentQuote, PaymentRegion } from "@/types/api";
+import type { PaymentQuote, PaymentRegion, SubscribeResponse } from "@/types/api";
 
 export type { PaymentQuote };
 
@@ -138,64 +135,20 @@ async function openCheckout(options: RazorpayOptions) {
   });
 }
 
-export async function startRazorpayPayment(input: {
-  readonly scanId: string;
-  readonly email: string;
-}) {
-  const region = detectClientRegion();
-  const created = await createUnlockOrder({
-    scanId: input.scanId,
-    email: input.email,
-    region,
-  });
-
-  const keyId = created.key_id || env.razorpayKeyId;
-  if (!keyId) {
-    throw new Error("Razorpay key is not configured.");
-  }
-
+export async function startRazorpaySubscription(input: {
+  readonly plan: string;
+  readonly region: PaymentRegion;
+}): Promise<SubscribeResponse> {
+  const created = await createSubscription(input);
   const payment = await openCheckout({
-    key: keyId,
-    amount: created.order.amount,
-    currency: created.order.currency,
-    order_id: created.order.id,
-    name: "Anavya AI Labs",
-    description: "Unlock AI-written action plan",
-    prefill: { email: created.prefill.email ?? input.email },
-    handler: () => undefined,
-  });
-
-  try {
-    return await verifyUnlockPayment({
-      razorpay_order_id: payment.razorpay_order_id ?? created.order.id,
-      razorpay_payment_id: payment.razorpay_payment_id,
-      razorpay_signature: payment.razorpay_signature,
-      scanId: created.publicId || input.scanId,
-    });
-  } catch (error) {
-    if (isApiError(error) && error.status >= 500) {
-      throw error;
-    }
-    if (error instanceof ApiError && error.status === 0) {
-      throw error;
-    }
-    // Network / verify failure: caller should keep polling the scan.
-    return {
-      success: true,
-      unlocked: true,
-      publicId: created.publicId || input.scanId,
-    };
-  }
-}
-
-export async function startRazorpaySubscription() {
-  const created = await createSubscription();
-  const payment = await openCheckout({
-    key: created.keyId || env.razorpayKeyId,
+    key: created.keyId,
     subscription_id: created.subscriptionId,
     name: "Anavya AI Labs",
-    description: `${created.plan.name} (${created.plan.cadence})`,
-    prefill: created.prefill,
+    description: `${created.plan.name} monthly`,
+    prefill: {
+      email: created.prefill.email,
+      name: created.prefill.name,
+    },
     handler: () => undefined,
   });
 
@@ -203,11 +156,13 @@ export async function startRazorpaySubscription() {
     throw new Error("Subscription payment is missing an id.");
   }
 
-  return verifySubscription({
+  await verifySubscription({
     razorpay_payment_id: payment.razorpay_payment_id,
     razorpay_subscription_id: payment.razorpay_subscription_id,
     razorpay_signature: payment.razorpay_signature,
   });
+
+  return created;
 }
 
 export { isApiError };

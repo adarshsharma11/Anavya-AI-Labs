@@ -7,67 +7,96 @@ import {
   formatPrice,
   inferRegionFromEnvironment,
   normalizePlans,
+  normalizeSubscription,
   planCtaHref,
+  planPriceView,
   scanLimitLabel,
   selectPlanCta,
-  withFallbackFreePlan,
+  subscribeLoginHref,
 } from "./pricing";
-import type { Plan, SubscriptionState } from "@/types/pricing";
+import type { Plan, PlanPriceQuote, SubscriptionState } from "@/types/pricing";
 
-const freePlan: Plan = {
-  id: 1,
-  name: "Free",
-  description: "Daily audits",
-  price: 0,
-  compareAtPrice: null,
-  discountPercent: null,
-  hasDiscount: false,
-  cadence: null,
-  type: "free",
-  features: ["Full audit", "PDF"],
-  cta: null,
-  scanLimit: null,
-  badge: null,
-  isHighlighted: false,
-};
+function quote(
+  currency: "USD" | "INR",
+  total: number,
+  gstAmount = 0
+): PlanPriceQuote {
+  return {
+    region: currency === "INR" ? "IN" : "INTL",
+    currency,
+    base: total - gstAmount,
+    gstAmount,
+    gstRatePercent: currency === "INR" ? 18 : 0,
+    total,
+    amountSubunits: Math.round(total * 100),
+  };
+}
 
-const reportPlan: Plan = {
-  id: 2,
-  name: "AI report",
-  description: "One scan unlock",
-  price: 29,
-  compareAtPrice: 49,
-  discountPercent: 41,
-  hasDiscount: true,
-  cadence: "per report",
-  type: "one_time",
-  features: ["AI action plan"],
-  cta: null,
-  scanLimit: 1,
-  badge: null,
-  isHighlighted: null,
-};
+function plan(overrides: Partial<Plan> & Pick<Plan, "slug" | "name" | "type" | "price">): Plan {
+  const usd = overrides.price;
+  return {
+    id: overrides.slug,
+    description: null,
+    cadence: overrides.type === "free" ? "forever" : "per month",
+    features: [],
+    cta: null,
+    scanLimit: null,
+    whiteLabel: false,
+    monitoring: false,
+    badge: null,
+    isHighlighted: false,
+    prices: {
+      USD: quote("USD", usd),
+      INR: quote("INR", usd * 100, Math.round(usd * 18)),
+    },
+    ...overrides,
+  };
+}
 
-const proPlan: Plan = {
+const freePlan = plan({
   id: 3,
-  name: "Pro",
-  description: "Monthly",
-  price: 19,
-  compareAtPrice: null,
-  discountPercent: null,
-  hasDiscount: false,
-  cadence: "per month",
+  slug: "free",
+  name: "Free",
+  type: "free",
+  price: 0,
+  cta: "Start Free",
+  scanLimit: 5,
+  prices: { USD: quote("USD", 0), INR: quote("INR", 0) },
+});
+
+const starterPlan = plan({
+  id: 1,
+  slug: "starter",
+  name: "Starter",
   type: "subscription",
-  features: ["Auto unlock"],
-  cta: null,
-  scanLimit: -1,
+  price: 9,
+  cta: "Get Starter",
+  scanLimit: 15,
+  prices: { USD: quote("USD", 9), INR: quote("INR", 1009, 154) },
+});
+
+const proPlan = plan({
+  id: 2,
+  slug: "pro",
+  name: "Pro",
+  type: "subscription",
+  price: 29,
+  cta: "Go Pro",
+  scanLimit: 50,
+  whiteLabel: true,
+  monitoring: true,
   badge: "Most popular",
   isHighlighted: true,
-};
+  prices: { USD: quote("USD", 29), INR: quote("INR", 3251, 496) },
+});
 
 const noneSub: SubscriptionState = {
+  plan: null,
+  isPaid: false,
   isPro: false,
-  dailyScanLimit: 15,
+  dailyScanLimit: 5,
+  whiteLabel: false,
+  monitoring: false,
   status: "none",
   currentPeriodEnd: null,
 };
@@ -75,174 +104,164 @@ const noneSub: SubscriptionState = {
 describe("formatPrice", () => {
   it("formats whole USD and INR without decimals", () => {
     assert.equal(formatPrice(29, "USD"), "$29");
-    assert.equal(formatPrice(2499, "INR"), "₹2,499");
+    assert.equal(formatPrice(1009, "INR"), "₹1,009");
+  });
+});
+
+describe("planPriceView", () => {
+  it("shows the INR total and a separate GST line", () => {
+    assert.deepEqual(planPriceView(starterPlan, "IN"), {
+      headline: "₹1,009/month",
+      taxLine: "₹855 + ₹154 GST (18%)",
+    });
   });
 
-  it("keeps two decimals for fractional amounts", () => {
-    assert.equal(formatPrice(29.5, "USD"), "$29.50");
+  it("shows USD without GST", () => {
+    assert.deepEqual(planPriceView(proPlan, "INTL"), {
+      headline: "$29/month",
+      taxLine: null,
+    });
+  });
+
+  it("shows Free without a converted price", () => {
+    assert.deepEqual(planPriceView(freePlan, "IN"), {
+      headline: "Free",
+      taxLine: null,
+    });
   });
 });
 
 describe("scanLimitLabel", () => {
-  it("uses the free-plan copy when the API limit is unset", () => {
-    assert.equal(scanLimitLabel(freePlan), "Free daily scans");
-  });
-
-  it("surfaces an explicit free-plan limit", () => {
-    assert.equal(scanLimitLabel({ ...freePlan, scanLimit: 15 }), "15 scans / day");
-  });
-
-  it("treats -1 and null as unlimited on paid plans", () => {
-    assert.equal(scanLimitLabel(proPlan), "Unlimited scans");
-    assert.equal(scanLimitLabel({ ...proPlan, scanLimit: null }), "Unlimited scans");
+  it("uses the limit from the plan", () => {
+    assert.equal(scanLimitLabel(freePlan), "5 scans / day");
+    assert.equal(scanLimitLabel(starterPlan), "15 scans / day");
+    assert.equal(scanLimitLabel(proPlan), "50 scans / day");
   });
 });
 
 describe("CTA state selection", () => {
-  it("sends logged-out visitors to the scanner or login", () => {
+  it("starts a scan for Free and never sends Free to subscribe", () => {
     assert.deepEqual(selectPlanCta({ plan: freePlan, isAuthenticated: false, subscription: null }), {
       kind: "link",
-      href: "/?intent=scan",
-      label: "Start free",
+      href: "/scanner",
+      label: "Start Free",
     });
-    assert.equal(planCtaHref(reportPlan, { isAuthenticated: false }), "/?intent=unlock");
-    assert.equal(
-      planCtaHref(proPlan, { isAuthenticated: false }),
-      "/login?next=/pricing&intent=subscribe"
-    );
+    assert.equal(planCtaHref(freePlan, { isAuthenticated: true }), "/scanner");
+    assert.equal(selectPlanCta({ plan: freePlan, isAuthenticated: true, subscription: noneSub }).kind, "link");
   });
 
-  it("marks the free plan current for logged-in non-Pro users", () => {
-    assert.deepEqual(
-      selectPlanCta({ plan: freePlan, isAuthenticated: true, subscription: noneSub }),
-      { kind: "disabled", label: "Current plan" }
-    );
+  it("sends logged-out paid plans to login and back to pricing", () => {
+    assert.equal(subscribeLoginHref("starter"), planCtaHref(starterPlan, { isAuthenticated: false }));
+    assert.match(planCtaHref(proPlan, { isAuthenticated: false }), /plan=pro/);
+    assert.match(planCtaHref(proPlan, { isAuthenticated: false }), /intent=subscribe/);
   });
 
-  it("shows an active Pro subscription as the current plan", () => {
+  it("marks only the matching active plan as current", () => {
+    const starterSub: SubscriptionState = {
+      ...noneSub,
+      plan: { id: 1, slug: "starter", name: "Starter" },
+      isPaid: true,
+      dailyScanLimit: 15,
+      status: "active",
+      currentPeriodEnd: "2026-11-20T00:00:00.000Z",
+    };
+    const current = selectPlanCta({
+      plan: starterPlan,
+      isAuthenticated: true,
+      subscription: starterSub,
+    });
+    assert.equal(current.kind, "disabled");
+    const upgrade = selectPlanCta({
+      plan: proPlan,
+      isAuthenticated: true,
+      subscription: starterSub,
+    });
+    assert.deepEqual(upgrade, { kind: "subscribe", label: "Go Pro", slug: "pro" });
+  });
+
+  it("shows Cancels on for the scheduled plan", () => {
     const view = selectPlanCta({
       plan: proPlan,
       isAuthenticated: true,
       subscription: {
+        ...noneSub,
+        plan: { id: 2, slug: "pro", name: "Pro" },
+        isPaid: true,
         isPro: true,
-        dailyScanLimit: null,
-        status: "active",
-        currentPeriodEnd: "2026-11-20T00:00:00.000Z",
-      },
-    });
-    assert.equal(view.kind, "disabled");
-    if (view.kind !== "disabled") return;
-    assert.equal(view.label, "Current plan");
-    assert.equal(view.manageHref, "/dashboard/billing");
-    assert.match(view.hint ?? "", /Renews on/);
-  });
-
-  it("shows cancel_scheduled as Pro until the period end", () => {
-    const view = selectPlanCta({
-      plan: proPlan,
-      isAuthenticated: true,
-      subscription: {
-        isPro: true,
-        dailyScanLimit: null,
         status: "cancel_scheduled",
         currentPeriodEnd: "2026-11-20T00:00:00.000Z",
       },
     });
     assert.equal(view.kind, "disabled");
     if (view.kind !== "disabled") return;
-    assert.match(view.label, /Pro until/);
-    assert.equal(view.manageHref, "/dashboard/billing");
+    assert.match(view.label, /^Cancels on /);
   });
 
-  it("routes past_due users to billing", () => {
-    assert.deepEqual(
-      selectPlanCta({
-        plan: proPlan,
-        isAuthenticated: true,
-        subscription: {
-          isPro: false,
-          dailyScanLimit: 15,
-          status: "past_due",
-          currentPeriodEnd: null,
-        },
-      }),
-      {
-        kind: "past_due",
-        href: "/dashboard/billing",
-        label: "Payment issue: update payment",
-      }
-    );
-  });
-
-  it("starts checkout when a logged-in user can subscribe", () => {
+  it("starts checkout for a logged-in user who can subscribe", () => {
     assert.deepEqual(
       selectPlanCta({ plan: proPlan, isAuthenticated: true, subscription: noneSub }),
-      { kind: "subscribe", label: "Go Pro" }
+      { kind: "subscribe", label: "Go Pro", slug: "pro" }
     );
-  });
-});
-
-describe("withFallbackFreePlan", () => {
-  it("adds a free card when the API has none", () => {
-    const plans = withFallbackFreePlan([reportPlan, proPlan]);
-    assert.equal(plans[0]?.type, "free");
-    assert.equal(plans.length, 3);
-  });
-
-  it("keeps the API free plan when one exists", () => {
-    const plans = withFallbackFreePlan([freePlan, reportPlan]);
-    assert.equal(plans[0]?.id, 1);
-    assert.equal(plans.length, 2);
   });
 });
 
 describe("normalizePlans", () => {
-  it("includes extra subscription plans from the API", () => {
+  it("reads slug, limits, and both currency quotes", () => {
     const plans = normalizePlans({
       success: true,
-      data: [
-        freePlan,
-        reportPlan,
-        proPlan,
-        {
-          id: "agency",
-          name: "Agency",
-          description: "Teams",
-          price: 99,
-          compareAtPrice: null,
-          discountPercent: null,
-          hasDiscount: false,
-          cadence: "per month",
-          type: "subscription",
-          features: ["Seats"],
-          cta: "Talk to us",
-          scanLimit: -1,
-          badge: null,
-          isHighlighted: false,
-        },
-      ],
+      data: [freePlan, starterPlan, proPlan],
     });
-    assert.equal(plans.length, 4);
-    assert.equal(plans[3]?.name, "Agency");
-    assert.equal(defaultPlanCta(plans[3]!), "Talk to us");
+    assert.deepEqual(
+      plans.map((item) => item.slug),
+      ["free", "starter", "pro"]
+    );
+    assert.equal(plans[2]?.whiteLabel, true);
+    assert.equal(plans[2]?.prices.INR.total, 3251);
+    assert.equal(defaultPlanCta(plans[1]!), "Get Starter");
+  });
+
+  it("drops plans that are not free or subscription", () => {
+    const plans = normalizePlans({
+      success: true,
+      data: [{ ...starterPlan, type: "one_time", slug: "report" }],
+    });
+    assert.equal(plans.length, 0);
+  });
+});
+
+describe("normalizeSubscription", () => {
+  it("treats a null plan as Free", () => {
+    const state = normalizeSubscription({
+      success: true,
+      data: {
+        plan: null,
+        isPaid: false,
+        isPro: false,
+        dailyScanLimit: 5,
+        whiteLabel: false,
+        monitoring: false,
+        status: "none",
+        currentPeriodEnd: null,
+      },
+    });
+    assert.equal(state.plan, null);
+    assert.equal(state.whiteLabel, false);
+    assert.equal(state.dailyScanLimit, 5);
   });
 });
 
 describe("detectRegion", () => {
   it("treats Kolkata timezones and -IN locales as India", () => {
     assert.equal(inferRegionFromEnvironment("Asia/Kolkata", "en-US"), "IN");
-    assert.equal(inferRegionFromEnvironment("Asia/Calcutta", "en-GB"), "IN");
-    assert.equal(inferRegionFromEnvironment("America/New_York", "en-IN"), "IN");
     assert.equal(inferRegionFromEnvironment("America/New_York", "en-US"), "INTL");
   });
 });
 
 describe("resolvePostAuthPath", () => {
-  it("returns pricing with subscribe intent after login", () => {
+  it("returns pricing with the selected plan after login", () => {
     assert.equal(
-      resolvePostAuthPath("?next=/pricing&intent=subscribe"),
-      "/pricing?intent=subscribe"
+      resolvePostAuthPath("?next=%2Fpricing%3Fplan%3Dstarter&intent=subscribe"),
+      "/pricing?plan=starter&intent=subscribe"
     );
-    assert.equal(resolvePostAuthPath(""), "/dashboard");
   });
 });

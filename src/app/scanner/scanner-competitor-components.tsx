@@ -20,10 +20,8 @@ import {
 } from "@/lib/api/scan";
 import { shouldStopScanPolling } from "@/lib/scan/polling";
 import { isApiError } from "@/lib/api/client";
-import { useAuth } from "@/components/providers/auth-provider";
-import { usePaymentQuote } from "@/hooks/use-payment-quote";
 import { usePdfDownload } from "@/hooks/use-pdf-download";
-import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
+import { UpgradeProCard } from "@/components/report/upgrade-pro-card";
 import { competitorSteps } from "./scanner-constants";
 import {
   clearReportUnlock,
@@ -58,15 +56,9 @@ export function CompetitorScanner({
   const [showEmailCapture, setShowEmailCapture] = useState(false);
   const [capturedEmail, setCapturedEmail] = useState("");
   const [pendingUnlockScanId, setPendingUnlockScanId] = useState<string | null>(null);
-  const { user } = useAuth();
-  const [emailPromptShownBeforeUnlock, setEmailPromptShownBeforeUnlock] = useState(false);
-  const { isPaying, isFinalizingReport, startPayment } = useRazorpayPayment();
-  const { priceLabel: unlockPriceLabel } = usePaymentQuote();
+  const [dailyLimit, setDailyLimit] = useState<{ plan: string; limit: number } | null>(null);
   const pdf = usePdfDownload();
   const { toast } = useToast();
-  const unlockingLabel = isFinalizingReport
-    ? "Finalizing unlocked report..."
-    : "Processing payment...";
 
   const primaryValidation = useMemo(() => getValidScanUrl(primaryUrl), [primaryUrl]);
   const competitorValidation = useMemo(
@@ -122,6 +114,14 @@ export function CompetitorScanner({
       setScanId(data.publicId);
     },
     onError: (err: Error) => {
+      if (isApiError(err) && err.status === 429 && err.code === "DAILY_LIMIT") {
+        setDailyLimit({
+          plan: err.plan ?? "Free",
+          limit: typeof err.limit === "number" ? err.limit : 0,
+        });
+        setErrorMessage(null);
+        return;
+      }
       setErrorMessage(err.message ?? "Unable to start competitor scan.");
     },
   });
@@ -203,53 +203,19 @@ export function CompetitorScanner({
     }
 
     setErrorMessage(null);
+    setDailyLimit(null);
     setScanId(null);
     setIsUnlocked(false);
     clearReportUnlock();
     createScan.mutate({ url: normalizedPrimary, competitorUrl: normalizedCompetitor });
   };
 
-  const runUnlockPayment = (currentScanId: string, email: string) => {
-    startPayment({
-      scanId: currentScanId,
-      email,
-      onSuccess: () => {
-        void scanPoll.refetch();
-        setIsUnlocked(true);
-        setEmailPromptShownBeforeUnlock(false);
-        setErrorMessage(null);
-      },
-      onError: (error) => {
-        setEmailPromptShownBeforeUnlock(false);
-        setErrorMessage(isApiError(error) ? error.message : "Payment failed.");
-      },
-    });
-  };
-
   const handleUnlock = () => {
-    const currentScanId = reportData?.publicId ?? scanId;
-    if (!currentScanId) {
-      setErrorMessage("Run a scan before unlocking the full report.");
-      return;
-    }
-
     setErrorMessage(null);
-    const email = capturedEmail || user?.email || "";
-    if (!email) {
-      setEmailPromptShownBeforeUnlock(true);
-      setPendingUnlockScanId(currentScanId);
-      setShowEmailCapture(true);
-      return;
-    }
-
-    runUnlockPayment(currentScanId, email);
   };
 
   const continuePendingUnlock = () => {
-    if (!pendingUnlockScanId) return;
-    const nextScanId = pendingUnlockScanId;
     setPendingUnlockScanId(null);
-    runUnlockPayment(nextScanId, capturedEmail || user?.email || "");
   };
 
   const handleDownload = () => {
@@ -347,6 +313,11 @@ export function CompetitorScanner({
             <p className="text-destructive">{errorMessage}</p>
           ) : null}
         </div>
+        {dailyLimit ? (
+          <div className="mt-4">
+            <UpgradeProCard plan={dailyLimit.plan} limit={dailyLimit.limit} description="" />
+          </div>
+        ) : null}
         <div className="mt-4 flex flex-wrap items-center gap-3 text-xs text-muted-foreground">
           <span className="inline-flex items-center gap-2 rounded-full border border-emerald-400/30 px-3 py-1 text-emerald-600">
             <ShieldCheck className="h-3.5 w-3.5" />
@@ -375,9 +346,9 @@ export function CompetitorScanner({
           stillUpdating={stillUpdating}
           locked={locked}
           onUnlock={handleUnlock}
-          unlockPriceLabel={unlockPriceLabel}
-          unlocking={isPaying}
-          unlockingLabel={unlockingLabel}
+          unlockPriceLabel=""
+          unlocking={false}
+          unlockingLabel=""
           onDownload={handleDownload}
           isDownloading={pdf.isDownloading || pdf.isPreparing}
         />
@@ -398,9 +369,9 @@ export function CompetitorScanner({
           competitorLabel={competitorLabel}
           locked={locked}
           onUnlock={handleUnlock}
-          unlockPriceLabel={unlockPriceLabel}
-          unlocking={isPaying}
-          unlockingLabel={unlockingLabel}
+          unlockPriceLabel=""
+          unlocking={false}
+          unlockingLabel=""
           onDownload={handleDownload}
           isDownloading={pdf.isDownloading || pdf.isPreparing}
           hasFullReportContent={hasFullReportContent}

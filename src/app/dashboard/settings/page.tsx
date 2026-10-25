@@ -1,12 +1,14 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import { useForm } from "react-hook-form";
 import { motion } from "framer-motion";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useToast } from "@/hooks/use-toast";
 import { updateProfileApi } from "@/lib/api/dashboard";
+import { fetchSubscription } from "@/lib/api/subscription";
 import { useAuth } from "@/components/providers/auth-provider";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -27,6 +29,11 @@ export default function SettingsPage() {
   const { user, fetchProfile } = useAuth();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(false);
+  const subscriptionQuery = useQuery({
+    queryKey: ["payment-subscription"],
+    queryFn: fetchSubscription,
+  });
+  const whiteLabel = subscriptionQuery.data?.whiteLabel === true;
 
   const form = useForm<ProfileFormValues>({
     resolver: zodResolver(profileSchema),
@@ -80,9 +87,11 @@ export default function SettingsPage() {
 
       <Card className="border-border/60 bg-background/80 shadow-lg backdrop-blur overflow-hidden">
         <CardHeader className="bg-muted/30 border-b border-border/60 pb-6">
-          <CardTitle className="text-lg">PDF branding (Pro)</CardTitle>
+          <CardTitle className="text-lg">Profile</CardTitle>
           <CardDescription>
-            Company name and logo are used on Pro PDFs. Free and one-time unlock PDFs use Anavya branding.
+            {whiteLabel
+              ? "Company name and logo appear on your PDF reports."
+              : "White-label PDF branding is included with Pro."}
           </CardDescription>
         </CardHeader>
         <CardContent className="pt-6">
@@ -110,28 +119,32 @@ export default function SettingsPage() {
               </div>
             </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="companyName" className="text-sm font-medium">Company / Agency Name</Label>
-              <Input 
-                id="companyName" 
-                placeholder="Anavya AI Labs" 
-                className="bg-background/50 border-border/60 focus-visible:ring-primary/20" 
-                {...form.register("companyName")} 
-              />
-              {form.formState.errors.companyName && <p className="text-xs text-destructive">{form.formState.errors.companyName.message}</p>}
-            </div>
+            {whiteLabel ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="companyName" className="text-sm font-medium">Company / Agency Name</Label>
+                  <Input
+                    id="companyName"
+                    placeholder="Anavya AI Labs"
+                    className="bg-background/50 border-border/60 focus-visible:ring-primary/20"
+                    {...form.register("companyName")}
+                  />
+                  {form.formState.errors.companyName && <p className="text-xs text-destructive">{form.formState.errors.companyName.message}</p>}
+                </div>
 
-            <div className="space-y-2">
-              <Label htmlFor="companyLogoUrl" className="text-sm font-medium">Company Logo URL</Label>
-              <Input 
-                id="companyLogoUrl" 
-                placeholder="https://example.com/logo.png" 
-                className="bg-background/50 border-border/60 focus-visible:ring-primary/20" 
-                {...form.register("companyLogoUrl")} 
-              />
-              <p className="text-xs text-muted-foreground">Must be a public image link. This will be embedded in your PDF reports.</p>
-              {form.formState.errors.companyLogoUrl && <p className="text-xs text-destructive">{form.formState.errors.companyLogoUrl.message}</p>}
-            </div>
+                <div className="space-y-2">
+                  <Label htmlFor="companyLogoUrl" className="text-sm font-medium">Company Logo URL</Label>
+                  <Input
+                    id="companyLogoUrl"
+                    placeholder="https://example.com/logo.png"
+                    className="bg-background/50 border-border/60 focus-visible:ring-primary/20"
+                    {...form.register("companyLogoUrl")}
+                  />
+                  <p className="text-xs text-muted-foreground">Must be a public image link. This will be embedded in your PDF reports.</p>
+                  {form.formState.errors.companyLogoUrl && <p className="text-xs text-destructive">{form.formState.errors.companyLogoUrl.message}</p>}
+                </div>
+              </>
+            ) : null}
 
             <div className="pt-4 flex justify-end">
               <Button type="submit" disabled={isLoading} className="shadow-lg shadow-primary/20 min-w-[140px]">

@@ -1,73 +1,81 @@
 import { expect, test } from "@playwright/test";
 
+const prices = (usd: number, inr: number, gst: number) => ({
+  USD: {
+    region: "INTL",
+    currency: "USD",
+    base: usd,
+    gstAmount: 0,
+    gstRatePercent: 0,
+    total: usd,
+    amountSubunits: usd * 100,
+  },
+  INR: {
+    region: "IN",
+    currency: "INR",
+    base: inr - gst,
+    gstAmount: gst,
+    gstRatePercent: 18,
+    total: inr,
+    amountSubunits: inr * 100,
+  },
+});
+
 const plans = [
   {
-    id: 1,
+    id: 3,
+    slug: "free",
     name: "Free",
-    description: "Daily audits",
+    description: "Full audits",
     price: 0,
-    compareAtPrice: null,
-    discountPercent: null,
-    hasDiscount: false,
-    cadence: null,
+    cadence: "forever",
     type: "free",
-    features: ["Full audit", "PDF"],
-    cta: "Start free",
-    scanLimit: null,
+    features: ["5 scans per day"],
+    cta: "Start Free",
+    scanLimit: 5,
+    whiteLabel: false,
+    monitoring: false,
     badge: null,
     isHighlighted: false,
+    prices: prices(0, 0, 0),
+  },
+  {
+    id: 1,
+    slug: "starter",
+    name: "Starter",
+    description: "More daily audits",
+    price: 9,
+    cadence: "per month",
+    type: "subscription",
+    features: ["15 scans per day"],
+    cta: "Get Starter",
+    scanLimit: 15,
+    whiteLabel: false,
+    monitoring: false,
+    badge: null,
+    isHighlighted: false,
+    prices: prices(9, 1009, 154),
   },
   {
     id: 2,
-    name: "AI report",
-    description: "One scan unlock",
-    price: 29,
-    compareAtPrice: 49,
-    discountPercent: 41,
-    hasDiscount: true,
-    cadence: "per report",
-    type: "one_time",
-    features: ["AI action plan"],
-    cta: null,
-    scanLimit: 1,
-    badge: null,
-    isHighlighted: false,
-  },
-  {
-    id: 3,
+    slug: "pro",
     name: "Pro",
-    description: "Monthly",
-    price: 19,
-    compareAtPrice: null,
-    discountPercent: null,
-    hasDiscount: false,
+    description: "Agencies",
+    price: 29,
     cadence: "per month",
     type: "subscription",
-    features: ["Auto unlock", "Monitoring"],
+    features: ["50 scans per day", "White-label PDF reports"],
     cta: "Go Pro",
-    scanLimit: -1,
+    scanLimit: 50,
+    whiteLabel: true,
+    monitoring: true,
     badge: "Most popular",
     isHighlighted: true,
-  },
-  {
-    id: "agency",
-    name: "Agency",
-    description: "For teams",
-    price: 99,
-    compareAtPrice: null,
-    discountPercent: null,
-    hasDiscount: false,
-    cadence: "per month",
-    type: "subscription",
-    features: ["Seats"],
-    cta: "Talk to us",
-    scanLimit: -1,
-    badge: null,
-    isHighlighted: false,
+    prices: prices(29, 3251, 496),
   },
 ];
 
-test("subscribes with a mocked Razorpay checkout", async ({ page }) => {
+test("subscribes to the plan slug with Razorpay subscription checkout", async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem("accessToken", "test-access");
     localStorage.setItem("refreshToken", "test-refresh");
@@ -86,50 +94,42 @@ test("subscribes with a mocked Razorpay checkout", async ({ page }) => {
     await route.fulfill({ json: { success: true, data: plans } });
   });
 
-  await page.route("**/api/v1/payment/razorpay/quote**", async (route) => {
-    await route.fulfill({
-      json: {
-        success: true,
-        data: {
-          region: "INTL",
-          currency: "USD",
-          total: 29,
-          amountSubunits: 2900,
-          gstInclusive: true,
-          gstRatePercent: 18,
-        },
-      },
-    });
-  });
-
   await page.route("**/api/v1/payment/subscription", async (route) => {
     await route.fulfill({
       json: {
         success: true,
-        data: { isPro: false, dailyScanLimit: 15, status: "none", currentPeriodEnd: null },
+        data: {
+          plan: null,
+          isPaid: false,
+          isPro: false,
+          dailyScanLimit: 5,
+          whiteLabel: false,
+          monitoring: false,
+          status: "none",
+          currentPeriodEnd: null,
+        },
       },
     });
   });
 
+  let subscribeBody: { plan?: string; region?: string } | null = null;
   let verified = false;
   await page.route("**/api/v1/payment/razorpay/subscribe", async (route) => {
     if (route.request().url().includes("/verify")) {
       verified = true;
-      await route.fulfill({
-        json: {
-          success: true,
-          data: { status: "active", currentPeriodEnd: "2026-11-20T00:00:00.000Z" },
-        },
-      });
+      await route.fulfill({ json: { success: true, data: { status: "active", currentPeriodEnd: null } } });
       return;
     }
+    subscribeBody = route.request().postDataJSON() as { plan?: string; region?: string };
     await route.fulfill({
       json: {
         success: true,
         data: {
           subscriptionId: "sub_test",
           keyId: "rzp_test_key",
-          plan: { id: "pro", name: "Pro", price: 19, cadence: "per month" },
+          plan: { id: 1, slug: "starter", name: "Starter", priceUsd: 9, cadence: "per month" },
+          quote: prices(9, 1009, 154).USD,
+          replaces: null,
           prefill: { email: "ada@example.com", name: "Ada Lovelace" },
         },
       },
@@ -138,8 +138,8 @@ test("subscribes with a mocked Razorpay checkout", async ({ page }) => {
 
   await page.addInitScript(() => {
     class MockRazorpay {
-      options: { handler?: (payload: Record<string, string>) => void };
-      constructor(options: { handler?: (payload: Record<string, string>) => void }) {
+      options: { handler?: (payload: Record<string, string>) => void; subscription_id?: string };
+      constructor(options: { handler?: (payload: Record<string, string>) => void; subscription_id?: string }) {
         this.options = options;
       }
       open() {
@@ -155,8 +155,10 @@ test("subscribes with a mocked Razorpay checkout", async ({ page }) => {
   });
 
   await page.goto("/pricing", { waitUntil: "domcontentloaded" });
-  await expect(page.getByRole("heading", { name: "Agency" })).toBeVisible();
-  await page.getByRole("button", { name: "Go Pro" }).click();
-  await expect(page).toHaveURL(/\/dashboard/, { timeout: 15000 });
+  await expect(page.getByRole("heading", { name: "Starter" })).toBeVisible();
+  await expect(page.getByText("$9/month").first()).toBeVisible();
+  await page.getByRole("button", { name: "Get Starter" }).click();
+  await expect(page.getByText("You're on Starter")).toBeVisible();
+  expect(subscribeBody).toEqual({ plan: "starter", region: "INTL" });
   expect(verified).toBeTruthy();
 });

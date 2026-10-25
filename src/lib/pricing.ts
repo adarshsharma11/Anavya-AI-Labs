@@ -3,11 +3,24 @@ import type {
   PaymentRegion,
   Plan,
   PlanCtaView,
+  PlanPriceQuote,
+  PlanPrices,
   PricingUser,
   SubscriptionState,
+  SubscriptionStatus,
 } from "@/types/pricing";
 
 export const PRICING_REGION_STORAGE_KEY = "anavya-payment-region";
+
+const STATUSES = new Set<SubscriptionStatus>([
+  "none",
+  "created",
+  "active",
+  "cancel_scheduled",
+  "past_due",
+  "cancelled",
+  "expired",
+]);
 
 export function inferRegionFromEnvironment(
   timeZone?: string,
@@ -57,24 +70,51 @@ export function formatPrice(amount: number, currency: PaymentCurrency): string {
   }).format(amount);
 }
 
+export function planQuote(plan: Plan, region: PaymentRegion): PlanPriceQuote {
+  return region === "IN" ? plan.prices.INR : plan.prices.USD;
+}
+
+export function planPriceView(
+  plan: Plan,
+  region: PaymentRegion
+): { readonly headline: string; readonly taxLine: string | null } {
+  if (plan.type === "free") {
+    return { headline: "Free", taxLine: null };
+  }
+
+  const quote = planQuote(plan, region);
+  if (region === "IN") {
+    return {
+      headline: `${formatPrice(quote.total, "INR")}/month`,
+      taxLine: `${formatPrice(quote.base, "INR")} + ${formatPrice(quote.gstAmount, "INR")} GST (${quote.gstRatePercent}%)`,
+    };
+  }
+
+  return {
+    headline: `${formatPrice(quote.total, "USD")}/month`,
+    taxLine: null,
+  };
+}
+
 export function scanLimitLabel(plan: Plan): string {
-  const unset = plan.scanLimit === null || plan.scanLimit === -1;
-  if (plan.type === "free" && unset) return "Free daily scans";
-  if (unset) return "Unlimited scans";
+  if (plan.scanLimit === null || plan.scanLimit < 0) return "Unlimited scans";
   return `${plan.scanLimit} scans / day`;
 }
 
 export function defaultPlanCta(plan: Plan): string {
   if (plan.cta) return plan.cta;
   if (plan.type === "free") return "Start free";
-  if (plan.type === "one_time") return "Run a free scan, then unlock the full report";
-  return "Go Pro";
+  return plan.name;
+}
+
+export function subscribeLoginHref(slug: string): string {
+  const next = `/pricing?plan=${encodeURIComponent(slug)}`;
+  return `/login?next=${encodeURIComponent(next)}&intent=subscribe&plan=${encodeURIComponent(slug)}`;
 }
 
 export function planCtaHref(plan: Plan, user: PricingUser | null): string {
-  if (plan.type === "free") return "/?intent=scan";
-  if (plan.type === "one_time") return "/?intent=unlock";
-  if (!user?.isAuthenticated) return "/login?next=/pricing&intent=subscribe";
+  if (plan.type === "free") return "/scanner";
+  if (!user?.isAuthenticated) return subscribeLoginHref(plan.slug);
   return "/pricing";
 }
 
@@ -83,6 +123,11 @@ export function formatPeriodDate(value: string | null): string {
   const date = new Date(value);
   if (Number.isNaN(date.getTime())) return "";
   return new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(date);
+}
+
+function isThisPlan(plan: Plan, subscription: SubscriptionState | null) {
+  if (!subscription?.plan) return false;
+  return subscription.plan.slug === plan.slug;
 }
 
 export function selectPlanCta(input: {
@@ -95,13 +140,6 @@ export function selectPlanCta(input: {
   const user = { isAuthenticated };
 
   if (plan.type === "free") {
-    if (isAuthenticated && subscription !== null && subscription.isPro === false) {
-      return { kind: "disabled", label: "Current plan" };
-    }
-    return { kind: "link", href: planCtaHref(plan, user), label };
-  }
-
-  if (plan.type === "one_time") {
     return { kind: "link", href: planCtaHref(plan, user), label };
   }
 
@@ -110,8 +148,9 @@ export function selectPlanCta(input: {
   }
 
   const period = formatPeriodDate(subscription?.currentPeriodEnd ?? null);
+  const current = isThisPlan(plan, subscription);
 
-  if (subscription?.status === "active") {
+  if (current && subscription?.status === "active") {
     return {
       kind: "disabled",
       label: "Current plan",
@@ -120,15 +159,15 @@ export function selectPlanCta(input: {
     };
   }
 
-  if (subscription?.status === "cancel_scheduled") {
+  if (current && subscription?.status === "cancel_scheduled") {
     return {
       kind: "disabled",
-      label: period ? `Pro until ${period}` : "Pro until the period ends",
+      label: period ? `Cancels on ${period}` : "Cancellation scheduled",
       manageHref: "/dashboard/billing",
     };
   }
 
-  if (subscription?.status === "past_due") {
+  if (current && subscription?.status === "past_due") {
     return {
       kind: "past_due",
       href: "/dashboard/billing",
@@ -136,14 +175,14 @@ export function selectPlanCta(input: {
     };
   }
 
-  return { kind: "subscribe", label };
+  return { kind: "subscribe", label, slug: plan.slug };
 }
 
 export function comparisonFeatureRows(plans: readonly Plan[]): readonly string[] {
   const seen = new Set<string>();
   const rows: string[] = [];
   for (const plan of plans) {
-    for (const feature of plan.features ?? []) {
+    for (const feature of plan.features) {
       if (seen.has(feature)) continue;
       seen.add(feature);
       rows.push(feature);
@@ -153,7 +192,11 @@ export function comparisonFeatureRows(plans: readonly Plan[]): readonly string[]
 }
 
 export function planHasFeature(plan: Plan, feature: string): boolean {
-  return (plan.features ?? []).includes(feature);
+  return plan.features.includes(feature);
+}
+
+function asRecord(value: unknown): Record<string, unknown> | null {
+  return value && typeof value === "object" ? (value as Record<string, unknown>) : null;
 }
 
 function asNullableString(value: unknown): string | null {
@@ -164,74 +207,130 @@ function asNullableNumber(value: unknown): number | null {
   return typeof value === "number" && Number.isFinite(value) ? value : null;
 }
 
-export function normalizePlan(value: unknown): Plan | null {
-  if (!value || typeof value !== "object") return null;
-  const raw = value as Record<string, unknown>;
-  const type = raw.type;
-  if (type !== "free" && type !== "one_time" && type !== "subscription") return null;
-  if (typeof raw.name !== "string" || raw.name.length === 0) return null;
-  if (typeof raw.id !== "string" && typeof raw.id !== "number") return null;
-
-  const features = Array.isArray(raw.features)
-    ? raw.features.filter((item): item is string => typeof item === "string")
-    : null;
-
+function asQuote(value: unknown, fallbackRegion: PaymentRegion): PlanPriceQuote | null {
+  const raw = asRecord(value);
+  if (!raw) return null;
+  const currency = raw.currency === "INR" || raw.currency === "USD" ? raw.currency : null;
+  const region = raw.region === "IN" || raw.region === "INTL" ? raw.region : fallbackRegion;
+  if (!currency) return null;
+  if (typeof raw.total !== "number" || !Number.isFinite(raw.total)) return null;
   return {
-    id: raw.id,
-    name: raw.name,
-    description: asNullableString(raw.description),
-    price: typeof raw.price === "number" && Number.isFinite(raw.price) ? raw.price : 0,
-    compareAtPrice: asNullableNumber(raw.compareAtPrice),
-    discountPercent: asNullableNumber(raw.discountPercent),
-    hasDiscount: raw.hasDiscount === true,
-    cadence: asNullableString(raw.cadence),
-    type,
-    features: features && features.length > 0 ? features : null,
-    cta: asNullableString(raw.cta),
-    scanLimit: asNullableNumber(raw.scanLimit),
-    badge: asNullableString(raw.badge),
-    isHighlighted: typeof raw.isHighlighted === "boolean" ? raw.isHighlighted : null,
+    region,
+    currency,
+    base: typeof raw.base === "number" && Number.isFinite(raw.base) ? raw.base : raw.total,
+    gstAmount:
+      typeof raw.gstAmount === "number" && Number.isFinite(raw.gstAmount) ? raw.gstAmount : 0,
+    gstRatePercent:
+      typeof raw.gstRatePercent === "number" && Number.isFinite(raw.gstRatePercent)
+        ? raw.gstRatePercent
+        : 0,
+    total: raw.total,
+    amountSubunits:
+      typeof raw.amountSubunits === "number" && Number.isFinite(raw.amountSubunits)
+        ? raw.amountSubunits
+        : Math.round(raw.total * 100),
+    usdToInrRate: asNullableNumber(raw.usdToInrRate) ?? undefined,
   };
 }
 
-export const FALLBACK_FREE_FEATURES = [
-  "Multi-page audit",
-  "AEO, GEO, and AI crawler checks",
-  "Ranked recommendations in plain language",
-  "Downloadable PDF",
-] as const;
+function asPrices(value: unknown): PlanPrices | null {
+  const raw = asRecord(value);
+  if (!raw) return null;
+  const usd = asQuote(raw.USD, "INTL");
+  const inr = asQuote(raw.INR, "IN");
+  if (!usd || !inr) return null;
+  return { USD: usd, INR: inr };
+}
 
-export const FALLBACK_FREE_PLAN: Plan = {
-  id: "free",
-  name: "Free",
-  description: "Full AEO, GEO, technical and content audit plus a downloadable PDF.",
-  price: 0,
-  compareAtPrice: null,
-  discountPercent: null,
-  hasDiscount: false,
-  cadence: null,
-  type: "free",
-  features: FALLBACK_FREE_FEATURES,
-  cta: "Start free",
-  scanLimit: null,
-  badge: null,
-  isHighlighted: false,
-};
+export function normalizePlan(value: unknown): Plan | null {
+  const raw = asRecord(value);
+  if (!raw) return null;
+  const type = raw.type === "free" || raw.type === "subscription" ? raw.type : null;
+  if (!type) return null;
+  if (typeof raw.name !== "string" || raw.name.length === 0) return null;
+  if (typeof raw.slug !== "string" || raw.slug.length === 0) return null;
+  if (typeof raw.id !== "string" && typeof raw.id !== "number") return null;
+  const prices = asPrices(raw.prices);
+  if (!prices) return null;
 
-export function withFallbackFreePlan(plans: readonly Plan[]): readonly Plan[] {
-  if (plans.some((plan) => plan.type === "free")) return plans;
-  return [FALLBACK_FREE_PLAN, ...plans];
+  const features = Array.isArray(raw.features)
+    ? raw.features.filter((item): item is string => typeof item === "string")
+    : [];
+
+  return {
+    id: raw.id,
+    slug: raw.slug,
+    name: raw.name,
+    description: asNullableString(raw.description),
+    price: typeof raw.price === "number" && Number.isFinite(raw.price) ? raw.price : prices.USD.total,
+    cadence: asNullableString(raw.cadence),
+    type,
+    features,
+    cta: asNullableString(raw.cta),
+    scanLimit: asNullableNumber(raw.scanLimit),
+    whiteLabel: raw.whiteLabel === true,
+    monitoring: raw.monitoring === true,
+    badge: asNullableString(raw.badge),
+    isHighlighted: raw.isHighlighted === true,
+    prices,
+  };
 }
 
 export function normalizePlans(payload: unknown): readonly Plan[] {
-  if (Array.isArray(payload)) {
-    return payload.map(normalizePlan).filter((plan): plan is Plan => plan !== null);
-  }
-  if (payload && typeof payload === "object" && "data" in payload) {
-    const data = (payload as { data?: unknown }).data;
-    if (Array.isArray(data)) {
-      return data.map(normalizePlan).filter((plan): plan is Plan => plan !== null);
-    }
-  }
-  return [];
+  const list = Array.isArray(payload)
+    ? payload
+    : asRecord(payload) && Array.isArray(asRecord(payload)?.data)
+      ? (asRecord(payload)?.data as unknown[])
+      : null;
+  if (!list) return [];
+  return list.map(normalizePlan).filter((plan): plan is Plan => plan !== null);
+}
+
+export function normalizeSubscriptionStatus(value: unknown): SubscriptionStatus {
+  return typeof value === "string" && STATUSES.has(value as SubscriptionStatus)
+    ? (value as SubscriptionStatus)
+    : "none";
+}
+
+export function emptySubscription(): SubscriptionState {
+  return {
+    plan: null,
+    isPaid: false,
+    isPro: false,
+    dailyScanLimit: null,
+    whiteLabel: false,
+    monitoring: false,
+    status: "none",
+    currentPeriodEnd: null,
+  };
+}
+
+export function normalizeSubscription(payload: unknown): SubscriptionState {
+  const root = asRecord(payload);
+  const data = asRecord(root?.data) ?? root;
+  if (!data) return emptySubscription();
+
+  const planRaw = asRecord(data.plan);
+  const plan =
+    planRaw && typeof planRaw.slug === "string" && typeof planRaw.name === "string"
+      ? {
+          id:
+            typeof planRaw.id === "string" || typeof planRaw.id === "number"
+              ? planRaw.id
+              : planRaw.slug,
+          slug: planRaw.slug,
+          name: planRaw.name,
+        }
+      : null;
+
+  return {
+    plan,
+    isPaid: typeof data.isPaid === "boolean" ? data.isPaid : plan !== null,
+    isPro: data.isPro === true,
+    dailyScanLimit: asNullableNumber(data.dailyScanLimit),
+    whiteLabel: data.whiteLabel === true,
+    monitoring: data.monitoring === true,
+    status: normalizeSubscriptionStatus(data.status),
+    currentPeriodEnd: asNullableString(data.currentPeriodEnd),
+  };
 }

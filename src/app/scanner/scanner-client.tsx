@@ -8,15 +8,12 @@ import { Download } from "lucide-react";
 import { isApiError } from "@/lib/api/client";
 import { createScanRequest, fetchScanResult, getAuditPreview } from "@/lib/api/scan";
 import { useAuth } from "@/components/providers/auth-provider";
-import { usePaymentQuote } from "@/hooks/use-payment-quote";
 import { usePdfDownload } from "@/hooks/use-pdf-download";
 import { usePolling } from "@/hooks/use-polling";
-import { useRazorpayPayment } from "@/hooks/use-razorpay-payment";
 import { shouldStopScanPolling } from "@/lib/scan/polling";
 import { ShareExperienceCta } from "@/components/reviews/share-experience-cta";
 import { AuditView } from "@/components/report/audit-view";
 import { ShareReportButton } from "@/components/report/share-report-button";
-import { UnlockEmailModal } from "@/components/report/unlock-modal";
 import { UpgradeProCard } from "@/components/report/upgrade-pro-card";
 
 import { scanSteps } from "./scanner-constants";
@@ -37,14 +34,13 @@ export default function ScannerClient({
   const [publicId, setPublicId] = useState(initialPublicId);
   const [cached, setCached] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
-  const [dailyLimit, setDailyLimit] = useState(false);
-  const [showUnlock, setShowUnlock] = useState(false);
-  const [emailError, setEmailError] = useState<string | null>(null);
+  const [dailyLimit, setDailyLimit] = useState<{
+    plan: string;
+    limit: number;
+  } | null>(null);
   const [activeStep, setActiveStep] = useState(0);
   const didAutoStart = useRef(false);
-  const { user, isAuthenticated } = useAuth();
-  const { isPaying, isFinalizingReport, startPayment } = useRazorpayPayment();
-  const { priceLabel: unlockPriceLabel } = usePaymentQuote();
+  const { user } = useAuth();
   const pdf = usePdfDownload();
 
   const pollingEnabled = Boolean(publicId);
@@ -90,7 +86,7 @@ export default function ScannerClient({
 
   const startScan = async (url: string, forceNew = false) => {
     setErrorMessage(null);
-    setDailyLimit(false);
+    setDailyLimit(null);
     setCached(false);
     setPublicId("");
     try {
@@ -99,7 +95,10 @@ export default function ScannerClient({
       setCached(created.cached && !forceNew);
     } catch (err) {
       if (isApiError(err) && err.status === 429 && err.code === "DAILY_LIMIT") {
-        setDailyLimit(true);
+        setDailyLimit({
+          plan: err.plan ?? "Free",
+          limit: typeof err.limit === "number" ? err.limit : 0,
+        });
         setErrorMessage(null);
         return;
       }
@@ -146,37 +145,6 @@ export default function ScannerClient({
     void startScan(validation.normalized);
   };
 
-  const handleUnlockSubmit = (email: string) => {
-    if (!publicId) return;
-    setEmailError(null);
-    void startPayment({
-      scanId: publicId,
-      email,
-      onSuccess: () => {
-        setShowUnlock(false);
-        void scanPoll.refetch();
-      },
-      onError: (error) => {
-        if (isApiError(error) && error.code === "EMAIL_REQUIRED") {
-          setEmailError("Email is required to unlock this report.");
-          return;
-        }
-        if (isApiError(error) && error.status === 409 && error.code === "ALREADY_UNLOCKED") {
-          setShowUnlock(false);
-          void scanPoll.refetch();
-          return;
-        }
-        if (isApiError(error) && error.status === 409) {
-          setEmailError("The scan is still running. Wait a moment and try again.");
-          return;
-        }
-        if (isApiError(error) && error.status === 404) {
-          setEmailError("This scan could not be found.");
-        }
-      },
-    });
-  };
-
   const reportActions = useMemo(() => {
     const ready = Boolean(audit || scan?.preview);
     const label = pdf.isPreparing
@@ -204,8 +172,6 @@ export default function ScannerClient({
     );
   }, [audit, pdf, publicId, scan]);
 
-  const defaultEmail = user?.email ?? "";
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -219,16 +185,6 @@ export default function ScannerClient({
         <div className="absolute bottom-0 left-1/2 h-80 w-80 -translate-x-1/2 rounded-full bg-amber-300/20 blur-3xl" />
       </div>
 
-      <UnlockEmailModal
-        open={showUnlock}
-        defaultEmail={defaultEmail}
-        priceLabel={unlockPriceLabel}
-        submitting={isPaying}
-        emailError={emailError}
-        onOpenChange={setShowUnlock}
-        onSubmit={handleUnlockSubmit}
-      />
-
       <section className="container py-16 md:py-24">
         <Hero />
         <div className="mx-auto mt-12 max-w-5xl space-y-6">
@@ -240,7 +196,9 @@ export default function ScannerClient({
             errorMessage={errorMessage}
           />
 
-          {dailyLimit ? <UpgradeProCard /> : null}
+          {dailyLimit ? (
+            <UpgradeProCard plan={dailyLimit.plan} limit={dailyLimit.limit} description="" />
+          ) : null}
 
           {scanState === "scanning" ? (
             <ScanLoader activeStep={scanSteps[activeStep]} />
@@ -272,16 +230,6 @@ export default function ScannerClient({
                 <AuditView
                   report={audit}
                   scan={scan}
-                  onUnlock={() => {
-                    setEmailError(null);
-                    if (isAuthenticated && user?.email) {
-                      handleUnlockSubmit(user.email);
-                      return;
-                    }
-                    setShowUnlock(true);
-                  }}
-                  unlockPriceLabel={unlockPriceLabel}
-                  unlocking={isPaying || isFinalizingReport}
                   pdfButton={reportActions}
                   isAdmin={user?.role === "admin"}
                 />
@@ -295,21 +243,11 @@ export default function ScannerClient({
                   onDownload={() => {
                     if (publicId) void pdf.download(publicId, scan.url, audit);
                   }}
-                  onUnlock={() => {
-                    if (isAuthenticated && user?.email) {
-                      handleUnlockSubmit(user.email);
-                      return;
-                    }
-                    setShowUnlock(true);
-                  }}
-                  unlockPriceLabel={unlockPriceLabel}
-                  unlocking={isPaying}
-                  unlockingLabel={
-                    isFinalizingReport
-                      ? "Writing your AI report…"
-                      : "Processing payment..."
-                  }
-                  downloading={pdf.isDownloading}
+            onUnlock={() => undefined}
+            unlockPriceLabel=""
+            unlocking={false}
+            unlockingLabel=""
+            downloading={pdf.isDownloading}
                 />
               ) : null}
 

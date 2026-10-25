@@ -1,33 +1,34 @@
 import { apiFetch } from "@/lib/api/client";
+import { emptySubscription, normalizeSubscription } from "@/lib/pricing";
 import type {
   ApiEnvelope,
   CancelSubscriptionResponse,
+  PaymentRegion,
   SubscribeResponse,
   SubscribeVerifyResponse,
   SubscriptionState,
 } from "@/types/api";
 
 export async function fetchSubscription(): Promise<SubscriptionState> {
-  const data = await apiFetch<ApiEnvelope<SubscriptionState>>(
-    "/payment/subscription"
-  );
-  if (!data.data) {
-    return {
-      isPro: false,
-      dailyScanLimit: null,
-      status: "none",
-      currentPeriodEnd: null,
-    };
-  }
-  return data.data;
+  const data = await apiFetch<unknown>("/payment/subscription");
+  return normalizeSubscription(data);
 }
 
-export async function createSubscription(): Promise<SubscribeResponse> {
+export async function createSubscription(input: {
+  readonly plan: string;
+  readonly region: PaymentRegion;
+}): Promise<SubscribeResponse> {
   const data = await apiFetch<ApiEnvelope<SubscribeResponse>>(
     "/payment/razorpay/subscribe",
-    { method: "POST" }
+    {
+      method: "POST",
+      body: JSON.stringify({
+        plan: input.plan,
+        region: input.region,
+      }),
+    }
   );
-  if (!data.data) {
+  if (!data.data?.subscriptionId || !data.data.keyId) {
     throw new Error(data.message ?? "Unable to start subscription.");
   }
   return data.data;
@@ -45,10 +46,15 @@ export async function verifySubscription(input: {
       body: JSON.stringify(input),
     }
   );
-  if (!data.data) {
+  if (data.success === false) {
     throw new Error(data.message ?? "Unable to verify subscription.");
   }
-  return data.data;
+  return (
+    data.data ?? {
+      status: "active",
+      currentPeriodEnd: null,
+    }
+  );
 }
 
 export async function cancelSubscription(): Promise<CancelSubscriptionResponse> {
@@ -61,3 +67,5 @@ export async function cancelSubscription(): Promise<CancelSubscriptionResponse> 
   }
   return data.data;
 }
+
+export { emptySubscription };
