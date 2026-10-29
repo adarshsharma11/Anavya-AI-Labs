@@ -1,9 +1,18 @@
 import type { Metadata } from 'next';
 
+export type NavSubItem = {
+  title: string;
+  href: string;
+  description?: string;
+  badge?: string;
+  icon?: string;
+};
+
 export type NavItem = {
   title: string;
   href: string;
   disabled?: boolean;
+  items?: NavSubItem[];
 };
 
 const CANONICAL_ORIGIN = "https://anavyaailabs.com";
@@ -78,6 +87,31 @@ export const siteConfig: SiteConfig = {
       href: "/competitor-scanner",
     },
     {
+      title: "Free Tools",
+      href: "/llms-txt-checker",
+      items: [
+        {
+          title: "llms.txt Checker",
+          href: "/llms-txt-checker",
+          description: "Validate & generate llms.txt against the official specification",
+          badge: "NEW",
+          icon: "file-code",
+        },
+        {
+          title: "Website Scanner",
+          href: "/scanner",
+          description: "Free AEO, GEO and technical SEO audit for your site",
+          icon: "shield-check",
+        },
+        {
+          title: "Competitor Scanner",
+          href: "/competitor-scanner",
+          description: "Benchmark two websites side-by-side for AI visibility gaps",
+          icon: "bar-chart",
+        },
+      ],
+    },
+    {
       title: "Blog",
       href: "/blog",
     },
@@ -120,6 +154,12 @@ export const pageMetadata = {
     description:
       'Compare two public websites for SEO, speed, accessibility, and AI-search gaps. Get a ranked list of what to fix first.',
     canonical: '/competitor-scanner',
+  },
+  llmsTxtChecker: {
+    title: 'Free llms.txt Checker & Validator | Anavya AI Labs',
+    description:
+      'Validate your llms.txt file against the official llmstxt.org specification. Check live URLs, validate markdown, verify links, and generate compliant files.',
+    canonical: '/llms-txt-checker',
   },
   services: {
     title: 'Website Audit and AI Optimization',
