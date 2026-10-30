@@ -79,14 +79,6 @@ export const siteConfig: SiteConfig = {
       href: "/",
     },
     {
-      title: "Scanner",
-      href: "/scanner",
-    },
-    {
-      title: "Competitors",
-      href: "/competitor-scanner",
-    },
-    {
       title: "Free Tools",
       href: "/llms-txt-checker",
       items: [
