@@ -15,7 +15,7 @@ export type NavItem = {
   items?: NavSubItem[];
 };
 
-const CANONICAL_ORIGIN = "https://anavyaailabs.com";
+const CANONICAL_ORIGIN = "https://www.anavyaailabs.com";
 
 export function toCanonicalUrl(path: `/${string}`): string {
   if (!path.startsWith("/") || path.startsWith("//")) {
@@ -142,15 +142,15 @@ export const pageMetadata = {
     canonical: '/scanner',
   },
   competitorScanner: {
-    title: 'Competitor SEO and AI Visibility Scan',
+    title: 'Free Competitor SEO and AI Visibility Scan',
     description:
       'Compare two public websites for SEO, speed, accessibility, and AI-search gaps. Get a ranked list of what to fix first.',
     canonical: '/competitor-scanner',
   },
   llmsTxtChecker: {
-    title: 'Free llms.txt Checker & Validator | Anavya AI Labs',
+    title: 'Free llms.txt Checker - Validate Your File in 10 Seconds (2026)',
     description:
-      'Validate your llms.txt file against the official llmstxt.org specification. Check live URLs, validate markdown, verify links, and generate compliant files.',
+      'Free llms.txt validator. Paste your URL and get an instant report: spec compliance, broken links, markdown errors. No signup. Generate a fixed file in one click.',
     canonical: '/llms-txt-checker',
   },
   services: {
